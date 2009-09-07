@@ -1,5 +1,5 @@
 Attribute VB_Name = "ImportFrom"
-Attribute VB_Base = "0{9666EBA5-FAB3-4AB2-BB7F-174EEC9B5200}{CC39131D-2D59-4C06-8B32-EA99715BE8F0}"
+Attribute VB_Base = "0{58A0A1D5-3A1E-4EBD-9A48-64F4ADC03E1C}{5D0A168E-54D4-4804-8AB7-CF6CE680B7C7}"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
@@ -123,7 +123,7 @@ Private Sub UserForm_Activate()
                 TankSelect1.Refresh
                 BlockSelect1.Refresh
                 Call buildOptionLists(theBlock, theTank, theServer, True)
-            Case BlockSelectFail:
+            Case BlockConnectFail:
                 TankSelect1.UseServer = theServer
                 TankSelect1.ActiveTank = theTank
                 TankSelect1.Refresh

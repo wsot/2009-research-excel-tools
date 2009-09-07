@@ -6,7 +6,7 @@
 ' 	Option  (Explicit)
 ' Line #1:
 ' _VBA_PROJECT_CUR/VBA/Sheet1 - 1150 bytes
-' _VBA_PROJECT_CUR/VBA/ImportFrom - 22380 bytes
+' _VBA_PROJECT_CUR/VBA/ImportFrom - 22376 bytes
 ' Line #0:
 ' 	Dim 
 ' 	VarDefn objTTX (As Object)
@@ -452,7 +452,7 @@
 ' 	LitVarSpecial (True)
 ' 	ArgsCall (Call) _B_var_buildOptionLists 0x0004 
 ' Line #117:
-' 	Ld UseTakn 
+' 	Ld _B_var_BlockConnectFail 
 ' 	Case 
 ' 	CaseDone 
 ' 	BoS 0x0000 
@@ -1087,7 +1087,7 @@
 ' Line #276:
 ' Line #277:
 ' 	EndSub 
-' _VBA_PROJECT_CUR/VBA/Module1 - 42311 bytes
+' _VBA_PROJECT_CUR/VBA/Module1 - 47991 bytes
 ' Line #0:
 ' 	Option  (Explicit)
 ' Line #1:
@@ -1148,89 +1148,98 @@
 ' Line #22:
 ' 	FuncDefn (Sub importIntoSigmaplot())
 ' Line #23:
-' 	Ld ImportFrom 
-' 	ArgsMemCall Show 0x0000 
+' 	QuoteRem 0x0000 0x0013 "    ImportFrom.Show"
 ' Line #24:
 ' Line #25:
-' 	Ld doImport 
-' 	IfBlock 
+' 	QuoteRem 0x0000 0x0014 "    If doImport Then"
 ' Line #26:
-' 	LitVarSpecial (True)
-' 	ArgsCall (Call) processImport 0x0001 
+' 	QuoteRem 0x0000 0x0020 "        Call processImport(True)"
 ' Line #27:
-' 	EndIfBlock 
+' 	QuoteRem 0x0000 0x000A "    End If"
 ' Line #28:
-' 	EndSub 
+' 	ArgsCall (Call) ACTIVESPWLib 0x0000 
 ' Line #29:
+' 	EndSub 
 ' Line #30:
-' 	FuncDefn (Sub processImport(spNB As Boolean))
 ' Line #31:
+' 	FuncDefn (Sub processImport(spNB As Boolean))
 ' Line #32:
-' 	QuoteRem 0x0004 0x002B "load the bin width for histogram generation"
 ' Line #33:
+' 	QuoteRem 0x0004 0x002B "load the bin width for histogram generation"
+' Line #34:
 ' 	LitStr 0x0002 "B1"
 ' 	LitStr 0x0008 "Settings"
 ' 	ArgsLd Worksheets 0x0001 
 ' 	ArgsMemLd Range 0x0001 
 ' 	MemLd Value 
 ' 	St lBinWidth 
-' Line #34:
 ' Line #35:
-' 	QuoteRem 0x0004 0x004D "load the # of msec to ignore at the start (for filtering stimulation artifact"
 ' Line #36:
+' 	QuoteRem 0x0004 0x004D "load the # of msec to ignore at the start (for filtering stimulation artifact"
+' Line #37:
 ' 	LitStr 0x0002 "B2"
 ' 	LitStr 0x0008 "Settings"
 ' 	ArgsLd Worksheets 0x0001 
 ' 	ArgsMemLd Range 0x0001 
 ' 	MemLd Value 
 ' 	St _B_var_lIgnoreFirstMsec 
-' Line #37:
 ' Line #38:
-' 	QuoteRem 0x0004 0x003A "used to store the maximum histogram peak for normalisation"
 ' Line #39:
+' 	QuoteRem 0x0004 0x003A "used to store the maximum histogram peak for normalisation"
+' Line #40:
 ' 	Dim 
 ' 	VarDefn lMaxHistHeigh (As Double)
-' Line #40:
+' Line #41:
 ' 	LitDI2 0x0000 
 ' 	St lMaxHistHeigh 
-' Line #41:
 ' Line #42:
+' Line #43:
 ' 	Dim 
 ' 	VarDefn theWorksheets (As Variant)
 ' 	QuoteRem 0x0021 0x0029 "stores the created worksheets to write to"
-' Line #43:
+' Line #44:
 ' 	Dim 
 ' 	VarDefn _B_var_arrHistTmp (As Long)
 ' 	QuoteRem 0x001D 0x0044 "used to store the histogram data for each channel as it is generated"
-' Line #44:
+' Line #45:
 ' 	OptionBase 
 ' 	LitDI2 0x001F 
 ' 	Redim _B_var_arrHistTmp 0x0001 (As Variant)
-' Line #45:
 ' Line #46:
-' 	QuoteRem 0x0004 0x0037 "offsets to leave space at the top and left of the chart"
 ' Line #47:
+' 	Dim 
+' 	VarDefn xCount (As Long)
+' Line #48:
+' 	Dim 
+' 	VarDefn yCoun (As Long)
+' Line #49:
+' 	Dim 
+' 	VarDefn lMaxHistHe (As Long)
+' Line #50:
+' Line #51:
+' 	QuoteRem 0x0004 0x0037 "offsets to leave space at the top and left of the chart"
+' Line #52:
 ' 	LitDI2 0x0001 
 ' 	St _B_var_Const 
-' Line #48:
+' Line #53:
 ' 	LitDI2 0x0000 
 ' 	St _B_var_iColOffset 
-' Line #49:
-' Line #50:
+' Line #54:
+' Line #55:
 ' 	QuoteRem 0x0000 0x0050 "    theWorksheets = buildWorksheetArray() 'build the worksheets for writing data"
-' Line #51:
-' Line #52:
+' Line #56:
+' Line #57:
 ' 	QuoteRem 0x0004 0x0013 "connect to the tank"
-' Line #53:
+' Line #58:
 ' 	Dim 
 ' 	VarDefn objTTX
-' Line #54:
+' Line #59:
 ' 	SetStmt 
 ' 	LitStr 0x0007 "TTank.X"
 ' 	ArgsLd CreateObject 0x0001 
 ' 	Set objTTX 
-' Line #55:
-' Line #56:
+' Line #60:
+' Line #61:
 ' 	Ld theServer 
 ' 	LitStr 0x0002 "Me"
 ' 	Ld objTTX 
@@ -1239,7 +1248,7 @@
 ' 	Coerce (Lng) 
 ' 	Ne 
 ' 	IfBlock 
-' Line #57:
+' Line #62:
 ' 	LitStr 0x0015 "Connecting to server "
 ' 	Ld theServer 
 ' 	Concat 
@@ -1247,12 +1256,12 @@
 ' 	Concat 
 ' 	Paren 
 ' 	ArgsCall MsgBox 0x0001 
-' Line #58:
+' Line #63:
 ' 	ExitSub 
-' Line #59:
+' Line #64:
 ' 	EndIfBlock 
-' Line #60:
-' Line #61:
+' Line #65:
+' Line #66:
 ' 	Ld theTank 
 ' 	LitStr 0x0001 "R"
 ' 	Ld objTTX 
@@ -1261,7 +1270,7 @@
 ' 	Coerce (Lng) 
 ' 	Ne 
 ' 	IfBlock 
-' Line #62:
+' Line #67:
 ' 	LitStr 0x0013 "Connecting to tank "
 ' 	Ld theTank 
 ' 	Concat 
@@ -1273,15 +1282,15 @@
 ' 	Concat 
 ' 	Paren 
 ' 	ArgsCall MsgBox 0x0001 
-' Line #63:
+' Line #68:
 ' 	Ld objTTX 
 ' 	ArgsMemCall (Call) ReleaseServer 0x0000 
-' Line #64:
+' Line #69:
 ' 	ExitSub 
-' Line #65:
+' Line #70:
 ' 	EndIfBlock 
-' Line #66:
-' Line #67:
+' Line #71:
+' Line #72:
 ' 	Ld theBlock 
 ' 	Ld objTTX 
 ' 	ArgsMemLd SelectBlock 0x0001 
@@ -1289,7 +1298,7 @@
 ' 	Coerce (Lng) 
 ' 	Ne 
 ' 	IfBlock 
-' Line #68:
+' Line #73:
 ' 	LitStr 0x0014 "Connecting to block "
 ' 	Ld theBlock 
 ' 	Concat 
@@ -1305,82 +1314,82 @@
 ' 	Concat 
 ' 	Paren 
 ' 	ArgsCall MsgBox 0x0001 
-' Line #69:
+' Line #74:
 ' 	Ld objTTX 
 ' 	ArgsMemCall (Call) CloseTank 0x0000 
-' Line #70:
-' 	Ld objTTX 
-' 	ArgsMemCall (Call) ReleaseServer 0x0000 
-' Line #71:
-' 	ExitSub 
-' Line #72:
-' 	EndIfBlock 
-' Line #73:
-' Line #74:
-' 	QuoteRem 0x0004 0x0026 "index epochs - required to use filters"
 ' Line #75:
 ' 	Ld objTTX 
-' 	ArgsMemCall (Call) CreateEpocIndexing 0x0000 
+' 	ArgsMemCall (Call) ReleaseServer 0x0000 
 ' Line #76:
+' 	ExitSub 
 ' Line #77:
-' 	Dim 
-' 	VarDefn dblStartTime (As Double)
+' 	EndIfBlock 
 ' Line #78:
-' 	Dim 
-' 	VarDefn dblEndTime (As Double)
 ' Line #79:
+' 	QuoteRem 0x0004 0x0026 "index epochs - required to use filters"
 ' Line #80:
-' 	Dim 
-' 	VarDefn varReturn (As Variant)
+' 	Ld objTTX 
+' 	ArgsMemCall (Call) CreateEpocIndexing 0x0000 
 ' Line #81:
 ' Line #82:
-' 	QuoteRem 0x0000 0x001D "    Dim vXAxisKeys As Variant"
+' 	Dim 
+' 	VarDefn dblStartTime (As Double)
 ' Line #83:
-' 	QuoteRem 0x0000 0x001D "    Dim vYAxisKeys As Variant"
+' 	Dim 
+' 	VarDefn dblEndTime (As Double)
 ' Line #84:
 ' Line #85:
+' 	Dim 
+' 	VarDefn varReturn (As Variant)
+' Line #86:
+' Line #87:
+' 	QuoteRem 0x0000 0x001D "    Dim vXAxisKeys As Variant"
+' Line #88:
+' 	QuoteRem 0x0000 0x001D "    Dim vYAxisKeys As Variant"
+' Line #89:
+' Line #90:
 ' 	Ld objTTX 
 ' 	Ld yAxisEp 
 ' 	Ld bReverseY 
 ' 	ArgsLd _B_var_buildEpocList 0x0003 
 ' 	St vYAxisKeys 
-' Line #86:
+' Line #91:
 ' 	Ld objTTX 
 ' 	Ld otherEp 
 ' 	Ld ReverseX 
 ' 	ArgsLd _B_var_buildEpocList 0x0003 
 ' 	St buildOptionLists 
-' Line #87:
-' Line #88:
-' 	Dim 
-' 	VarDefn i (As Long)
-' Line #89:
-' 	Dim 
-' 	VarDefn j (As Long)
-' Line #90:
-' 	Dim 
-' 	VarDefn k (As Long)
-' Line #91:
-' 	Dim 
-' 	VarDefn l (As Long)
 ' Line #92:
 ' Line #93:
 ' 	Dim 
-' 	VarDefn strSearchString (As Variant)
+' 	VarDefn i (As Long)
 ' Line #94:
+' 	Dim 
+' 	VarDefn j (As Long)
+' Line #95:
+' 	Dim 
+' 	VarDefn k (As Long)
+' Line #96:
+' 	Dim 
+' 	VarDefn l (As Long)
+' Line #97:
+' Line #98:
+' 	Dim 
+' 	VarDefn strSearchString (As Variant)
+' Line #99:
 ' 	Ld _B_var_arrOtherEp 
 ' 	FnUBound 0x0000 
 ' 	LitDI2 0x0001 
 ' 	UMi 
 ' 	Ne 
 ' 	IfBlock 
-' Line #95:
+' Line #100:
 ' 	OptionBase 
 ' 	Ld _B_var_arrOtherEp 
 ' 	FnUBound 0x0000 
 ' 	Redim strSearchString 0x0001 (As Variant)
-' Line #96:
-' Line #97:
+' Line #101:
+' Line #102:
 ' 	StartForVariable 
 ' 	Ld i 
 ' 	EndForVariable 
@@ -1388,7 +1397,7 @@
 ' 	Ld _B_var_arrOtherEp 
 ' 	FnUBound 0x0000 
 ' 	For 
-' Line #98:
+' Line #103:
 ' 	Ld objTTX 
 ' 	Ld i 
 ' 	ArgsLd _B_var_arrOtherEp 0x0001 
@@ -1396,92 +1405,92 @@
 ' 	ArgsLd _B_var_buildEpocList 0x0003 
 ' 	Ld i 
 ' 	ArgsSt strSearchString 0x0001 
-' Line #99:
+' Line #104:
 ' 	StartForVariable 
 ' 	Next 
-' Line #100:
+' Line #105:
 ' 	EndIfBlock 
-' Line #101:
-' Line #102:
+' Line #106:
+' Line #107:
 ' 	LitDI2 0x0000 
 ' 	St i 
-' Line #103:
+' Line #108:
 ' 	LitDI2 0x0000 
 ' 	St j 
-' Line #104:
-' Line #105:
+' Line #109:
+' Line #110:
 ' 	Dim 
 ' 	VarDefn iYAxisIndex (As Integer)
-' Line #106:
+' Line #111:
 ' 	Dim 
 ' 	VarDefn otherEpocList (As Integer)
-' Line #107:
+' Line #112:
 ' 	Dim 
 ' 	VarDefn _B_var_arrOtherEpocIndex (As Integer)
-' Line #108:
+' Line #113:
 ' 	Ld _B_var_arrOtherEp 
 ' 	FnUBound 0x0000 
 ' 	LitDI2 0x0001 
 ' 	UMi 
 ' 	Ne 
 ' 	IfBlock 
-' Line #109:
+' Line #114:
 ' 	OptionBase 
 ' 	Ld _B_var_arrOtherEp 
 ' 	FnUBound 0x0000 
 ' 	Redim _B_var_arrOtherEpocIndex 0x0001 (As Variant)
-' Line #110:
-' 	EndIfBlock 
-' Line #111:
-' Line #112:
-' 	Dim 
-' 	VarDefn varChanData (As Variant)
-' Line #113:
-' 	Dim 
-' 	VarDefn IsEmpty (As Double)
-' Line #114:
 ' Line #115:
-' 	Dim 
-' 	VarDefn yAxisSearchString (As String)
+' 	EndIfBlock 
 ' Line #116:
-' 	Dim 
-' 	VarDefn otherAxisSearchString (As String)
 ' Line #117:
 ' 	Dim 
-' 	VarDefn processSearch (As String)
+' 	VarDefn varChanData (As Variant)
 ' Line #118:
 ' 	Dim 
-' 	VarDefn arrOtherEpFor (As String)
+' 	VarDefn IsEmpty (As Double)
 ' Line #119:
+' Line #120:
+' 	Dim 
+' 	VarDefn yAxisSearchString (As String)
+' Line #121:
+' 	Dim 
+' 	VarDefn otherAxisSearchString (As String)
+' Line #122:
+' 	Dim 
+' 	VarDefn processSearch (As String)
+' Line #123:
+' 	Dim 
+' 	VarDefn arrOtherEpFor (As String)
+' Line #124:
 ' 	Ld _B_var_arrOtherEp 
 ' 	FnUBound 0x0000 
 ' 	LitDI2 0x0001 
 ' 	UMi 
 ' 	Ne 
 ' 	IfBlock 
-' Line #120:
+' Line #125:
 ' 	OptionBase 
 ' 	Ld _B_var_arrOtherEp 
 ' 	FnUBound 0x0000 
 ' 	Redim processSearch 0x0001 (As Variant)
-' Line #121:
+' Line #126:
 ' 	EndIfBlock 
-' Line #122:
-' Line #123:
+' Line #127:
+' Line #128:
 ' 	Dim 
 ' 	VarDefn 1 (As Integer)
-' Line #124:
+' Line #129:
 ' 	LitDI2 0x0000 
 ' 	St 1 
-' Line #125:
-' Line #126:
+' Line #130:
+' Line #131:
 ' 	Ld _B_var_arrOtherEp 
 ' 	FnUBound 0x0000 
 ' 	LitDI2 0x0001 
 ' 	UMi 
 ' 	Ne 
 ' 	IfBlock 
-' Line #127:
+' Line #132:
 ' 	StartForVariable 
 ' 	Ld i 
 ' 	EndForVariable 
@@ -1489,21 +1498,21 @@
 ' 	Ld vYAxisKeys 
 ' 	FnUBound 0x0000 
 ' 	For 
-' Line #128:
+' Line #133:
 ' 	Ld yAxisEp 
 ' 	LitStr 0x0007 "Channel"
 ' 	Eq 
 ' 	IfBlock 
-' Line #129:
+' Line #134:
 ' 	Ld i 
 ' 	ArgsLd vYAxisKeys 0x0001 
 ' 	St 1 
-' Line #130:
+' Line #135:
 ' 	LitStr 0x0000 ""
 ' 	St yAxisSearchString 
-' Line #131:
+' Line #136:
 ' 	ElseBlock 
-' Line #132:
+' Line #137:
 ' 	Ld yAxisEp 
 ' 	LitStr 0x0003 " = "
 ' 	Concat 
@@ -1514,9 +1523,9 @@
 ' 	LitStr 0x0005 " and "
 ' 	Concat 
 ' 	St yAxisSearchString 
-' Line #133:
+' Line #138:
 ' 	EndIfBlock 
-' Line #134:
+' Line #139:
 ' 	StartForVariable 
 ' 	Ld j 
 ' 	EndForVariable 
@@ -1524,21 +1533,21 @@
 ' 	Ld buildOptionLists 
 ' 	FnUBound 0x0000 
 ' 	For 
-' Line #135:
+' Line #140:
 ' 	Ld otherEp 
 ' 	LitStr 0x0007 "Channel"
 ' 	Eq 
 ' 	IfBlock 
-' Line #136:
+' Line #141:
 ' 	Ld j 
 ' 	ArgsLd buildOptionLists 0x0001 
 ' 	St 1 
-' Line #137:
+' Line #142:
 ' 	LitStr 0x0000 ""
 ' 	St otherAxisSearchString 
-' Line #138:
+' Line #143:
 ' 	ElseBlock 
-' Line #139:
+' Line #144:
 ' 	Ld otherEp 
 ' 	LitStr 0x0003 " = "
 ' 	Concat 
@@ -1549,9 +1558,9 @@
 ' 	LitStr 0x0005 " and "
 ' 	Concat 
 ' 	St otherAxisSearchString 
-' Line #140:
+' Line #145:
 ' 	EndIfBlock 
-' Line #141:
+' Line #146:
 ' 	Ld objTTX 
 ' 	Ld _B_var_arrOtherEp 
 ' 	Ld strSearchString 
@@ -1571,62 +1580,102 @@
 ' 	Add 
 ' 	Ld 1 
 ' 	LitStr 0x0000 ""
-' 	ArgsCall (Call) _B_var_processSearch 0x000A 
-' Line #142:
-' 	StartForVariable 
-' 	Next 
-' Line #143:
-' 	StartForVariable 
-' 	Next 
-' Line #144:
-' 	EndIfBlock 
-' Line #145:
-' Line #146:
-' 	QuoteRem 0x0000 0x0051 "    Call writeAxes(theWorksheets, vXAxisKeys, vYAxisKeys, iColOffset, iRowOffset)"
+' 	Ld yCoun 
+' 	Ld xCount 
+' 	Ld lMaxHistHe 
+' 	Ld lMaxHistHeigh 
+' 	ArgsCall (Call) _B_var_processSearch 0x000E 
 ' Line #147:
+' 	StartForVariable 
+' 	Next 
 ' Line #148:
-' 	Ld objTTX 
-' 	ArgsMemCall (Call) CloseTank 0x0000 
+' 	StartForVariable 
+' 	Next 
 ' Line #149:
-' 	Ld objTTX 
-' 	ArgsMemCall (Call) ReleaseServer 0x0000 
+' 	EndIfBlock 
 ' Line #150:
 ' Line #151:
-' 	Ld spNB 
-' 	IfBlock 
+' 	QuoteRem 0x0000 0x0051 "    Call writeAxes(theWorksheets, vXAxisKeys, vYAxisKeys, iColOffset, iRowOffset)"
 ' Line #152:
-' 	Ld theWorksheets 
-' 	Ld vYAxisKeys 
-' 	Ld buildOptionLists 
-' 	Ld _B_var_iColOffset 
-' 	Ld _B_var_Const 
-' 	Ld lMaxHistHeigh 
-' 	ArgsCall (Call) ACTIVESPWLib 0x0006 
 ' Line #153:
-' 	EndIfBlock 
+' 	Ld objTTX 
+' 	ArgsMemCall (Call) CloseTank 0x0000 
 ' Line #154:
+' 	Ld objTTX 
+' 	ArgsMemCall (Call) ReleaseServer 0x0000 
 ' Line #155:
-' 	EndSub 
 ' Line #156:
+' 	Ld yCoun 
+' 	LitStr 0x0002 "H1"
+' 	LitStr 0x0017 "Variables (do not edit)"
+' 	ArgsLd Worksheets 0x0001 
+' 	ArgsMemLd Range 0x0001 
+' 	MemSt Value 
 ' Line #157:
-' 	FuncDefn (Function buildWorksheetArray() As Variant)
+' 	Ld xCount 
+' 	LitStr 0x0002 "H2"
+' 	LitStr 0x0017 "Variables (do not edit)"
+' 	ArgsLd Worksheets 0x0001 
+' 	ArgsMemLd Range 0x0001 
+' 	MemSt Value 
 ' Line #158:
+' 	Ld lMaxHistHe 
+' 	LitStr 0x0002 "H3"
+' 	LitStr 0x0017 "Variables (do not edit)"
+' 	ArgsLd Worksheets 0x0001 
+' 	ArgsMemLd Range 0x0001 
+' 	MemSt Value 
+' Line #159:
+' 	Ld lMaxHistHeigh 
+' 	LitStr 0x0002 "H4"
+' 	LitStr 0x0017 "Variables (do not edit)"
+' 	ArgsLd Worksheets 0x0001 
+' 	ArgsMemLd Range 0x0001 
+' 	MemSt Value 
+' Line #160:
+' 	Ld _B_var_iColOffset 
+' 	LitStr 0x0002 "H5"
+' 	LitStr 0x0017 "Variables (do not edit)"
+' 	ArgsLd Worksheets 0x0001 
+' 	ArgsMemLd Range 0x0001 
+' 	MemSt Value 
+' Line #161:
+' 	Ld _B_var_Const 
+' 	LitStr 0x0002 "H6"
+' 	LitStr 0x0017 "Variables (do not edit)"
+' 	ArgsLd Worksheets 0x0001 
+' 	ArgsMemLd Range 0x0001 
+' 	MemSt Value 
+' Line #162:
+' Line #163:
+' 	QuoteRem 0x0004 0x001B "If importIntoSigmaplot Then"
+' Line #164:
+' 	QuoteRem 0x0008 0x005D "Call transferToSigmaplot(xCount, yCount, zOffsetSize, iColOffset, iRowOffset, lMaxHistHeight)"
+' Line #165:
+' 	QuoteRem 0x0004 0x0006 "End If"
+' Line #166:
+' Line #167:
+' 	EndSub 
+' Line #168:
+' Line #169:
+' 	FuncDefn (Function buildWorksheetArray() As Variant)
+' Line #170:
 ' 	Dim 
 ' 	OptionBase 
 ' 	LitDI2 0x001F 
 ' 	VarDefn theWorksheets
-' Line #159:
+' Line #171:
 ' 	Dim 
 ' 	VarDefn strWsname (As String)
-' Line #160:
+' Line #172:
 ' 	Dim 
 ' 	VarDefn intWSNum (As Long)
-' Line #161:
-' Line #162:
+' Line #173:
+' Line #174:
 ' 	Dim 
 ' 	VarDefn i (As Integer)
-' Line #163:
-' Line #164:
+' Line #175:
+' Line #176:
 ' 	StartForVariable 
 ' 	Ld i 
 ' 	EndForVariable 
@@ -1634,20 +1683,20 @@
 ' 	Ld Worksheets 
 ' 	MemLd Count 
 ' 	For 
-' Line #165:
+' Line #177:
 ' 	Ld i 
 ' 	Ld Worksheets 
 ' 	ArgsMemLd Item 0x0001 
 ' 	MemLd Name 
 ' 	St strWsname 
-' Line #166:
+' Line #178:
 ' 	Ld strWsname 
 ' 	LitDI2 0x0004 
 ' 	ArgsLd Left 0x0002 
 ' 	LitStr 0x0004 "Site"
 ' 	Eq 
 ' 	IfBlock 
-' Line #167:
+' Line #179:
 ' 	Ld strWsname 
 ' 	Ld strWsname 
 ' 	FnLen 
@@ -1656,7 +1705,7 @@
 ' 	ArgsLd Right 0x0002 
 ' 	ArgsLd IsNumeric 0x0001 
 ' 	IfBlock 
-' Line #168:
+' Line #180:
 ' 	Ld strWsname 
 ' 	Ld strWsname 
 ' 	FnLen 
@@ -1665,7 +1714,7 @@
 ' 	ArgsLd Right 0x0002 
 ' 	Coerce (Int) 
 ' 	St intWSNum 
-' Line #169:
+' Line #181:
 ' 	Ld intWSNum 
 ' 	LitDI2 0x0021 
 ' 	Lt 
@@ -1674,7 +1723,7 @@
 ' 	Gt 
 ' 	And 
 ' 	IfBlock 
-' Line #170:
+' Line #182:
 ' 	SetStmt 
 ' 	Ld i 
 ' 	Ld Worksheets 
@@ -1683,34 +1732,34 @@
 ' 	LitDI2 0x0001 
 ' 	Sub 
 ' 	ArgsSet theWorksheets 0x0001 
-' Line #171:
+' Line #183:
 ' 	EndIfBlock 
-' Line #172:
+' Line #184:
 ' 	EndIfBlock 
-' Line #173:
+' Line #185:
 ' 	EndIfBlock 
-' Line #174:
+' Line #186:
 ' 	StartForVariable 
 ' 	Next 
-' Line #175:
-' Line #176:
+' Line #187:
+' Line #188:
 ' 	StartForVariable 
 ' 	Ld i 
 ' 	EndForVariable 
 ' 	LitDI2 0x0000 
 ' 	LitDI2 0x001F 
 ' 	For 
-' Line #177:
+' Line #189:
 ' 	Ld i 
 ' 	ArgsLd theWorksheets 0x0001 
 ' 	ArgsLd Sheet70 0x0001 
 ' 	IfBlock 
-' Line #178:
+' Line #190:
 ' 	Ld i 
 ' 	LitDI2 0x0000 
 ' 	Gt 
 ' 	IfBlock 
-' Line #179:
+' Line #191:
 ' 	SetStmt 
 ' 	ParamOmitted 
 ' 	Ld i 
@@ -1723,9 +1772,9 @@
 ' 	ArgsMemLd Add 0x0004 
 ' 	Ld i 
 ' 	ArgsSet theWorksheets 0x0001 
-' Line #180:
+' Line #192:
 ' 	ElseBlock 
-' Line #181:
+' Line #193:
 ' 	SetStmt 
 ' 	ParamOmitted 
 ' 	Ld Worksheets 
@@ -1738,9 +1787,9 @@
 ' 	ArgsMemLd Add 0x0004 
 ' 	Ld i 
 ' 	ArgsSet theWorksheets 0x0001 
-' Line #182:
+' Line #194:
 ' 	EndIfBlock 
-' Line #183:
+' Line #195:
 ' 	LitStr 0x0004 "Site"
 ' 	Ld i 
 ' 	LitDI2 0x0001 
@@ -1750,24 +1799,24 @@
 ' 	Ld i 
 ' 	ArgsLd theWorksheets 0x0001 
 ' 	MemSt Name 
-' Line #184:
+' Line #196:
 ' 	EndIfBlock 
-' Line #185:
+' Line #197:
 ' 	StartForVariable 
 ' 	Next 
-' Line #186:
+' Line #198:
 ' 	Ld theWorksheets 
 ' 	St buildWorksheetArray 
-' Line #187:
+' Line #199:
 ' 	EndFunc 
-' Line #188:
-' Line #189:
+' Line #200:
+' Line #201:
 ' 	FuncDefn (Sub SubwriteAxes(rowLabels As Variant, deleteWorksheets As Variant, _B_var_iColOffset, _B_var_Const, xOffes))
-' Line #190:
+' Line #202:
 ' 	Dim 
 ' 	VarDefn j (As Long)
-' Line #191:
-' Line #192:
+' Line #203:
+' Line #204:
 ' 	StartForVariable 
 ' 	Ld j 
 ' 	EndForVariable 
@@ -1775,7 +1824,7 @@
 ' 	Ld deleteWorksheets 
 ' 	FnUBound 0x0000 
 ' 	For 
-' Line #193:
+' Line #205:
 ' 	Ld j 
 ' 	ArgsLd deleteWorksheets 0x0001 
 ' 	Ld _B_var_Const 
@@ -1792,10 +1841,10 @@
 ' 	ArgsLd Worksheets 0x0001 
 ' 	ArgsMemLd Cells 0x0002 
 ' 	MemSt Value 
-' Line #194:
+' Line #206:
 ' 	StartForVariable 
 ' 	Next 
-' Line #195:
+' Line #207:
 ' 	StartForVariable 
 ' 	Ld j 
 ' 	EndForVariable 
@@ -1803,7 +1852,7 @@
 ' 	Ld rowLabels 
 ' 	FnUBound 0x0000 
 ' 	For 
-' Line #196:
+' Line #208:
 ' 	Ld j 
 ' 	ArgsLd rowLabels 0x0001 
 ' 	Ld _B_var_Const 
@@ -1818,56 +1867,56 @@
 ' 	ArgsLd Worksheets 0x0001 
 ' 	ArgsMemLd Cells 0x0002 
 ' 	MemSt Value 
-' Line #197:
+' Line #209:
 ' 	StartForVariable 
 ' 	Next 
-' Line #198:
-' Line #199:
+' Line #210:
+' Line #211:
 ' 	EndSub 
-' Line #200:
-' Line #201:
+' Line #212:
+' Line #213:
 ' 	FuncDefn (Sub Delete())
-' Line #202:
+' Line #214:
 ' 	Dim 
 ' 	VarDefn strWsname (As String)
-' Line #203:
+' Line #215:
 ' 	Dim 
 ' 	VarDefn intWSNum (As Long)
-' Line #204:
-' Line #205:
+' Line #216:
+' Line #217:
 ' 	Dim 
 ' 	VarDefn i (As Integer)
-' Line #206:
-' Line #207:
+' Line #218:
+' Line #219:
 ' 	Ld Worksheets 
 ' 	MemLd Count 
 ' 	St i 
-' Line #208:
-' Line #209:
+' Line #220:
+' Line #221:
 ' 	Do 
-' Line #210:
+' Line #222:
 ' 	Ld i 
 ' 	LitDI2 0x0000 
 ' 	Eq 
 ' 	IfBlock 
-' Line #211:
+' Line #223:
 ' 	ExitDo 
-' Line #212:
+' Line #224:
 ' 	EndIfBlock 
-' Line #213:
+' Line #225:
 ' 	Ld i 
 ' 	Ld Worksheets 
 ' 	ArgsMemLd Item 0x0001 
 ' 	MemLd Name 
 ' 	St strWsname 
-' Line #214:
+' Line #226:
 ' 	Ld strWsname 
 ' 	LitDI2 0x0004 
 ' 	ArgsLd Left 0x0002 
 ' 	LitStr 0x0004 "Site"
 ' 	Eq 
 ' 	IfBlock 
-' Line #215:
+' Line #227:
 ' 	Ld strWsname 
 ' 	Ld strWsname 
 ' 	FnLen 
@@ -1876,7 +1925,7 @@
 ' 	ArgsLd Right 0x0002 
 ' 	ArgsLd IsNumeric 0x0001 
 ' 	IfBlock 
-' Line #216:
+' Line #228:
 ' 	Ld strWsname 
 ' 	Ld strWsname 
 ' 	FnLen 
@@ -1885,7 +1934,7 @@
 ' 	ArgsLd Right 0x0002 
 ' 	Coerce (Int) 
 ' 	St intWSNum 
-' Line #217:
+' Line #229:
 ' 	Ld intWSNum 
 ' 	LitDI2 0x0021 
 ' 	Lt 
@@ -1894,138 +1943,219 @@
 ' 	Gt 
 ' 	And 
 ' 	IfBlock 
-' Line #218:
+' Line #230:
 ' 	Ld i 
 ' 	Ld Worksheets 
 ' 	ArgsMemLd Item 0x0001 
 ' 	ArgsMemCall UserForm1 0x0000 
-' Line #219:
+' Line #231:
 ' 	EndIfBlock 
-' Line #220:
+' Line #232:
 ' 	EndIfBlock 
-' Line #221:
+' Line #233:
 ' 	EndIfBlock 
-' Line #222:
+' Line #234:
 ' 	Ld i 
 ' 	LitDI2 0x0001 
 ' 	Sub 
 ' 	St i 
-' Line #223:
+' Line #235:
 ' 	Loop 
-' Line #224:
+' Line #236:
 ' 	EndSub 
-' Line #225:
-' Line #226:
-' 	FuncDefn (Sub ACTIVESPWLib(theWorksheets As Variant, rowLabels As Variant, deleteWorksheets As Variant, _B_var_iColOffset, _B_var_Const, lMaxHistHeigh))
-' Line #227:
-' Line #228:
+' Line #237:
+' Line #238:
+' 	FuncDefn (Sub ACTIVESPWLib())
+' Line #239:
+' Line #240:
+' 	Dim 
+' 	VarDefn yCoun (As Long)
+' Line #241:
+' 	Dim 
+' 	VarDefn xCount (As Long)
+' Line #242:
+' 	Dim 
+' 	VarDefn lMaxHistHe (As Long)
+' Line #243:
+' 	Dim 
+' 	VarDefn lMaxHistHeigh (As Long)
+' Line #244:
+' 	Dim 
+' 	VarDefn _B_var_iColOffset (As Integer)
+' Line #245:
+' 	Dim 
+' 	VarDefn _B_var_Const (As Integer)
+' Line #246:
+' Line #247:
+' 	LitStr 0x0002 "H1"
+' 	LitStr 0x0017 "Variables (do not edit)"
+' 	ArgsLd Worksheets 0x0001 
+' 	ArgsMemLd Range 0x0001 
+' 	MemLd Value 
+' 	St yCoun 
+' Line #248:
+' 	LitStr 0x0002 "H2"
+' 	LitStr 0x0017 "Variables (do not edit)"
+' 	ArgsLd Worksheets 0x0001 
+' 	ArgsMemLd Range 0x0001 
+' 	MemLd Value 
+' 	St xCount 
+' Line #249:
+' 	LitStr 0x0002 "H3"
+' 	LitStr 0x0017 "Variables (do not edit)"
+' 	ArgsLd Worksheets 0x0001 
+' 	ArgsMemLd Range 0x0001 
+' 	MemLd Value 
+' 	St lMaxHistHe 
+' Line #250:
+' 	LitStr 0x0002 "H4"
+' 	LitStr 0x0017 "Variables (do not edit)"
+' 	ArgsLd Worksheets 0x0001 
+' 	ArgsMemLd Range 0x0001 
+' 	MemLd Value 
+' 	St lMaxHistHeigh 
+' Line #251:
+' 	LitStr 0x0002 "H5"
+' 	LitStr 0x0017 "Variables (do not edit)"
+' 	ArgsLd Worksheets 0x0001 
+' 	ArgsMemLd Range 0x0001 
+' 	MemLd Value 
+' 	St _B_var_iColOffset 
+' Line #252:
+' 	LitStr 0x0002 "H6"
+' 	LitStr 0x0017 "Variables (do not edit)"
+' 	ArgsLd Worksheets 0x0001 
+' 	ArgsMemLd Range 0x0001 
+' 	MemLd Value 
+' 	St _B_var_Const 
+' Line #253:
+' Line #254:
 ' 	Dim (Const) 
 ' 	LitHI2 0x0406 
 ' 	VarDefn SAA_TOVAL
-' Line #229:
+' Line #255:
 ' 	Dim (Const) 
 ' 	LitHI2 0x0407 
 ' 	VarDefn GraphPages
-' Line #230:
+' Line #256:
 ' 	Dim (Const) 
 ' 	LitHI2 0x0301 
 ' 	VarDefn SLA_SELECTDIM
-' Line #231:
+' Line #257:
 ' 	Dim (Const) 
 ' 	LitDI2 0x0401 
 ' 	VarDefn SEA_COLORCOL
-' Line #232:
+' Line #258:
 ' 	Dim (Const) 
 ' 	LitDI2 0x0308 
 ' 	VarDefn SAA_OPTIONS
-' Line #233:
+' Line #259:
 ' 	Dim (Const) 
 ' 	LitDI2 0x0403 
 ' 	VarDefn _B_var_GPM_SETPLOTATTR
-' Line #234:
+' Line #260:
 ' 	Dim (Const) 
 ' 	LitDI2 0x0408 
 ' 	VarDefn SAA_FROMVAL
-' Line #235:
+' Line #261:
 ' 	Dim (Const) 
 ' 	LitDI2 0x0615 
 ' 	VarDefn GPM_SETAXISATTRSTRING
-' Line #236:
+' Line #262:
 ' 	Dim (Const) 
 ' 	LitDI2 0x0613 
 ' 	VarDefn SLA_CONTOURFILLTYPE
-' Line #237:
+' Line #263:
 ' 	Dim (Const) 
 ' 	LitDI2 0x0358 
 ' 	VarDefn SAA_SELECTLINE
-' Line #238:
+' Line #264:
 ' 	Dim (Const) 
 ' 	LitDI2 0x040A 
 ' 	VarDefn SEA_THICKNESS
-' Line #239:
+' Line #265:
 ' 	Dim (Const) 
 ' 	LitDI2 0x0601 
 ' 	VarDefn SEA_COLOR
-' Line #240:
+' Line #266:
 ' 	Dim (Const) 
 ' 	LitDI2 0x0606 
 ' 	VarDefn _B_var_SEA_THICKNESS
-' Line #241:
+' Line #267:
 ' 	Dim (Const) 
 ' 	LitDI2 0x0410 
 ' 	VarDefn _B_var_SAA_SUB1OPTIONS
-' Line #242:
-' Line #243:
+' Line #268:
+' Line #269:
 ' 	Dim 
 ' 	VarDefn Module2 (As Object)
-' Line #244:
+' Line #270:
 ' 	SetStmt 
 ' 	LitStr 0x0017 "SigmaPlot.Application.1"
 ' 	ArgsLd CreateObject 0x0001 
 ' 	Set Module2 
-' Line #245:
+' Line #271:
 ' 	LitVarSpecial (True)
 ' 	Ld Module2 
 ' 	MemSt Application 
-' Line #246:
+' Line #272:
 ' 	Ld Module2 
 ' 	MemLd Notebooks 
 ' 	MemLd buildTuningCurvesIntoSigmaplot 
 ' 	ArgsMemCall (Call) Add 0x0000 
-' Line #247:
-' Line #248:
+' Line #273:
+' Line #274:
 ' 	Dim 
 ' 	VarDefn i (As Integer)
-' Line #249:
+' Line #275:
 ' 	Dim 
 ' 	VarDefn j (As Long)
-' Line #250:
+' Line #276:
 ' 	Dim 
 ' 	VarDefn k (As Long)
-' Line #251:
-' Line #252:
+' Line #277:
+' Line #278:
+' 	Dim 
+' 	VarDefn yPos (As Long)
+' Line #279:
+' 	Dim 
+' 	VarDefn Whi0l (As Long)
+' Line #280:
+' Line #281:
 ' 	Dim 
 ' 	VarDefn SPApplication (As Object)
-' Line #253:
+' Line #282:
 ' 	Dim 
 ' 	VarDefn spDT (As Object)
-' Line #254:
+' Line #283:
 ' 	Dim 
 ' 	VarDefn DataTable (As Object)
-' Line #255:
+' Line #284:
 ' 	Dim 
 ' 	VarDefn objSPWizard (As Object)
-' Line #256:
-' Line #257:
-' Line #258:
-' 	StartForVariable 
-' 	Ld i 
-' 	EndForVariable 
-' 	LitDI2 0x0000 
-' 	Ld theWorksheets 
-' 	FnUBound 0x0000 
-' 	For 
-' Line #259:
+' Line #285:
+' Line #286:
+' 	Ld _B_var_iColOffset 
+' 	LitDI2 0x0001 
+' 	Add 
+' 	St yPos 
+' Line #287:
+' 	Ld _B_var_Const 
+' 	St Whi0l 
+' Line #288:
+' Line #289:
+' 	Do 
+' Line #290:
+' 	Ld Whi0l 
+' 	Ld yPos 
+' 	LitStr 0x0006 "Output"
+' 	ArgsLd Worksheets 0x0001 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	LitStr 0x0000 ""
+' 	Ne 
+' 	IfBlock 
+' Line #291:
 ' 	SetStmt 
 ' 	Ld Module2 
 ' 	MemLd buildTuningCurvesIntoSigmaplot 
@@ -2036,7 +2166,7 @@
 ' 	MemLd buildTuningCurvesIntoSigmaplot 
 ' 	ArgsMemLd Item 0x0001 
 ' 	Set SPApplication 
-' Line #260:
+' Line #292:
 ' 	SetStmt 
 ' 	Ld SPApplication 
 ' 	MemLd SPWNotebookComponentType 
@@ -2047,89 +2177,119 @@
 ' 	MemLd SPWNotebookComponentType 
 ' 	ArgsMemLd Item 0x0001 
 ' 	Set spDT 
-' Line #261:
-' 	Ld i 
-' 	ArgsLd theWorksheets 0x0001 
-' 	MemLd Name 
+' Line #293:
+' 	Ld Whi0l 
+' 	Ld yPos 
+' 	LitStr 0x0006 "Output"
+' 	ArgsLd Worksheets 0x0001 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
 ' 	Ld spDT 
 ' 	MemSt Name 
-' Line #262:
+' Line #294:
 ' 	SetStmt 
 ' 	Ld spDT 
 ' 	MemLd Cell 
 ' 	Set DataTable 
-' Line #263:
-' Line #264:
+' Line #295:
+' Line #296:
+' 	Ld Whi0l 
+' 	St Whi0l 
+' Line #297:
+' Line #298:
 ' 	StartForVariable 
 ' 	Ld j 
 ' 	EndForVariable 
 ' 	LitDI2 0x0000 
-' 	Ld deleteWorksheets 
-' 	FnUBound 0x0000 
+' 	Ld yCoun 
+' 	LitDI2 0x0001 
+' 	Sub 
+' 	Paren 
 ' 	For 
-' Line #265:
+' Line #299:
+' 	Ld Whi0l 
+' 	LitDI2 0x0001 
+' 	Add 
+' 	Ld yPos 
 ' 	Ld j 
-' 	ArgsLd deleteWorksheets 0x0001 
+' 	Add 
+' 	LitDI2 0x0001 
+' 	Add 
+' 	LitStr 0x0006 "Output"
+' 	ArgsLd Worksheets 0x0001 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
+' 	LitDI2 0x0000 
+' 	Ld j 
+' 	Ld DataTable 
+' 	ArgsMemSt iRowOffset 0x0002 
+' Line #300:
+' 	StartForVariable 
+' 	Next 
+' Line #301:
+' Line #302:
+' 	StartForVariable 
+' 	Ld j 
+' 	EndForVariable 
+' 	LitDI2 0x0000 
+' 	Ld xCount 
+' 	LitDI2 0x0001 
+' 	Sub 
+' 	Paren 
+' 	For 
+' Line #303:
+' 	Ld Whi0l 
+' 	Ld j 
+' 	Add 
+' 	LitDI2 0x0002 
+' 	Add 
+' 	Ld yPos 
+' 	LitStr 0x0006 "Output"
+' 	ArgsLd Worksheets 0x0001 
+' 	ArgsMemLd Cells 0x0002 
+' 	MemLd Value 
 ' 	LitDI2 0x0001 
 ' 	Ld j 
 ' 	Ld DataTable 
 ' 	ArgsMemSt iRowOffset 0x0002 
-' Line #266:
+' Line #304:
 ' 	StartForVariable 
 ' 	Next 
-' Line #267:
-' Line #268:
+' Line #305:
+' Line #306:
+' Line #307:
 ' 	StartForVariable 
 ' 	Ld j 
 ' 	EndForVariable 
 ' 	LitDI2 0x0000 
-' 	Ld rowLabels 
-' 	FnUBound 0x0000 
-' 	For 
-' Line #269:
-' 	Ld j 
-' 	ArgsLd rowLabels 0x0001 
-' 	LitDI2 0x0000 
-' 	Ld j 
-' 	Ld DataTable 
-' 	ArgsMemSt iRowOffset 0x0002 
-' Line #270:
-' 	StartForVariable 
-' 	Next 
-' Line #271:
-' Line #272:
-' 	StartForVariable 
-' 	Ld j 
-' 	EndForVariable 
-' 	LitDI2 0x0000 
-' 	Ld rowLabels 
-' 	FnUBound 0x0000 
-' 	For 
-' Line #273:
-' 	StartForVariable 
-' 	Ld k 
-' 	EndForVariable 
-' 	LitDI2 0x0000 
-' 	Ld deleteWorksheets 
-' 	FnUBound 0x0000 
-' 	For 
-' Line #274:
-' 	Ld deleteWorksheets 
-' 	FnUBound 0x0000 
-' 	Ld _B_var_Const 
-' 	Add 
-' 	LitDI2 0x0002 
-' 	Add 
-' 	Paren 
-' 	Ld k 
+' 	Ld yCoun 
+' 	LitDI2 0x0001 
 ' 	Sub 
-' 	Ld j 
-' 	Ld _B_var_iColOffset 
+' 	Paren 
+' 	For 
+' Line #308:
+' 	StartForVariable 
+' 	Ld k 
+' 	EndForVariable 
+' 	LitDI2 0x0000 
+' 	Ld xCount 
+' 	LitDI2 0x0001 
+' 	Sub 
+' 	Paren 
+' 	For 
+' Line #309:
+' 	Ld Whi0l 
+' 	Ld k 
 ' 	Add 
 ' 	LitDI2 0x0002 
 ' 	Add 
-' 	Ld i 
-' 	ArgsLd theWorksheets 0x0001 
+' 	Ld yPos 
+' 	Ld j 
+' 	Add 
+' 	LitDI2 0x0001 
+' 	Add 
+' 	LitStr 0x0006 "Output"
+' 	ArgsLd Worksheets 0x0001 
 ' 	ArgsMemLd Cells 0x0002 
 ' 	MemLd Value 
 ' 	LitDI2 0x0003 
@@ -2138,145 +2298,147 @@
 ' 	Ld j 
 ' 	Ld DataTable 
 ' 	ArgsMemSt iRowOffset 0x0002 
-' Line #275:
+' Line #310:
 ' 	StartForVariable 
 ' 	Next 
-' Line #276:
+' Line #311:
 ' 	StartForVariable 
 ' 	Next 
-' Line #277:
-' Line #278:
+' Line #312:
+' Line #313:
 ' 	LitStr 0x0011 "@rgb(255,255,255)"
 ' 	LitDI2 0x0002 
 ' 	LitDI2 0x0000 
 ' 	Ld DataTable 
 ' 	ArgsMemSt iRowOffset 0x0002 
-' Line #279:
+' Line #314:
 ' 	LitStr 0x000D "@rgb(0,0,255)"
 ' 	LitDI2 0x0002 
 ' 	LitDI2 0x0001 
 ' 	Ld DataTable 
 ' 	ArgsMemSt iRowOffset 0x0002 
-' Line #280:
+' Line #315:
 ' 	LitStr 0x000F "@rgb(0,255,255)"
 ' 	LitDI2 0x0002 
 ' 	LitDI2 0x0002 
 ' 	Ld DataTable 
 ' 	ArgsMemSt iRowOffset 0x0002 
-' Line #281:
+' Line #316:
 ' 	LitStr 0x000D "@rgb(0,255,0)"
 ' 	LitDI2 0x0002 
 ' 	LitDI2 0x0003 
 ' 	Ld DataTable 
 ' 	ArgsMemSt iRowOffset 0x0002 
-' Line #282:
+' Line #317:
 ' 	LitStr 0x000F "@rgb(255,255,0)"
 ' 	LitDI2 0x0002 
 ' 	LitDI2 0x0004 
 ' 	Ld DataTable 
 ' 	ArgsMemSt iRowOffset 0x0002 
-' Line #283:
+' Line #318:
 ' 	LitStr 0x000D "@rgb(255,0,0)"
 ' 	LitDI2 0x0002 
 ' 	LitDI2 0x0005 
 ' 	Ld DataTable 
 ' 	ArgsMemSt iRowOffset 0x0002 
-' Line #284:
-' Line #285:
-' 	QuoteRem 0x0008 0x001E "Call spNB.NotebookItems.Add(2)"
-' Line #286:
-' 	QuoteRem 0x0008 0x0042 "Set spGRPH = spNB.NotebookItems.Item(spNB.NotebookItems.Count - 1)"
-' Line #287:
-' Line #288:
+' Line #319:
+' Line #320:
+' 	QuoteRem 0x000C 0x001E "Call spNB.NotebookItems.Add(2)"
+' Line #321:
+' 	QuoteRem 0x000C 0x0042 "Set spGRPH = spNB.NotebookItems.Item(spNB.NotebookItems.Count - 1)"
+' Line #322:
+' Line #323:
 ' 	LitDI2 0x0002 
 ' 	Ld Module2 
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd SPWNotebookComponentType 
 ' 	ArgsMemCall (Call) Add 0x0001 
-' Line #289:
+' Line #324:
 ' 	Dim 
 ' 	OptionBase 
 ' 	LitDI2 0x0002 
 ' 	OptionBase 
 ' 	LitDI2 0x0003 
 ' 	VarDefn PlotColumnCountArray
-' Line #290:
+' Line #325:
 ' 	LitDI2 0x0000 
 ' 	LitDI2 0x0000 
 ' 	LitDI2 0x0000 
 ' 	ArgsSt PlotColumnCountArray 0x0002 
-' Line #291:
+' Line #326:
 ' 	LitDI2 0x0000 
 ' 	LitDI2 0x0001 
 ' 	LitDI2 0x0000 
 ' 	ArgsSt PlotColumnCountArray 0x0002 
-' Line #292:
+' Line #327:
 ' 	LitDI4 0x47FF 0x01E8 
 ' 	LitDI2 0x0002 
 ' 	LitDI2 0x0000 
 ' 	ArgsSt PlotColumnCountArray 0x0002 
-' Line #293:
+' Line #328:
 ' 	LitDI2 0x0001 
 ' 	LitDI2 0x0000 
 ' 	LitDI2 0x0001 
 ' 	ArgsSt PlotColumnCountArray 0x0002 
-' Line #294:
+' Line #329:
 ' 	LitDI2 0x0000 
 ' 	LitDI2 0x0001 
 ' 	LitDI2 0x0001 
 ' 	ArgsSt PlotColumnCountArray 0x0002 
-' Line #295:
+' Line #330:
 ' 	LitDI4 0x47FF 0x01E8 
 ' 	LitDI2 0x0002 
 ' 	LitDI2 0x0001 
 ' 	ArgsSt PlotColumnCountArray 0x0002 
-' Line #296:
+' Line #331:
 ' 	LitDI2 0x0003 
 ' 	LitDI2 0x0000 
 ' 	LitDI2 0x0002 
 ' 	ArgsSt PlotColumnCountArray 0x0002 
-' Line #297:
+' Line #332:
 ' 	LitDI2 0x0000 
 ' 	LitDI2 0x0001 
 ' 	LitDI2 0x0002 
 ' 	ArgsSt PlotColumnCountArray 0x0002 
-' Line #298:
+' Line #333:
 ' 	LitDI4 0x47FF 0x01E8 
 ' 	LitDI2 0x0002 
 ' 	LitDI2 0x0002 
 ' 	ArgsSt PlotColumnCountArray 0x0002 
-' Line #299:
+' Line #334:
 ' 	LitDI2 0x0003 
-' 	Ld deleteWorksheets 
-' 	FnUBound 0x0000 
+' 	Ld xCount 
+' 	LitDI2 0x0001 
+' 	Sub 
+' 	Paren 
 ' 	Add 
 ' 	LitDI2 0x0000 
 ' 	LitDI2 0x0003 
 ' 	ArgsSt PlotColumnCountArray 0x0002 
-' Line #300:
+' Line #335:
 ' 	LitDI2 0x0000 
 ' 	LitDI2 0x0001 
 ' 	LitDI2 0x0003 
 ' 	ArgsSt PlotColumnCountArray 0x0002 
-' Line #301:
+' Line #336:
 ' 	LitDI4 0x47FF 0x01E8 
 ' 	LitDI2 0x0002 
 ' 	LitDI2 0x0003 
 ' 	ArgsSt PlotColumnCountArray 0x0002 
-' Line #302:
-' Line #303:
+' Line #337:
+' Line #338:
 ' 	Dim 
 ' 	VarDefn CurrentPageItem
-' Line #304:
+' Line #339:
 ' 	OptionBase 
 ' 	LitDI2 0x0000 
 ' 	Redim CurrentPageItem 0x0001 (As Variant)
-' Line #305:
-' Line #306:
+' Line #340:
+' Line #341:
 ' 	LitDI2 0x0004 
 ' 	LitDI2 0x0000 
 ' 	ArgsSt CurrentPageItem 0x0001 
-' Line #307:
+' Line #342:
 ' 	LitStr 0x000C "Contour Plot"
 ' 	LitStr 0x0013 "Filled Contour Plot"
 ' 	LitStr 0x0009 "XY Many Z"
@@ -2294,7 +2456,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) _B_var_CT_GRAPHICPAGE 0x000D 
-' Line #308:
+' Line #343:
 ' 	LitDI2 0x0000 
 ' 	LitDI2 0x0000 
 ' 	Ld Module2 
@@ -2303,8 +2465,8 @@
 ' 	ArgsMemLd Graphs 0x0001 
 ' 	ArgsMemLd SelectObject 0x0001 
 ' 	ArgsMemCall (Call) testSigmaPlot 0x0000 
-' Line #309:
-' Line #310:
+' Line #344:
+' Line #345:
 ' 	LitStr 0x0006 "Site y"
 ' 	LitDI2 0x0000 
 ' 	LitDI2 0x0000 
@@ -2314,7 +2476,7 @@
 ' 	ArgsMemLd Graphs 0x0001 
 ' 	ArgsMemLd SelectObject 0x0001 
 ' 	MemSt Name 
-' Line #311:
+' Line #346:
 ' 	LitStr 0x000B "Attenuation"
 ' 	LitDI2 0x0000 
 ' 	LitDI2 0x0000 
@@ -2326,7 +2488,7 @@
 ' 	ArgsMemLd SelectObject 0x0001 
 ' 	ArgsMemLd _B_var_SAA_FROMVAL 0x0001 
 ' 	MemSt Name 
-' Line #312:
+' Line #347:
 ' 	LitStr 0x0009 "Frequency"
 ' 	LitDI2 0x0001 
 ' 	LitDI2 0x0000 
@@ -2338,8 +2500,8 @@
 ' 	ArgsMemLd SelectObject 0x0001 
 ' 	ArgsMemLd _B_var_SAA_FROMVAL 0x0001 
 ' 	MemSt Name 
-' Line #313:
-' Line #314:
+' Line #348:
+' Line #349:
 ' 	Ld SLA_SELECTDIM 
 ' 	Ld SAA_OPTIONS 
 ' 	LitDI2 0x0003 
@@ -2347,7 +2509,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #315:
+' Line #350:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld _B_var_GPM_SETPLOTATTR 
 ' 	LitDI2 0x000A 
@@ -2355,7 +2517,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #316:
+' Line #351:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld _B_var_GPM_SETPLOTATTR 
 ' 	LitDI4 0x0001 0x0310 
@@ -2363,7 +2525,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #317:
+' Line #352:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld _B_var_GPM_SETPLOTATTR 
 ' 	LitDI4 0x0402 0x00C0 
@@ -2371,7 +2533,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #318:
+' Line #353:
 ' 	Ld SAA_FROMVAL 
 ' 	Ld SAA_TOVAL 
 ' 	LitStr 0x0001 "0"
@@ -2379,7 +2541,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #319:
+' Line #354:
 ' 	Ld SAA_FROMVAL 
 ' 	Ld GraphPages 
 ' 	Ld lMaxHistHeigh 
@@ -2388,8 +2550,8 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #320:
-' Line #321:
+' Line #355:
+' Line #356:
 ' 	Ld SLA_SELECTDIM 
 ' 	Ld SAA_OPTIONS 
 ' 	LitDI2 0x0003 
@@ -2397,7 +2559,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #322:
+' Line #357:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld SEA_THICKNESS 
 ' 	LitDI2 0x0002 
@@ -2405,7 +2567,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #323:
+' Line #358:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld SEA_COLOR 
 ' 	LitDI2 0x000A 
@@ -2413,7 +2575,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #324:
+' Line #359:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld SEA_THICKNESS 
 ' 	LitDI2 0x0004 
@@ -2421,7 +2583,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #325:
+' Line #360:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld _B_var_SEA_THICKNESS 
 ' 	LitHI4 0xFFFF 0x00FF 
@@ -2429,7 +2591,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #326:
+' Line #361:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld GPM_SETAXISATTRSTRING 
 ' 	LitDI2 0x0002 
@@ -2437,7 +2599,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #327:
+' Line #362:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld SLA_CONTOURFILLTYPE 
 ' 	LitDI2 0x0004 
@@ -2445,7 +2607,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #328:
+' Line #363:
 ' 	Ld SLA_SELECTDIM 
 ' 	Ld SAA_SELECTLINE 
 ' 	LitDI2 0x0001 
@@ -2453,7 +2615,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #329:
+' Line #364:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld SEA_THICKNESS 
 ' 	LitDI2 0x0005 
@@ -2461,7 +2623,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #330:
+' Line #365:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld _B_var_SEA_THICKNESS 
 ' 	LitHI4 0xFFFF 0x00FF 
@@ -2469,7 +2631,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #331:
+' Line #366:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld GPM_SETAXISATTRSTRING 
 ' 	LitDI2 0x0002 
@@ -2477,7 +2639,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #332:
+' Line #367:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld SLA_CONTOURFILLTYPE 
 ' 	LitDI2 0x0004 
@@ -2485,7 +2647,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #333:
+' Line #368:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld SEA_THICKNESS 
 ' 	LitDI2 0x0004 
@@ -2493,7 +2655,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #334:
+' Line #369:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld _B_var_SAA_SUB1OPTIONS 
 ' 	LitDI2 0x0512 
@@ -2501,7 +2663,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #335:
+' Line #370:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld _B_var_SAA_SUB1OPTIONS 
 ' 	LitDI2 0x0F31 
@@ -2509,7 +2671,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #336:
+' Line #371:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld SEA_THICKNESS 
 ' 	LitDI2 0x0001 
@@ -2517,87 +2679,89 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #337:
-' Line #338:
+' Line #372:
+' Line #373:
 ' 	LitDI2 0x0002 
 ' 	Ld Module2 
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd SPWNotebookComponentType 
 ' 	ArgsMemCall (Call) Add 0x0001 
-' Line #339:
+' Line #374:
 ' 	LitDI2 0x0000 
 ' 	LitDI2 0x0000 
 ' 	LitDI2 0x0000 
 ' 	ArgsSt PlotColumnCountArray 0x0002 
-' Line #340:
+' Line #375:
 ' 	LitDI2 0x0000 
 ' 	LitDI2 0x0001 
 ' 	LitDI2 0x0000 
 ' 	ArgsSt PlotColumnCountArray 0x0002 
-' Line #341:
+' Line #376:
 ' 	LitDI4 0x47FF 0x01E8 
 ' 	LitDI2 0x0002 
 ' 	LitDI2 0x0000 
 ' 	ArgsSt PlotColumnCountArray 0x0002 
-' Line #342:
+' Line #377:
 ' 	LitDI2 0x0001 
 ' 	LitDI2 0x0000 
 ' 	LitDI2 0x0001 
 ' 	ArgsSt PlotColumnCountArray 0x0002 
-' Line #343:
+' Line #378:
 ' 	LitDI2 0x0000 
 ' 	LitDI2 0x0001 
 ' 	LitDI2 0x0001 
 ' 	ArgsSt PlotColumnCountArray 0x0002 
-' Line #344:
+' Line #379:
 ' 	LitDI4 0x47FF 0x01E8 
 ' 	LitDI2 0x0002 
 ' 	LitDI2 0x0001 
 ' 	ArgsSt PlotColumnCountArray 0x0002 
-' Line #345:
+' Line #380:
 ' 	LitDI2 0x0003 
 ' 	LitDI2 0x0000 
 ' 	LitDI2 0x0002 
 ' 	ArgsSt PlotColumnCountArray 0x0002 
-' Line #346:
+' Line #381:
 ' 	LitDI2 0x0000 
 ' 	LitDI2 0x0001 
 ' 	LitDI2 0x0002 
 ' 	ArgsSt PlotColumnCountArray 0x0002 
-' Line #347:
+' Line #382:
 ' 	LitDI4 0x47FF 0x01E8 
 ' 	LitDI2 0x0002 
 ' 	LitDI2 0x0002 
 ' 	ArgsSt PlotColumnCountArray 0x0002 
-' Line #348:
+' Line #383:
 ' 	LitDI2 0x0003 
-' 	Ld deleteWorksheets 
-' 	FnUBound 0x0000 
+' 	Ld xCount 
+' 	LitDI2 0x0001 
+' 	Sub 
+' 	Paren 
 ' 	Add 
 ' 	LitDI2 0x0000 
 ' 	LitDI2 0x0003 
 ' 	ArgsSt PlotColumnCountArray 0x0002 
-' Line #349:
+' Line #384:
 ' 	LitDI2 0x0000 
 ' 	LitDI2 0x0001 
 ' 	LitDI2 0x0003 
 ' 	ArgsSt PlotColumnCountArray 0x0002 
-' Line #350:
+' Line #385:
 ' 	LitDI4 0x47FF 0x01E8 
 ' 	LitDI2 0x0002 
 ' 	LitDI2 0x0003 
 ' 	ArgsSt PlotColumnCountArray 0x0002 
-' Line #351:
-' Line #352:
+' Line #386:
+' Line #387:
 ' 	OptionBase 
 ' 	LitDI2 0x0000 
 ' 	Redim CurrentPageItem 0x0001 (As Variant)
-' Line #353:
-' Line #354:
+' Line #388:
+' Line #389:
 ' 	LitDI2 0x0004 
 ' 	LitDI2 0x0000 
 ' 	ArgsSt CurrentPageItem 0x0001 
-' Line #355:
+' Line #390:
 ' 	LitStr 0x000C "Contour Plot"
 ' 	LitStr 0x0013 "Filled Contour Plot"
 ' 	LitStr 0x0009 "XY Many Z"
@@ -2615,7 +2779,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) _B_var_CT_GRAPHICPAGE 0x000D 
-' Line #356:
+' Line #391:
 ' 	LitDI2 0x0000 
 ' 	LitDI2 0x0000 
 ' 	Ld Module2 
@@ -2624,8 +2788,8 @@
 ' 	ArgsMemLd Graphs 0x0001 
 ' 	ArgsMemLd SelectObject 0x0001 
 ' 	ArgsMemCall (Call) testSigmaPlot 0x0000 
-' Line #357:
-' Line #358:
+' Line #392:
+' Line #393:
 ' 	LitStr 0x0006 "Site y"
 ' 	LitDI2 0x0000 
 ' 	LitDI2 0x0000 
@@ -2635,7 +2799,7 @@
 ' 	ArgsMemLd Graphs 0x0001 
 ' 	ArgsMemLd SelectObject 0x0001 
 ' 	MemSt Name 
-' Line #359:
+' Line #394:
 ' 	LitStr 0x000B "Attenuation"
 ' 	LitDI2 0x0000 
 ' 	LitDI2 0x0000 
@@ -2647,7 +2811,7 @@
 ' 	ArgsMemLd SelectObject 0x0001 
 ' 	ArgsMemLd _B_var_SAA_FROMVAL 0x0001 
 ' 	MemSt Name 
-' Line #360:
+' Line #395:
 ' 	LitStr 0x0009 "Frequency"
 ' 	LitDI2 0x0001 
 ' 	LitDI2 0x0000 
@@ -2659,8 +2823,8 @@
 ' 	ArgsMemLd SelectObject 0x0001 
 ' 	ArgsMemLd _B_var_SAA_FROMVAL 0x0001 
 ' 	MemSt Name 
-' Line #361:
-' Line #362:
+' Line #396:
+' Line #397:
 ' 	Ld SLA_SELECTDIM 
 ' 	Ld SAA_OPTIONS 
 ' 	LitDI2 0x0003 
@@ -2668,7 +2832,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #363:
+' Line #398:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld SEA_THICKNESS 
 ' 	LitDI2 0x0002 
@@ -2676,7 +2840,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #364:
+' Line #399:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld SEA_COLOR 
 ' 	LitDI2 0x000A 
@@ -2684,7 +2848,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #365:
+' Line #400:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld SEA_THICKNESS 
 ' 	LitDI2 0x0004 
@@ -2692,7 +2856,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #366:
+' Line #401:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld _B_var_SEA_THICKNESS 
 ' 	LitHI4 0xFFFF 0x00FF 
@@ -2700,7 +2864,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #367:
+' Line #402:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld GPM_SETAXISATTRSTRING 
 ' 	LitDI2 0x0002 
@@ -2708,7 +2872,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #368:
+' Line #403:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld SLA_CONTOURFILLTYPE 
 ' 	LitDI2 0x0004 
@@ -2716,7 +2880,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #369:
+' Line #404:
 ' 	Ld SLA_SELECTDIM 
 ' 	Ld SAA_SELECTLINE 
 ' 	LitDI2 0x0001 
@@ -2724,7 +2888,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #370:
+' Line #405:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld SEA_THICKNESS 
 ' 	LitDI2 0x0005 
@@ -2732,7 +2896,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #371:
+' Line #406:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld _B_var_SEA_THICKNESS 
 ' 	LitHI4 0xFFFF 0x00FF 
@@ -2740,7 +2904,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #372:
+' Line #407:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld GPM_SETAXISATTRSTRING 
 ' 	LitDI2 0x0002 
@@ -2748,7 +2912,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #373:
+' Line #408:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld SLA_CONTOURFILLTYPE 
 ' 	LitDI2 0x0004 
@@ -2756,7 +2920,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #374:
+' Line #409:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld SEA_THICKNESS 
 ' 	LitDI2 0x0004 
@@ -2764,7 +2928,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #375:
+' Line #410:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld _B_var_SAA_SUB1OPTIONS 
 ' 	LitDI2 0x0512 
@@ -2772,7 +2936,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #376:
+' Line #411:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld _B_var_SAA_SUB1OPTIONS 
 ' 	LitDI2 0x0F31 
@@ -2780,7 +2944,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #377:
+' Line #412:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld SEA_THICKNESS 
 ' 	LitDI2 0x0001 
@@ -2788,100 +2952,104 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #378:
-' Line #379:
-' Line #380:
-' Line #381:
-' 	Ld i 
-' 	Ld theWorksheets 
-' 	FnUBound 0x0000 
-' 	Lt 
-' 	IfBlock 
-' Line #382:
+' Line #413:
+' Line #414:
+' 	QuoteRem 0x0000 0x002D "            If i < UBound(theWorksheets) Then"
+' Line #415:
 ' 	LitDI2 0x0001 
 ' 	Ld SPApplication 
 ' 	MemLd SPWNotebookComponentType 
 ' 	ArgsMemCall (Call) Add 0x0001 
-' Line #383:
+' Line #416:
+' 	QuoteRem 0x0000 0x0012 "            End If"
+' Line #417:
+' 	Ld Whi0l 
+' 	Ld lMaxHistHe 
+' 	Add 
+' 	St Whi0l 
+' Line #418:
+' 	ElseBlock 
+' Line #419:
+' 	ExitDo 
+' Line #420:
 ' 	EndIfBlock 
-' Line #384:
-' 	StartForVariable 
-' 	Next 
-' Line #385:
+' Line #421:
+' 	Loop 
+' Line #422:
 ' 	EndSub 
-' Line #386:
-' Line #387:
+' Line #423:
+' Line #424:
 ' 	FuncDefn (Sub _B_var_lMaxHistHeight())
-' Line #388:
+' Line #425:
 ' 	Dim (Const) 
 ' 	LitHI2 0x0406 
 ' 	VarDefn SAA_TOVAL
-' Line #389:
+' Line #426:
 ' 	Dim (Const) 
 ' 	LitHI2 0x0407 
 ' 	VarDefn GraphPages
-' Line #390:
+' Line #427:
 ' 	Dim (Const) 
 ' 	LitHI2 0x0301 
 ' 	VarDefn SLA_SELECTDIM
-' Line #391:
+' Line #428:
 ' 	Dim (Const) 
 ' 	LitDI2 0x0401 
 ' 	VarDefn SEA_COLORCOL
-' Line #392:
+' Line #429:
 ' 	Dim (Const) 
 ' 	LitDI2 0x0308 
 ' 	VarDefn SAA_OPTIONS
-' Line #393:
+' Line #430:
 ' 	Dim (Const) 
 ' 	LitDI2 0x0403 
 ' 	VarDefn _B_var_GPM_SETPLOTATTR
-' Line #394:
+' Line #431:
 ' 	Dim (Const) 
 ' 	LitDI2 0x0408 
 ' 	VarDefn SAA_FROMVAL
-' Line #395:
+' Line #432:
 ' 	Dim (Const) 
 ' 	LitDI2 0x0615 
 ' 	VarDefn GPM_SETAXISATTRSTRING
-' Line #396:
+' Line #433:
 ' 	Dim (Const) 
 ' 	LitDI2 0x0613 
 ' 	VarDefn SLA_CONTOURFILLTYPE
-' Line #397:
+' Line #434:
 ' 	Dim (Const) 
 ' 	LitDI2 0x0358 
 ' 	VarDefn SAA_SELECTLINE
-' Line #398:
+' Line #435:
 ' 	Dim (Const) 
 ' 	LitDI2 0x040A 
 ' 	VarDefn SEA_THICKNESS
-' Line #399:
+' Line #436:
 ' 	Dim (Const) 
 ' 	LitDI2 0x0601 
 ' 	VarDefn SEA_COLOR
-' Line #400:
+' Line #437:
 ' 	Dim (Const) 
 ' 	LitDI2 0x0606 
 ' 	VarDefn _B_var_SEA_THICKNESS
-' Line #401:
+' Line #438:
 ' 	Dim (Const) 
 ' 	LitDI2 0x0410 
 ' 	VarDefn _B_var_SAA_SUB1OPTIONS
-' Line #402:
-' Line #403:
+' Line #439:
+' Line #440:
 ' 	Dim 
 ' 	VarDefn Module2 (As Object)
-' Line #404:
+' Line #441:
 ' 	SetStmt 
 ' 	LitStr 0x0017 "SigmaPlot.Application.1"
 ' 	ArgsLd CreateObject 0x0001 
 ' 	Set Module2 
-' Line #405:
+' Line #442:
 ' 	LitVarSpecial (True)
 ' 	Ld Module2 
 ' 	MemSt Application 
-' Line #406:
+' Line #443:
 ' 	LitStr 0x0006 "Site y"
 ' 	LitDI2 0x0000 
 ' 	LitDI2 0x0000 
@@ -2891,7 +3059,7 @@
 ' 	ArgsMemLd Graphs 0x0001 
 ' 	ArgsMemLd SelectObject 0x0001 
 ' 	MemSt Name 
-' Line #407:
+' Line #444:
 ' 	LitStr 0x000B "Attenuation"
 ' 	LitDI2 0x0000 
 ' 	LitDI2 0x0000 
@@ -2903,7 +3071,7 @@
 ' 	ArgsMemLd SelectObject 0x0001 
 ' 	ArgsMemLd _B_var_SAA_FROMVAL 0x0001 
 ' 	MemSt Name 
-' Line #408:
+' Line #445:
 ' 	LitStr 0x0009 "Frequency"
 ' 	LitDI2 0x0001 
 ' 	LitDI2 0x0000 
@@ -2915,8 +3083,8 @@
 ' 	ArgsMemLd SelectObject 0x0001 
 ' 	ArgsMemLd _B_var_SAA_FROMVAL 0x0001 
 ' 	MemSt Name 
-' Line #409:
-' Line #410:
+' Line #446:
+' Line #447:
 ' 	Ld SLA_SELECTDIM 
 ' 	Ld SAA_OPTIONS 
 ' 	LitDI2 0x0003 
@@ -2924,7 +3092,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #411:
+' Line #448:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld _B_var_GPM_SETPLOTATTR 
 ' 	LitDI2 0x000A 
@@ -2932,7 +3100,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #412:
+' Line #449:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld _B_var_GPM_SETPLOTATTR 
 ' 	LitDI4 0x0001 0x0310 
@@ -2940,7 +3108,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #413:
+' Line #450:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld _B_var_GPM_SETPLOTATTR 
 ' 	LitDI4 0x0402 0x00C0 
@@ -2948,7 +3116,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #414:
+' Line #451:
 ' 	Ld SAA_FROMVAL 
 ' 	Ld SAA_TOVAL 
 ' 	LitStr 0x0001 "0"
@@ -2956,7 +3124,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #415:
+' Line #452:
 ' 	Ld SAA_FROMVAL 
 ' 	Ld GraphPages 
 ' 	LitStr 0x0003 "150"
@@ -2964,8 +3132,8 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #416:
-' Line #417:
+' Line #453:
+' Line #454:
 ' 	Ld SLA_SELECTDIM 
 ' 	Ld SAA_OPTIONS 
 ' 	LitDI2 0x0003 
@@ -2973,7 +3141,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #418:
+' Line #455:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld SEA_THICKNESS 
 ' 	LitDI2 0x0002 
@@ -2981,7 +3149,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #419:
+' Line #456:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld SEA_COLOR 
 ' 	LitDI2 0x000A 
@@ -2989,7 +3157,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #420:
+' Line #457:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld SEA_THICKNESS 
 ' 	LitDI2 0x0004 
@@ -2997,7 +3165,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #421:
+' Line #458:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld _B_var_SEA_THICKNESS 
 ' 	LitHI4 0xFFFF 0x00FF 
@@ -3005,7 +3173,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #422:
+' Line #459:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld GPM_SETAXISATTRSTRING 
 ' 	LitDI2 0x0002 
@@ -3013,7 +3181,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #423:
+' Line #460:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld SLA_CONTOURFILLTYPE 
 ' 	LitDI2 0x0004 
@@ -3021,7 +3189,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #424:
+' Line #461:
 ' 	Ld SLA_SELECTDIM 
 ' 	Ld SAA_SELECTLINE 
 ' 	LitDI2 0x0001 
@@ -3029,7 +3197,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #425:
+' Line #462:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld SEA_THICKNESS 
 ' 	LitDI2 0x0005 
@@ -3037,7 +3205,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #426:
+' Line #463:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld _B_var_SEA_THICKNESS 
 ' 	LitHI4 0xFFFF 0x00FF 
@@ -3045,7 +3213,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #427:
+' Line #464:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld GPM_SETAXISATTRSTRING 
 ' 	LitDI2 0x0002 
@@ -3053,7 +3221,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #428:
+' Line #465:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld SLA_CONTOURFILLTYPE 
 ' 	LitDI2 0x0004 
@@ -3061,7 +3229,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #429:
+' Line #466:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld SEA_THICKNESS 
 ' 	LitDI2 0x0004 
@@ -3069,7 +3237,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #430:
+' Line #467:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld _B_var_SAA_SUB1OPTIONS 
 ' 	LitDI2 0x0512 
@@ -3077,7 +3245,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #431:
+' Line #468:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld _B_var_SAA_SUB1OPTIONS 
 ' 	LitDI2 0x0F31 
@@ -3085,7 +3253,7 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #432:
+' Line #469:
 ' 	Ld SEA_COLORCOL 
 ' 	Ld SEA_THICKNESS 
 ' 	LitDI2 0x0001 
@@ -3093,62 +3261,62 @@
 ' 	MemLd CT_GRAPHICPAGE 
 ' 	MemLd CreateWizardGraph 
 ' 	ArgsMemCall (Call) GPM_SETAXISATTR 0x0003 
-' Line #433:
-' Line #434:
+' Line #470:
+' Line #471:
 ' 	EndSub 
-' Line #435:
-' Line #436:
+' Line #472:
+' Line #473:
 ' 	FuncDefn (Function _B_var_buildEpocList(objTTX, iXAxisIndexAs, returnArr))
-' Line #437:
+' Line #474:
 ' 	QuoteRem 0x0004 0x0030 "build list of epocs for the given axis epoc name"
-' Line #438:
-' Line #439:
+' Line #475:
+' Line #476:
 ' 	Dim 
 ' 	VarDefn AxisEp (As Dictionary)
-' Line #440:
+' Line #477:
 ' 	SetStmt 
 ' 	New id_FFFF
 ' 	Set AxisEp 
-' Line #441:
-' Line #442:
+' Line #478:
+' Line #479:
 ' 	Dim 
 ' 	VarDefn dblStartTime (As Double)
-' Line #443:
+' Line #480:
 ' 	Dim 
 ' 	VarDefn varReturn (As Variant)
-' Line #444:
-' Line #445:
+' Line #481:
+' Line #482:
 ' 	Dim 
 ' 	VarDefn i (As Integer)
-' Line #446:
+' Line #483:
 ' 	Dim 
 ' 	VarDefn j (As Integer)
-' Line #447:
-' Line #448:
+' Line #484:
+' Line #485:
 ' 	Ld iXAxisIndexAs 
 ' 	LitStr 0x0007 "Channel"
 ' 	Eq 
 ' 	IfBlock 
-' Line #449:
+' Line #486:
 ' 	StartForVariable 
 ' 	Ld i 
 ' 	EndForVariable 
 ' 	LitDI2 0x0001 
 ' 	LitDI2 0x0020 
 ' 	For 
-' Line #450:
+' Line #487:
 ' 	Ld i 
 ' 	LitDI2 0x0000 
 ' 	Ld AxisEp 
 ' 	ArgsMemCall (Call) Add 0x0002 
-' Line #451:
+' Line #488:
 ' 	StartForVariable 
 ' 	Next 
-' Line #452:
+' Line #489:
 ' 	ElseBlock 
-' Line #453:
+' Line #490:
 ' 	Do 
-' Line #454:
+' Line #491:
 ' 	LitDI2 0x01F4 
 ' 	Ld iXAxisIndexAs 
 ' 	LitDI2 0x0000 
@@ -3159,24 +3327,24 @@
 ' 	Ld objTTX 
 ' 	ArgsMemLd ReadEventsV 0x0007 
 ' 	St i 
-' Line #455:
+' Line #492:
 ' 	Ld i 
 ' 	LitDI2 0x0000 
 ' 	Eq 
 ' 	IfBlock 
-' Line #456:
+' Line #493:
 ' 	ExitDo 
-' Line #457:
+' Line #494:
 ' 	EndIfBlock 
-' Line #458:
-' Line #459:
+' Line #495:
+' Line #496:
 ' 	LitDI2 0x0000 
 ' 	Ld i 
 ' 	LitDI2 0x0000 
 ' 	Ld objTTX 
 ' 	ArgsMemLd ParseEvInfoV 0x0003 
 ' 	St varReturn 
-' Line #460:
+' Line #497:
 ' 	StartForVariable 
 ' 	Ld j 
 ' 	EndForVariable 
@@ -3186,7 +3354,7 @@
 ' 	Sub 
 ' 	Paren 
 ' 	For 
-' Line #461:
+' Line #498:
 ' 	LitDI2 0x0006 
 ' 	Ld j 
 ' 	ArgsLd varReturn 0x0002 
@@ -3194,16 +3362,16 @@
 ' 	ArgsMemLd Exists 0x0001 
 ' 	Not 
 ' 	IfBlock 
-' Line #462:
+' Line #499:
 ' 	LitDI2 0x0006 
 ' 	Ld j 
 ' 	ArgsLd varReturn 0x0002 
 ' 	LitStr 0x0000 ""
 ' 	Ld AxisEp 
 ' 	ArgsMemCall (Call) Add 0x0002 
-' Line #463:
+' Line #500:
 ' 	EndIfBlock 
-' Line #464:
+' Line #501:
 ' 	LitDI2 0x0005 
 ' 	Ld j 
 ' 	ArgsLd varReturn 0x0002 
@@ -3213,99 +3381,99 @@
 ' 	Paren 
 ' 	Add 
 ' 	St dblStartTime 
-' Line #465:
+' Line #502:
 ' 	StartForVariable 
 ' 	Next 
-' Line #466:
-' Line #467:
+' Line #503:
+' Line #504:
 ' 	Ld i 
 ' 	LitDI2 0x01F4 
 ' 	Lt 
 ' 	IfBlock 
-' Line #468:
+' Line #505:
 ' 	ExitDo 
-' Line #469:
+' Line #506:
 ' 	EndIfBlock 
-' Line #470:
+' Line #507:
 ' 	Loop 
-' Line #471:
+' Line #508:
 ' 	EndIfBlock 
-' Line #472:
-' Line #473:
-' Line #474:
-' Line #475:
+' Line #509:
+' Line #510:
+' Line #511:
+' Line #512:
 ' 	Ld returnArr 
 ' 	IfBlock 
-' Line #476:
+' Line #513:
 ' 	Dim 
 ' 	VarDefn _B_var_returnArr
-' Line #477:
+' Line #514:
 ' 	Dim 
-' 	VarDefn id_0794 (As Variant)
-' Line #478:
+' 	VarDefn zOffsets (As Variant)
+' Line #515:
 ' 	Ld AxisEp 
 ' 	MemLd Keys 
-' 	St id_0794 
-' Line #479:
+' 	St zOffsets 
+' Line #516:
 ' 	OptionBase 
-' 	Ld id_0794 
+' 	Ld zOffsets 
 ' 	FnUBound 0x0000 
 ' 	Redim _B_var_returnArr 0x0001 (As Variant)
-' Line #480:
-' Line #481:
+' Line #517:
+' Line #518:
 ' 	StartForVariable 
 ' 	Ld i 
 ' 	EndForVariable 
 ' 	LitDI2 0x0000 
-' 	Ld id_0794 
+' 	Ld zOffsets 
 ' 	FnUBound 0x0000 
 ' 	For 
-' Line #482:
-' 	Ld id_0794 
+' Line #519:
+' 	Ld zOffsets 
 ' 	FnUBound 0x0000 
 ' 	Ld i 
 ' 	Sub 
-' 	ArgsLd id_0794 0x0001 
+' 	ArgsLd zOffsets 0x0001 
 ' 	Ld i 
 ' 	ArgsSt _B_var_returnArr 0x0001 
-' Line #483:
+' Line #520:
 ' 	StartForVariable 
 ' 	Next 
-' Line #484:
+' Line #521:
 ' 	Ld _B_var_returnArr 
 ' 	St _B_var_buildEpocList 
-' Line #485:
+' Line #522:
 ' 	ElseBlock 
-' Line #486:
+' Line #523:
 ' 	Ld AxisEp 
 ' 	MemLd Keys 
 ' 	St _B_var_buildEpocList 
-' Line #487:
+' Line #524:
 ' 	EndIfBlock 
-' Line #488:
-' Line #489:
+' Line #525:
+' Line #526:
 ' 	EndFunc 
-' Line #490:
-' Line #491:
-' Line #492:
-' 	FuncDefn (Function _B_var_processSearch(ByRef objTTX, ByRef _B_var_arrOtherEp, ByRef strSearchString, iOtherEpocIndex, xAxisSearchString As String, yOffset, zOffset, xOffes, 1, Le))
-' Line #493:
+' Line #527:
+' Line #528:
+' Line #529:
+' 	FuncDefn (Function _B_var_processSearch(ByRef objTTX, ByRef _B_var_arrOtherEp, ByRef strSearchString, iOtherEpocIndex, xAxisSearchString As String, yOffset, zOffset, xOffes, 1, Le, ByRef yCoun, ByRef xCount, ByRef lMaxHistHe, ByRef lMaxHistHeigh))
+' Line #530:
 ' 	Dim 
 ' 	VarDefn i (As Integer)
-' Line #494:
+' Line #531:
 ' 	Dim 
 ' 	VarDefn j (As Integer)
-' Line #495:
+' Line #532:
 ' 	Dim 
 ' 	VarDefn _B_var_objTTX (As String)
-' Line #496:
+' Line #533:
 ' 	Dim 
 ' 	VarDefn strHeading (As String)
-' Line #497:
+' Line #534:
 ' 	Dim 
 ' 	VarDefn Label1 (As String)
-' Line #498:
-' Line #499:
+' Line #535:
+' Line #536:
 ' 	StartForVariable 
 ' 	Ld i 
 ' 	EndForVariable 
@@ -3314,15 +3482,15 @@
 ' 	ArgsLd strSearchString 0x0001 
 ' 	FnUBound 0x0000 
 ' 	For 
-' Line #500:
+' Line #537:
 ' 	Ld iOtherEpocIndex 
 ' 	ArgsLd _B_var_arrOtherEp 0x0001 
 ' 	LitStr 0x0007 "Channel"
 ' 	Ne 
 ' 	IfBlock 
-' Line #501:
+' Line #538:
 ' 	QuoteRem 0x000C 0x0014 "add to search string"
-' Line #502:
+' Line #539:
 ' 	Ld xAxisSearchString 
 ' 	Ld iOtherEpocIndex 
 ' 	ArgsLd _B_var_arrOtherEp 0x0001 
@@ -3338,7 +3506,7 @@
 ' 	LitStr 0x0005 " and "
 ' 	Concat 
 ' 	St _B_var_objTTX 
-' Line #503:
+' Line #540:
 ' 	Ld Le 
 ' 	Ld iOtherEpocIndex 
 ' 	ArgsLd _B_var_arrOtherEp 0x0001 
@@ -3354,12 +3522,12 @@
 ' 	LitStr 0x0002 ", "
 ' 	Concat 
 ' 	St Label1 
-' Line #504:
+' Line #541:
 ' 	ElseBlock 
-' Line #505:
+' Line #542:
 ' 	Ld xAxisSearchString 
 ' 	St _B_var_objTTX 
-' Line #506:
+' Line #543:
 ' 	Ld Le 
 ' 	LitStr 0x000A "Channel = "
 ' 	Concat 
@@ -3372,23 +3540,23 @@
 ' 	LitStr 0x0002 ", "
 ' 	Concat 
 ' 	St Label1 
-' Line #507:
+' Line #544:
 ' 	Ld i 
 ' 	Ld iOtherEpocIndex 
 ' 	ArgsLd strSearchString 0x0001 
 ' 	IndexLd 0x0001 
 ' 	St 1 
-' Line #508:
+' Line #545:
 ' 	EndIfBlock 
-' Line #509:
+' Line #546:
 ' 	Ld iOtherEpocIndex 
 ' 	Ld _B_var_arrOtherEp 
 ' 	FnUBound 0x0000 
 ' 	Lt 
 ' 	IfBlock 
-' Line #510:
+' Line #547:
 ' 	QuoteRem 0x000C 0x002F "there are still more epocs to add to the search"
-' Line #511:
+' Line #548:
 ' 	Ld objTTX 
 ' 	Ld _B_var_arrOtherEp 
 ' 	Ld strSearchString 
@@ -3408,12 +3576,16 @@
 ' 	Add 
 ' 	Ld 1 
 ' 	Ld Label1 
-' 	ArgsCall (Call) _B_var_processSearch 0x000A 
-' Line #512:
+' 	Ld yCoun 
+' 	Ld xCount 
+' 	Ld lMaxHistHe 
+' 	Ld lMaxHistHeigh 
+' 	ArgsCall (Call) _B_var_processSearch 0x000E 
+' Line #549:
 ' 	ElseBlock 
-' Line #513:
+' Line #550:
 ' 	QuoteRem 0x000C 0x004B "we have reached the end of the list of epocs - can actually do a search now"
-' Line #514:
+' Line #551:
 ' 	Ld _B_var_objTTX 
 ' 	LitDI2 0x0005 
 ' 	ArgsLd Right 0x0002 
@@ -3421,7 +3593,7 @@
 ' 	Eq 
 ' 	IfBlock 
 ' 	QuoteRem 0x003D 0x0045 "this should always be the case - should be a trailing 'and' to remove"
-' Line #515:
+' Line #552:
 ' 	Ld _B_var_objTTX 
 ' 	Ld _B_var_objTTX 
 ' 	FnLen 
@@ -3429,19 +3601,19 @@
 ' 	Sub 
 ' 	ArgsLd Left 0x0002 
 ' 	St strHeading 
-' Line #516:
+' Line #553:
 ' 	ElseBlock 
-' Line #517:
+' Line #554:
 ' 	Ld _B_var_objTTX 
 ' 	St strHeading 
-' Line #518:
+' Line #555:
 ' 	EndIfBlock 
-' Line #519:
+' Line #556:
 ' 	Ld strHeading 
 ' 	Ld objTTX 
 ' 	ArgsMemCall (Call) SetFilterWithDescEx 0x0001 
-' Line #520:
-' Line #521:
+' Line #557:
+' Line #558:
 ' 	Ld yOffset 
 ' 	LitDI2 0x0001 
 ' 	Eq 
@@ -3450,7 +3622,7 @@
 ' 	Eq 
 ' 	And 
 ' 	IfBlock 
-' Line #522:
+' Line #559:
 ' 	Ld Label1 
 ' 	Ld Label1 
 ' 	FnLen 
@@ -3470,7 +3642,7 @@
 ' 	ArgsLd Worksheets 0x0001 
 ' 	ArgsMemLd Cells 0x0002 
 ' 	MemSt Value 
-' Line #523:
+' Line #560:
 ' 	Ld vYAxisKeys 
 ' 	Ld buildOptionLists 
 ' 	Ld _B_var_iColOffset 
@@ -3480,10 +3652,10 @@
 ' 	Mul 
 ' 	Paren 
 ' 	ArgsCall (Call) SubwriteAxes 0x0005 
-' Line #524:
+' Line #561:
 ' 	EndIfBlock 
-' Line #525:
-' Line #526:
+' Line #562:
+' Line #563:
 ' 	Ld objTTX 
 ' 	Ld yOffset 
 ' 	Ld zOffset 
@@ -3491,60 +3663,84 @@
 ' 	Ld xOffes 
 ' 	Mul 
 ' 	Ld 1 
-' 	ArgsCall (Call) _B_var_writeResults 0x0005 
-' Line #527:
+' 	Ld lMaxHistHeigh 
+' 	ArgsCall (Call) _B_var_writeResults 0x0006 
+' Line #564:
+' 	Ld yOffset 
+' 	Ld yCoun 
+' 	Gt 
+' 	IfBlock 
+' Line #565:
+' 	Ld yOffset 
+' 	St yCoun 
+' Line #566:
 ' 	EndIfBlock 
-' Line #528:
+' Line #567:
+' 	Ld zOffset 
+' 	Ld xCount 
+' 	Gt 
+' 	IfBlock 
+' Line #568:
+' 	Ld zOffset 
+' 	St xCount 
+' Line #569:
+' 	EndIfBlock 
+' Line #570:
+' 	Ld xOffes 
+' 	St lMaxHistHe 
+' Line #571:
+' 	EndIfBlock 
+' Line #572:
 ' 	StartForVariable 
 ' 	Next 
-' Line #529:
-' Line #530:
+' Line #573:
+' Line #574:
 ' 	EndFunc 
-' Line #531:
-' Line #532:
-' 	FuncDefn (Sub _B_var_writeResults(ByRef objTTX, yOffset, zOffset, xOffes, 1))
-' Line #533:
+' Line #575:
+' Line #576:
+' 	FuncDefn (Sub _B_var_writeResults(ByRef objTTX, yOffset, zOffset, xOffes, 1, ByRef lMaxHistHeigh))
+' Line #577:
 ' 	Dim 
 ' 	VarDefn varReturn (As Variant)
-' Line #534:
+' Line #578:
 ' 	Dim 
 ' 	VarDefn varChanData (As Variant)
-' Line #535:
-' Line #536:
+' Line #579:
+' Line #580:
 ' 	Dim 
 ' 	VarDefn dblStartTime (As Double)
-' Line #537:
+' Line #581:
 ' 	Dim 
 ' 	VarDefn dblEndTime (As Double)
-' Line #538:
+' Line #582:
 ' 	Dim 
 ' 	VarDefn IsEmpty (As Double)
-' Line #539:
-' Line #540:
+' Line #583:
+' Line #584:
 ' 	Dim 
 ' 	VarDefn i (As Long)
-' Line #541:
+' Line #585:
 ' 	Dim 
 ' 	VarDefn j (As Long)
-' Line #542:
+' Line #586:
 ' 	Dim 
 ' 	VarDefn k (As Long)
-' Line #543:
-' Line #544:
+' Line #587:
+' Line #588:
 ' 	Dim 
 ' 	VarDefn histTmp (As Long)
-' Line #545:
-' Line #546:
+' Line #589:
+' Line #590:
 ' 	LitStr 0x0004 "Swep"
 ' 	LitDI2 0x0000 
 ' 	Ld objTTX 
 ' 	ArgsMemLd GetEpocsExV 0x0002 
 ' 	St varReturn 
-' Line #547:
+' Line #591:
 ' 	Ld varReturn 
 ' 	ArgsLd Dib 0x0001 
 ' 	IfBlock 
-' Line #548:
+' Line #592:
 ' 	StartForVariable 
 ' 	Ld i 
 ' 	EndForVariable 
@@ -3553,26 +3749,26 @@
 ' 	LitDI2 0x0002 
 ' 	FnUBound 0x0001 
 ' 	For 
-' Line #549:
+' Line #593:
 ' 	LitDI2 0x0002 
 ' 	Ld i 
 ' 	ArgsLd varReturn 0x0002 
 ' 	Ld _B_var_lIgnoreFirstMsec 
 ' 	Add 
 ' 	St dblStartTime 
-' Line #550:
+' Line #594:
 ' 	Ld dblStartTime 
 ' 	Ld lBinWidth 
 ' 	Add 
 ' 	Ld _B_var_lIgnoreFirstMsec 
 ' 	Add 
 ' 	St dblEndTime 
-' Line #551:
+' Line #595:
 ' 	Ld dblStartTime 
 ' 	St IsEmpty 
-' Line #552:
+' Line #596:
 ' 	Do 
-' Line #553:
+' Line #597:
 ' 	LitDI2 0x01F4 
 ' 	LitStr 0x0004 "CSPK"
 ' 	Ld 1 
@@ -3583,33 +3779,33 @@
 ' 	Ld objTTX 
 ' 	ArgsMemLd ReadEventsV 0x0007 
 ' 	St k 
-' Line #554:
+' Line #598:
 ' 	Ld k 
 ' 	LitDI2 0x0000 
 ' 	Eq 
 ' 	IfBlock 
-' Line #555:
+' Line #599:
 ' 	ExitDo 
-' Line #556:
+' Line #600:
 ' 	EndIfBlock 
-' Line #557:
-' Line #558:
+' Line #601:
+' Line #602:
 ' 	Ld histTmp 
 ' 	Coerce (Lng) 
 ' 	Ld k 
 ' 	Coerce (Lng) 
 ' 	Add 
 ' 	St histTmp 
-' Line #559:
+' Line #603:
 ' 	Ld k 
 ' 	LitDI2 0x01F4 
 ' 	Lt 
 ' 	IfBlock 
-' Line #560:
+' Line #604:
 ' 	ExitDo 
-' Line #561:
+' Line #605:
 ' 	ElseBlock 
-' Line #562:
+' Line #606:
 ' 	Ld k 
 ' 	LitDI2 0x0001 
 ' 	Sub 
@@ -3618,7 +3814,7 @@
 ' 	Ld objTTX 
 ' 	ArgsMemLd ParseEvInfoV 0x0003 
 ' 	St varChanData 
-' Line #563:
+' Line #607:
 ' 	LitDI2 0x0000 
 ' 	ArgsLd varChanData 0x0001 
 ' 	LitDI2 0x0001 
@@ -3627,23 +3823,23 @@
 ' 	Paren 
 ' 	Add 
 ' 	St dblStartTime 
-' Line #564:
+' Line #608:
 ' 	EndIfBlock 
-' Line #565:
+' Line #609:
 ' 	Loop 
-' Line #566:
+' Line #610:
 ' 	Ld IsEmpty 
 ' 	St dblStartTime 
-' Line #567:
+' Line #611:
 ' 	StartForVariable 
 ' 	Next 
-' Line #568:
-' Line #569:
+' Line #612:
+' Line #613:
 ' 	Ld yAxisEp 
 ' 	LitStr 0x0007 "Channel"
 ' 	Eq 
 ' 	IfBlock 
-' Line #570:
+' Line #614:
 ' 	Ld histTmp 
 ' 	Ld zOffset 
 ' 	Ld _B_var_Const 
@@ -3661,12 +3857,12 @@
 ' 	ArgsLd Worksheets 0x0001 
 ' 	ArgsMemLd Cells 0x0002 
 ' 	MemSt Value 
-' Line #571:
+' Line #615:
 ' 	Ld otherEp 
 ' 	LitStr 0x0007 "Channel"
 ' 	Eq 
 ' 	ElseIfBlock 
-' Line #572:
+' Line #616:
 ' 	Ld histTmp 
 ' 	Ld zOffset 
 ' 	Ld _B_var_Const 
@@ -3684,9 +3880,9 @@
 ' 	ArgsLd Worksheets 0x0001 
 ' 	ArgsMemLd Cells 0x0002 
 ' 	MemSt Value 
-' Line #573:
+' Line #617:
 ' 	ElseBlock 
-' Line #574:
+' Line #618:
 ' 	Ld histTmp 
 ' 	Ld zOffset 
 ' 	Ld _B_var_Const 
@@ -3704,15 +3900,26 @@
 ' 	ArgsLd Worksheets 0x0001 
 ' 	ArgsMemLd Cells 0x0002 
 ' 	MemSt Value 
-' Line #575:
+' Line #619:
 ' 	EndIfBlock 
-' Line #576:
+' Line #620:
+' 	Ld histTmp 
+' 	Ld lMaxHistHeigh 
+' 	Gt 
+' 	IfBlock 
+' Line #621:
+' 	Ld histTmp 
+' 	St lMaxHistHeigh 
+' Line #622:
+' 	EndIfBlock 
+' Line #623:
 ' 	LitDI2 0x0000 
 ' 	St histTmp 
-' Line #577:
+' Line #624:
 ' 	EndIfBlock 
-' Line #578:
-' Line #579:
+' Line #625:
+' Line #626:
 ' 	EndSub 
 ' _VBA_PROJECT_CUR/VBA/Sheet2 - 1166 bytes
 ' _VBA_PROJECT_CUR/VBA/Sheet3 - 1150 bytes
+' _VBA_PROJECT_CUR/VBA/Sheet4 - 1166 bytes
