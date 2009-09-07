@@ -9,6 +9,10 @@ Global iRowOffset As Integer
 Global iColOffset As Integer
 Global bReverseX, bReverseY As Boolean
 
+Global dHeadingList As Dictionary
+Global dHeadingsSelected As Dictionary
+Global bXAxisLog As Boolean
+
 Dim vXAxisKeys As Variant
 Dim vYAxisKeys As Variant
 
@@ -27,7 +31,7 @@ Sub buildTuningCurvesIntoSigmaplot()
 '    If doImport Then
 '        Call processImport(True)
 '    End If
-Call transferToSigmaplot
+Call TransferToSigmaplot
 End Sub
 
 Sub processImport(importIntoSigmaplot As Boolean)
@@ -237,7 +241,7 @@ Sub deleteWorksheets()
     Loop
 End Sub
 
-Sub transferToSigmaplot()
+Sub TransferToSigmaplot()
 
     Dim xCount As Long
     Dim yCount As Long
@@ -290,132 +294,132 @@ Sub transferToSigmaplot()
     
     Do
         If Worksheets("Output").Cells(yPos, xPos).Value <> "" Then
-            Set spNB = SPApp.Notebooks.Item(SPApp.Notebooks.Count - 1)
-            Set spWS = spNB.NotebookItems.Item(spNB.NotebookItems.Count - 1)
-            spWS.Name = Worksheets("Output").Cells(yPos, xPos).Value
-            Set spDT = spWS.DataTable
-            
-            yPos = yPos
-                        
-            For j = 0 To (xCount - 1)
-                spDT.Cell(0, j) = Worksheets("Output").Cells(yPos + 1, xPos + j + 1).Value
-            Next
-            
-            For j = 0 To (yCount - 1)
-                spDT.Cell(1, j) = Worksheets("Output").Cells(yPos + j + 2, xPos).Value
-            Next
-            
-            
-            For j = 0 To (xCount - 1)
-                For k = 0 To (yCount - 1)
-                    spDT.Cell(3 + k, j) = Worksheets("Output").Cells(yPos + k + 2, xPos + j + 1).Value
-                Next
-            Next
-            
-            spDT.Cell(2, 0) = "@rgb(255,255,255)"
-            spDT.Cell(2, 1) = "@rgb(0,0,255)"
-            spDT.Cell(2, 2) = "@rgb(0,255,255)"
-            spDT.Cell(2, 3) = "@rgb(0,255,0)"
-            spDT.Cell(2, 4) = "@rgb(255,255,0)"
-            spDT.Cell(2, 5) = "@rgb(255,0,0)"
+            If dHeadingsSelected.Exists(Worksheets("Output").Cells(yPos, xPos).Value) Then
+                Set spNB = SPApp.Notebooks.Item(SPApp.Notebooks.Count - 1)
+                Set spWS = spNB.NotebookItems.Item(spNB.NotebookItems.Count - 1)
+                spWS.Name = Worksheets("Output").Cells(yPos, xPos).Value
+                Set spDT = spWS.DataTable
                 
-            'Call spNB.NotebookItems.Add(2)
-            'Set spGRPH = spNB.NotebookItems.Item(spNB.NotebookItems.Count - 1)
-    
-            Call SPApp.ActiveDocument.NotebookItems.Add(2)
-            Dim ColumnsPerPlot(2, 3)
-            ColumnsPerPlot(0, 0) = 0
-            ColumnsPerPlot(1, 0) = 0
-            ColumnsPerPlot(2, 0) = 31999999
-            ColumnsPerPlot(0, 1) = 1
-            ColumnsPerPlot(1, 1) = 0
-            ColumnsPerPlot(2, 1) = 31999999
-            ColumnsPerPlot(0, 2) = 3
-            ColumnsPerPlot(1, 2) = 0
-            ColumnsPerPlot(2, 2) = 31999999
-            ColumnsPerPlot(0, 3) = 3 + (yCount - 1)
-            ColumnsPerPlot(1, 3) = 0
-            ColumnsPerPlot(2, 3) = 31999999
-            
-            Dim PlotColumnCountArray()
-            ReDim PlotColumnCountArray(0)
-            
-            PlotColumnCountArray(0) = 4
-            Call SPApp.ActiveDocument.CurrentPageItem.CreateWizardGraph("Contour Plot", "Filled Contour Plot", "XY Many Z", ColumnsPerPlot, PlotColumnCountArray, "Worksheet Columns", "Standard Deviation", "Degrees", 0#, 360#, , "Standard Deviation", True)
-            Call SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).SelectObject
-        
-            SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Name = "Site y"
-            SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Axes(0).Name = "Attenuation"
-            SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Axes(1).Name = "Frequency"
-            
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETPLOTATTR, SLA_SELECTDIM, 3)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_OPTIONS, 10)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_OPTIONS, 51380225)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_OPTIONS, 12583938)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTRSTRING, SAA_FROMVAL, "0")
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTRSTRING, SAA_TOVAL, CStr(lMaxHistHeight))
-            
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETPLOTATTR, SLA_SELECTDIM, 3)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 2)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_THICKNESS, 10)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 4)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLOR, &HFFFFFF)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLORCOL, 2)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLORREPEAT, 4)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETPLOTATTR, SLA_CONTOURFILLTYPE, 1)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 5)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLOR, &HFFFFFF)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLORCOL, 2)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLORREPEAT, 4)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 4)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SUB1OPTIONS, 1298)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SUB1OPTIONS, 3889)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 1)
-    
-            Call SPApp.ActiveDocument.NotebookItems.Add(2)
-            ColumnsPerPlot(0, 0) = 0
-            ColumnsPerPlot(1, 0) = 0
-            ColumnsPerPlot(2, 0) = 31999999
-            ColumnsPerPlot(0, 1) = 1
-            ColumnsPerPlot(1, 1) = 0
-            ColumnsPerPlot(2, 1) = 31999999
-            ColumnsPerPlot(0, 2) = 3
-            ColumnsPerPlot(1, 2) = 0
-            ColumnsPerPlot(2, 2) = 31999999
-            ColumnsPerPlot(0, 3) = 3 + (yCount - 1)
-            ColumnsPerPlot(1, 3) = 0
-            ColumnsPerPlot(2, 3) = 31999999
-            
-            ReDim PlotColumnCountArray(0)
-            
-            PlotColumnCountArray(0) = 4
-            Call SPApp.ActiveDocument.CurrentPageItem.CreateWizardGraph("Contour Plot", "Filled Contour Plot", "XY Many Z", ColumnsPerPlot, PlotColumnCountArray, "Worksheet Columns", "Standard Deviation", "Degrees", 0#, 360#, , "Standard Deviation", True)
-            Call SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).SelectObject
-        
-            SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Name = "Site y"
-            SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Axes(0).Name = "Attenuation"
-            SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Axes(1).Name = "Frequency"
+                yPos = yPos
+                            
+                For j = 0 To (xCount - 1)
+                    spDT.Cell(0, j) = Worksheets("Output").Cells(yPos + 1, xPos + j + 1).Value
+                Next
+                
+                For j = 0 To (yCount - 1)
+                    spDT.Cell(1, j) = Worksheets("Output").Cells(yPos + j + 2, xPos).Value
+                Next
+                
+                
+                For j = 0 To (xCount - 1)
+                    For k = 0 To (yCount - 1)
+                        spDT.Cell(3 + k, j) = Worksheets("Output").Cells(yPos + k + 2, xPos + j + 1).Value
+                    Next
+                Next
+                
+                spDT.Cell(2, 0) = "@rgb(255,255,255)"
+                spDT.Cell(2, 1) = "@rgb(0,0,255)"
+                spDT.Cell(2, 2) = "@rgb(0,255,255)"
+                spDT.Cell(2, 3) = "@rgb(0,255,0)"
+                spDT.Cell(2, 4) = "@rgb(255,255,0)"
+                spDT.Cell(2, 5) = "@rgb(255,0,0)"
                     
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETPLOTATTR, SLA_SELECTDIM, 3)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 2)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_THICKNESS, 10)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 4)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLOR, &HFFFFFF)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLORCOL, 2)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLORREPEAT, 4)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETPLOTATTR, SLA_CONTOURFILLTYPE, 1)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 5)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLOR, &HFFFFFF)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLORCOL, 2)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLORREPEAT, 4)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 4)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SUB1OPTIONS, 1298)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SUB1OPTIONS, 3889)
-            Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 1)
-    
-'            If i < UBound(theWorksheets) Then
-            Call spNB.NotebookItems.Add(1)
-'            End If
+                'Call spNB.NotebookItems.Add(2)
+                'Set spGRPH = spNB.NotebookItems.Item(spNB.NotebookItems.Count - 1)
+        
+                Call SPApp.ActiveDocument.NotebookItems.Add(2)
+                Dim ColumnsPerPlot(2, 3)
+                ColumnsPerPlot(0, 0) = 0
+                ColumnsPerPlot(1, 0) = 0
+                ColumnsPerPlot(2, 0) = 31999999
+                ColumnsPerPlot(0, 1) = 1
+                ColumnsPerPlot(1, 1) = 0
+                ColumnsPerPlot(2, 1) = 31999999
+                ColumnsPerPlot(0, 2) = 3
+                ColumnsPerPlot(1, 2) = 0
+                ColumnsPerPlot(2, 2) = 31999999
+                ColumnsPerPlot(0, 3) = 3 + (yCount - 1)
+                ColumnsPerPlot(1, 3) = 0
+                ColumnsPerPlot(2, 3) = 31999999
+                
+                Dim PlotColumnCountArray()
+                ReDim PlotColumnCountArray(0)
+                
+                PlotColumnCountArray(0) = 4
+                Call SPApp.ActiveDocument.CurrentPageItem.CreateWizardGraph("Contour Plot", "Filled Contour Plot", "XY Many Z", ColumnsPerPlot, PlotColumnCountArray, "Worksheet Columns", "Standard Deviation", "Degrees", 0#, 360#, , "Standard Deviation", True)
+                Call SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).SelectObject
+            
+                SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Name = "Site y"
+                SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Axes(0).Name = "Attenuation"
+                SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Axes(1).Name = "Frequency"
+                
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETPLOTATTR, SLA_SELECTDIM, 3)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_OPTIONS, 10)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_OPTIONS, 51380225)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_OPTIONS, 12583938)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTRSTRING, SAA_FROMVAL, "0")
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTRSTRING, SAA_TOVAL, CStr(lMaxHistHeight))
+                
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETPLOTATTR, SLA_SELECTDIM, 3)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 2)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_THICKNESS, 10)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 4)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLOR, &HFFFFFF)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLORCOL, 2)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLORREPEAT, 4)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETPLOTATTR, SLA_CONTOURFILLTYPE, 1)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 5)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLOR, &HFFFFFF)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLORCOL, 2)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLORREPEAT, 4)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 4)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SUB1OPTIONS, 1298)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SUB1OPTIONS, 3889)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 1)
+        
+                Call SPApp.ActiveDocument.NotebookItems.Add(2)
+                ColumnsPerPlot(0, 0) = 0
+                ColumnsPerPlot(1, 0) = 0
+                ColumnsPerPlot(2, 0) = 31999999
+                ColumnsPerPlot(0, 1) = 1
+                ColumnsPerPlot(1, 1) = 0
+                ColumnsPerPlot(2, 1) = 31999999
+                ColumnsPerPlot(0, 2) = 3
+                ColumnsPerPlot(1, 2) = 0
+                ColumnsPerPlot(2, 2) = 31999999
+                ColumnsPerPlot(0, 3) = 3 + (yCount - 1)
+                ColumnsPerPlot(1, 3) = 0
+                ColumnsPerPlot(2, 3) = 31999999
+                
+                ReDim PlotColumnCountArray(0)
+                
+                PlotColumnCountArray(0) = 4
+                Call SPApp.ActiveDocument.CurrentPageItem.CreateWizardGraph("Contour Plot", "Filled Contour Plot", "XY Many Z", ColumnsPerPlot, PlotColumnCountArray, "Worksheet Columns", "Standard Deviation", "Degrees", 0#, 360#, , "Standard Deviation", True)
+                Call SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).SelectObject
+            
+                SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Name = "Site y"
+                SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Axes(0).Name = "Attenuation"
+                SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Axes(1).Name = "Frequency"
+                        
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETPLOTATTR, SLA_SELECTDIM, 3)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 2)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_THICKNESS, 10)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 4)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLOR, &HFFFFFF)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLORCOL, 2)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLORREPEAT, 4)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETPLOTATTR, SLA_CONTOURFILLTYPE, 1)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 5)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLOR, &HFFFFFF)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLORCOL, 2)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLORREPEAT, 4)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 4)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SUB1OPTIONS, 1298)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SUB1OPTIONS, 3889)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 1)
+        
+                Call spNB.NotebookItems.Add(1)
+            End If
             yPos = yPos + zOffsetSize
         Else
             Exit Do
@@ -625,4 +629,39 @@ Sub writeResults(ByRef objTTX, xOffset, yOffset, zOffset, iChanNum, ByRef lMaxHi
         histTmp = 0
     End If
     
+End Sub
+
+Sub transferToSigmaplotButton()
+    Dim zOffsetSize As Long
+    Dim iColOffset As Integer
+    Dim iRowOffset As Integer
+
+    zOffsetSize = Worksheets("Variables (do not edit)").Range("H3").Value
+    iColOffset = Worksheets("Variables (do not edit)").Range("H5").Value
+    iRowOffset = Worksheets("Variables (do not edit)").Range("H6").Value
+
+    Dim xPos As Long
+    Dim yPos As Long
+   
+    xPos = iColOffset + 1
+    yPos = iRowOffset
+    
+    Set dHeadingList = New Dictionary
+    
+    Do
+        If Worksheets("Output").Cells(yPos, xPos).Value <> "" Then
+            If Not dHeadingList.Exists(Worksheets("Output").Cells(yPos, xPos).Value) Then
+                Call dHeadingList.Add(Worksheets("Output").Cells(yPos, xPos).Value, 0)
+            End If
+            yPos = yPos + zOffsetSize
+        Else
+            Exit Do
+        End If
+    Loop
+    
+    TransferToSigmaplotFrm.Show
+    If doImport Then
+        Call TransferToSigmaplot
+    End If
+
 End Sub
