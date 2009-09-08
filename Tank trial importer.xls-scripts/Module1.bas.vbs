@@ -11,6 +11,25 @@ Sub importTrials()
 End Sub
 
 Sub processImport()
+    Dim dChannelMappings As Dictionary
+    Set dChannelMappings = New Dictionary
+
+    Dim strChan As String
+    Dim strRef As String
+
+    Dim i As Long
+    i = 0
+    Do
+        If Worksheets("Site mappings").Range("A" & (i + 2)).Value <> "" Then
+            If Not dChannelMappings.Exists(Worksheets("Site mappings").Range("A" & (i + 2)).Value) Then
+                Call dChannelMappings.Add(CStr(Worksheets("Site mappings").Range("A" & (i + 2)).Value), Worksheets("Site mappings").Range("B" & (i + 2)).Value)
+            End If
+            i = i + 1
+        Else
+            Exit Do
+        End If
+    Loop
+
     Dim arrBlocks()
     Dim arrTrials()
 
@@ -35,7 +54,6 @@ Sub processImport()
         Exit Sub
     End If
     
-    Dim i As Long
     Dim j As Long
     Dim returnVal As Variant
     Dim dblStartTime As Double
@@ -131,6 +149,9 @@ Sub processImport()
         If i > 2 Then
             'acoustic presentations - get the first two instances of AFrq, which will be the two different frequencies
             i = objTTX.ReadEventsV(2, "AFrq", 0, 0, dblStartTime, arrTrials(iTrialOffset)(3), "ALL")
+            If i = 0 Then 'catch and exit on errors - e.g. if manually terminated trials
+                Exit For
+            End If
             arrTrials(iTrialOffset)(4) = "Acoustic"
             returnVal = objTTX.ParseEvInfoV(0, i, 0)
             arrTrials(iTrialOffset)(5) = CStr(returnVal(6, 0)) & "Hz"
@@ -157,19 +178,48 @@ Sub processImport()
                     arrTrials(iTrialOffset)(9) = arrTrials(iTrialOffset)(9) + ((returnVal(6, j) - arrTrials(iTrialOffset)(9)) / (j + 1))
                 End If
             Next
+            arrTrials(iTrialOffset)(7) = CStr(arrTrials(iTrialOffset)(7)) & "dB"
+            arrTrials(iTrialOffset)(8) = CStr(arrTrials(iTrialOffset)(8)) & "dB"
+            arrTrials(iTrialOffset)(9) = CStr(arrTrials(iTrialOffset)(9)) & "dB"
+
         Else
             'electrical trial - identify stimulation parameters
             'first two Chan epochs will contain the channels stimulated
             i = objTTX.ReadEventsV(2, "Chan", 0, 0, dblStartTime, arrTrials(iTrialOffset)(3), "ALL")
+            If i = 0 Then 'catch and exit on errors - e.g. if manually terminated trials
+                Exit For
+            End If
             arrTrials(iTrialOffset)(4) = "Electrical"
             returnVal = objTTX.ParseEvInfoV(0, i, 0)
             arrTrials(iTrialOffset)(5) = CStr(returnVal(6, 0))
-            arrTrials(iTrialOffset)(6) = CStr(returnVal(6, 1))
+            If dChannelMappings.Exists(arrTrials(iTrialOffset)(5)) Then 'process channel mapping
+                arrTrials(iTrialOffset)(5) = dChannelMappings(arrTrials(iTrialOffset)(5))
+            Else
+                arrTrials(iTrialOffset)(5) = arrTrials(iTrialOffset)(5) & "*"
+            End If
+            'arrTrials(iTrialOffset)(6) = CStr(returnVal(6, 1))
+            If dChannelMappings.Exists(CStr(returnVal(6, 1))) Then 'process channel mapping
+                arrTrials(iTrialOffset)(6) = dChannelMappings(CStr(returnVal(6, 1)))
+            Else
+                arrTrials(iTrialOffset)(6) = CStr(CStr(returnVal(6, 1))) & "*"
+            End If
             'first two RefC epochs will contain the reference channels
             i = objTTX.ReadEventsV(2, "RefC", 0, 0, dblStartTime, arrTrials(iTrialOffset)(3), "ALL")
             returnVal = objTTX.ParseEvInfoV(0, i, 0)
-            arrTrials(iTrialOffset)(5) = arrTrials(iTrialOffset)(5) & " ref " & CStr(returnVal(6, 0))
-            arrTrials(iTrialOffset)(6) = arrTrials(iTrialOffset)(6) & " ref " & CStr(returnVal(6, 1))
+            'arrTrials(iTrialOffset)(5) = arrTrials(iTrialOffset)(5) & " ref " & CStr(returnVal(6, 0))
+            If dChannelMappings.Exists(CStr(returnVal(6, 0))) Then 'process channel mapping
+                arrTrials(iTrialOffset)(5) = arrTrials(iTrialOffset)(5) & " ref " & dChannelMappings(CStr(returnVal(6, 0)))
+            Else
+                arrTrials(iTrialOffset)(5) = arrTrials(iTrialOffset)(5) & " ref " & CStr(returnVal(6, 0)) & "*"
+            End If
+
+            'arrTrials(iTrialOffset)(6) = arrTrials(iTrialOffset)(6) & " ref " & CStr(returnVal(6, 1))
+            If dChannelMappings.Exists(CStr(returnVal(6, 1))) Then  'process channel mapping
+                arrTrials(iTrialOffset)(6) = arrTrials(iTrialOffset)(6) & " ref " & dChannelMappings(CStr(returnVal(6, 1)))
+            Else
+                arrTrials(iTrialOffset)(6) = arrTrials(iTrialOffset)(6) & " ref " & CStr(returnVal(6, 1)) & "*"
+            End If
+            
             'first two Freq epochs will contain the stimulation frequency
             i = objTTX.ReadEventsV(2, "Freq", 0, 0, dblStartTime, arrTrials(iTrialOffset)(3), "ALL")
             returnVal = objTTX.ParseEvInfoV(0, i, 0)
@@ -197,6 +247,9 @@ Sub processImport()
                     arrTrials(iTrialOffset)(9) = arrTrials(iTrialOffset)(9) + ((returnVal(6, j) - arrTrials(iTrialOffset)(9)) / (j + 1))
                 End If
             Next
+            arrTrials(iTrialOffset)(7) = CStr(arrTrials(iTrialOffset)(7)) & "uA"
+            arrTrials(iTrialOffset)(8) = CStr(arrTrials(iTrialOffset)(8)) & "uA"
+            arrTrials(iTrialOffset)(9) = CStr(arrTrials(iTrialOffset)(9)) & "uA"
         End If
     Next
     
