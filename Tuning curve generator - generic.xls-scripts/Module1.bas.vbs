@@ -289,12 +289,15 @@ Sub TransferToSigmaplot()
     Dim spDT As Object
     Dim spGRPH As Object
     
+    Dim strTitle
+    
     xPos = iColOffset + 1
     yPos = iRowOffset
     
     Do
         If Worksheets("Output").Cells(yPos, xPos).Value <> "" Then
             If dHeadingsSelected.Exists(Worksheets("Output").Cells(yPos, xPos).Value) Then
+                strTitle = Worksheets("Output").Cells(yPos, xPos).Value
                 Set spNB = SPApp.Notebooks.Item(SPApp.Notebooks.Count - 1)
                 Set spWS = spNB.NotebookItems.Item(spNB.NotebookItems.Count - 1)
                 spWS.Name = Worksheets("Output").Cells(yPos, xPos).Value
@@ -349,7 +352,7 @@ Sub TransferToSigmaplot()
                 Call SPApp.ActiveDocument.CurrentPageItem.CreateWizardGraph("Contour Plot", "Filled Contour Plot", "XY Many Z", ColumnsPerPlot, PlotColumnCountArray, "Worksheet Columns", "Standard Deviation", "Degrees", 0#, 360#, , "Standard Deviation", True)
                 Call SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).SelectObject
             
-                SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Name = "Site y"
+                SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Name = strTitle
                 SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Axes(0).Name = "Attenuation"
                 SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Axes(1).Name = "Frequency"
                 

@@ -1,5 +1,5 @@
 Attribute VB_Name = "TransferToSigmaplotFrm"
-Attribute VB_Base = "0{E30AE40D-C587-41CF-B991-6246CBA46E99}{7A6A0DFC-F54C-4A66-B137-8944F5245E1A}"
+Attribute VB_Base = "0{17349BA8-9025-4908-ABDC-FE5AB6F84B4F}{F7214AA0-1319-4F6E-8D00-1B613808A84A}"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
@@ -8,6 +8,19 @@ Attribute VB_TemplateDerived = False
 Attribute VB_Customizable = False
 Private Sub Cancel_Click()
     doImport = False
+    
+    Dim iHeadingIndex As Integer
+    iHeadingIndex = 2
+    Dim i As Integer
+    For i = 0 To (HeadingList.ListCount - 1)
+        If HeadingList.Selected(i) = True Then
+            Worksheets("Variables (do not edit)").Range("J" & iHeadingIndex).Value = HeadingList.List(i)
+            iHeadingIndex = iHeadingIndex + 1
+        End If
+    Next
+    
+    Worksheets("Variables (do not edit)").Range("J" & iHeadingIndex).Value = ""
+    
     Unload Me        'Unloads the UserForm.
 End Sub
 
@@ -29,14 +42,20 @@ Private Sub TransferButton_Click()
     Set dHeadingsSelected = Nothing
     Set dHeadingsSelected = New Dictionary
     
+    Dim iHeadingIndex As Integer
+    iHeadingIndex = 2
     Dim i As Integer
     For i = 0 To (HeadingList.ListCount - 1)
         If HeadingList.Selected(i) = True Then
             If Not dHeadingsSelected.Exists(HeadingList.List(i)) Then
                 Call dHeadingsSelected.Add(HeadingList.List(i), i)
+                Worksheets("Variables (do not edit)").Range("J" & iHeadingIndex).Value = HeadingList.List(i)
+                iHeadingIndex = iHeadingIndex + 1
             End If
         End If
     Next
+    
+    Worksheets("Variables (do not edit)").Range("J" & iHeadingIndex).Value = ""
     
     doImport = True
     Unload Me        'Unloads the UserForm.
@@ -44,12 +63,38 @@ End Sub
 
 Private Sub UserForm_Activate()
     Dim vHeadings
+    Dim bAllSelected As Boolean
+
+    Set dHeadingsSelected = Nothing
+    Set dHeadingsSelected = New Dictionary
+
     vHeadings = dHeadingList.Keys
+    
+    Dim iListIndex As Integer
+    iListIndex = 2
+    If Worksheets("Variables (do not edit)").Range("J" & CStr(iListIndex)).Value = "" Then
+        bAllSelected = True
+    Else
+        bAllSelected = False
+        While Worksheets("Variables (do not edit)").Range("J" & CStr(iListIndex)).Value <> ""
+            If Not dHeadingsSelected.Exists(Worksheets("Variables (do not edit)").Range("J" & CStr(iListIndex)).Value) Then
+                Call dHeadingsSelected.Add(Worksheets("Variables (do not edit)").Range("J" & CStr(iListIndex)).Value, 1)
+            End If
+            iListIndex = iListIndex + 1
+        Wend
+    End If
     
     Dim i As Integer
     
     For i = 0 To UBound(vHeadings)
         Call HeadingList.AddItem(vHeadings(i), i)
-        HeadingList.Selected(i) = True
+        If bAllSelected = True Then
+            HeadingList.Selected(i) = True
+        Else
+            If dHeadingsSelected.Exists(vHeadings(i)) Then
+                HeadingList.Selected(i) = True
+            End If
+        End If
     Next
+    
 End Sub
