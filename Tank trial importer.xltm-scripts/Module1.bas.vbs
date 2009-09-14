@@ -10,15 +10,31 @@ Sub importTrials()
     End If
 End Sub
 
+
+Sub importTrialsFromLabchart()
+    theServer = "Local"
+    theTank = Worksheets("Variables (do not edit)").Range("B2").Value
+    theBlock = Worksheets("Variables (do not edit)").Range("B3").Value
+    
+    Call processImport
+End Sub
+
 Sub processImport()
     Dim dChannelMappings As Dictionary
     Set dChannelMappings = New Dictionary
+
+    Dim dAtten As Dictionary
+    Set dAtten = New Dictionary
+    
+    Call loadAttenList(dAtten)
+
 
     Dim strChan As String
     Dim strRef As String
     
     Dim strSChnName As String
 
+    
     Dim i As Long
     i = 0
     Do
@@ -163,61 +179,22 @@ Sub processImport()
             End If
             arrTrials(iTrialOffset)(4) = "Acoustic"
             returnVal = objTTX.ParseEvInfoV(0, i, 0)
-            arrTrials(iTrialOffset)(5) = CStr(returnVal(6, 0)) & "Hz"
-            arrTrials(iTrialOffset)(6) = CStr(returnVal(6, 1)) & "Hz"
+            arrTrials(iTrialOffset)(5) = CStr(returnVal(6, 0))
+            arrTrials(iTrialOffset)(6) = CStr(returnVal(6, 1))
             strStim1Filter = "TriS = " & arrTrials(iTrialOffset)(1) & " AND AFrq = " & returnVal(6, 0)
             strStim2Filter = "TriS = " & arrTrials(iTrialOffset)(1) & " AND AFrq = " & returnVal(6, 1)
             'Obtain the attenuations for each of the 20 presentations
-            Call objTTX.ResetFilters
-            Call objTTX.SetFilterWithDescEx(strStim1Filter)
-            returnVal = objTTX.GetEpocsExV("Attn", 0)
-            For j = 0 To 9 'Could go to UBound(returnVal, 2) but this may inclue a trailing tone at the end of the trial
-                'if this is the first presentation, set it as max, min, and avg values
-                If j = 0 Then
-                    arrTrials(iTrialOffset)(7) = returnVal(0, j) 'set min
-                    arrTrials(iTrialOffset)(8) = returnVal(0, j) 'set max
-                    arrTrials(iTrialOffset)(9) = returnVal(0, j) 'set mean
-                Else
-                    'check if less than current min atten; if so, update value
-                    If returnVal(0, j) < arrTrials(iTrialOffset)(7) Then
-                        arrTrials(iTrialOffset)(7) = returnVal(0, j)
-                    End If
-                    'check if more than current max atten; if so, update value
-                    If returnVal(0, j) > arrTrials(iTrialOffset)(8) Then
-                        arrTrials(iTrialOffset)(8) = returnVal(0, j)
-                    End If
-                    'calculate mean atten
-                    arrTrials(iTrialOffset)(9) = arrTrials(iTrialOffset)(9) + ((returnVal(0, j) - arrTrials(iTrialOffset)(9)) / (j + 1))
-                End If
-            Next
-            Call objTTX.ResetFilters
-            Call objTTX.SetFilterWithDescEx(strStim2Filter)
-            returnVal = objTTX.GetEpocsExV("Attn", 0)
-            For j = 0 To 9 'Could go to UBound(returnVal, 2) but this may inclue a trailing tone at the end of the trial
-                'if this is the first presentation, set it as max, min, and avg values
-                If j = 0 Then
-                    arrTrials(iTrialOffset)(10) = returnVal(0, j) 'set min
-                    arrTrials(iTrialOffset)(11) = returnVal(0, j) 'set max
-                    arrTrials(iTrialOffset)(12) = returnVal(0, j) 'set mean
-                Else
-                    'check if less than current min atten; if so, update value
-                    If returnVal(0, j) < arrTrials(iTrialOffset)(10) Then
-                        arrTrials(iTrialOffset)(10) = returnVal(0, j)
-                    End If
-                    'check if more than current max atten; if so, update value
-                    If returnVal(0, j) > arrTrials(iTrialOffset)(11) Then
-                        arrTrials(iTrialOffset)(11) = returnVal(0, j)
-                    End If
-                    'calculate mean atten
-                    arrTrials(iTrialOffset)(12) = arrTrials(iTrialOffset)(12) + ((returnVal(0, j) - arrTrials(iTrialOffset)(12)) / (j + 1))
-                End If
-            Next
-            Call objTTX.ResetFilters
-            arrTrials(iTrialOffset)(7) = CStr(arrTrials(iTrialOffset)(7)) & "dB"
-            arrTrials(iTrialOffset)(8) = CStr(arrTrials(iTrialOffset)(8)) & "dB"
+
+            Call readAcousticAttens(objTTX, arrTrials, iTrialOffset, 1, strStim1Filter, dAtten)
+            Call readAcousticAttens(objTTX, arrTrials, iTrialOffset, 2, strStim2Filter, dAtten)
+
+            arrTrials(iTrialOffset)(5) = arrTrials(iTrialOffset)(5) & "Hz"
+            arrTrials(iTrialOffset)(6) = arrTrials(iTrialOffset)(6) & "Hz"
+            arrTrials(iTrialOffset)(7) = CStr(Round(arrTrials(iTrialOffset)(7), 2)) & "dB"
+            arrTrials(iTrialOffset)(8) = CStr(Round(arrTrials(iTrialOffset)(8), 2)) & "dB"
             arrTrials(iTrialOffset)(9) = CStr(Round(arrTrials(iTrialOffset)(9), 2)) & "dB"
-            arrTrials(iTrialOffset)(10) = CStr(arrTrials(iTrialOffset)(10)) & "dB"
-            arrTrials(iTrialOffset)(11) = CStr(arrTrials(iTrialOffset)(11)) & "dB"
+            arrTrials(iTrialOffset)(10) = CStr(Round(arrTrials(iTrialOffset)(10), 2)) & "dB"
+            arrTrials(iTrialOffset)(11) = CStr(Round(arrTrials(iTrialOffset)(11), 2)) & "dB"
             arrTrials(iTrialOffset)(12) = CStr(Round(arrTrials(iTrialOffset)(12), 2)) & "dB"
 
         Else
@@ -357,4 +334,76 @@ Sub processImport()
 
     Call objTTX.CloseTank
     Call objTTX.ReleaseServer
+End Sub
+
+Sub loadAttenList(dAtten As Dictionary)
+    Dim i As Long
+    'Dim lFrq As Long
+    'Dim dblAtten As Double
+    
+    i = 0
+    
+    While Worksheets("Attenuations").Range("A" & (i + 2)).Value <> ""
+        Call dAtten.Add(CLng(Worksheets("Attenuations").Range("A" & (i + 2)).Value), CDbl(Worksheets("Attenuations").Range("B" & (i + 2)).Value))
+        i = i + 1
+    Wend
+End Sub
+
+
+Sub readAcousticAttens(objTTX, arrTrials, iTrialOffset, iWhichTone As Integer, strStimFilter As String, dAtten)
+            Dim isAtten As Boolean
+            Dim returnVal As Variant
+            Dim j As Long
+            Dim dblAmp As Double
+            
+            Dim iFreqOffset As Integer
+            Dim iAmpOffsets As Integer
+            
+            Select Case iWhichTone
+                Case 1
+                    iFreqOffset = 5
+                    iAmpOffsets = 7
+                Case 2
+                    iFreqOffsets = 6
+                    iAmpOffsets = 10
+            End Select
+            
+            
+            Call objTTX.ResetFilters
+            Call objTTX.SetFilterWithDescEx(strStimFilter)
+
+            returnVal = objTTX.GetEpocsExV("Attn", 0)
+            If Not IsArray(returnVal) Then
+                returnVal = objTTX.GetEpocsExV("Ampl", 0)
+                isAtten = False
+            Else
+                isAtten = True
+            End If
+            
+            For j = 0 To 9 'Could go to UBound(returnVal, 2) but this may inclue a trailing tone at the end of the trial
+                If isAtten Then
+                    dblAmpl = dAtten(CLng(arrTrials(iTrialOffset)(iFreqOffset))) - returnVal(0, j)
+                Else
+                    dblAmpl = returnVal(0, j)
+                End If
+                'if this is the first presentation, set it as max, min, and avg values
+                If j = 0 Then
+                    arrTrials(iTrialOffset)(iAmpOffsets) = dblAmpl 'set min
+                    arrTrials(iTrialOffset)(iAmpOffsets + 1) = dblAmpl 'set max
+                    arrTrials(iTrialOffset)(iAmpOffsets + 2) = dblAmpl 'set mean
+                Else
+                    'check if less than current min atten; if so, update value
+                    If dblAmpl < arrTrials(iTrialOffset)(iAmpOffsets) Then
+                        arrTrials(iTrialOffset)(iAmpOffsets) = dblAmpl
+                    End If
+                    'check if more than current max atten; if so, update value
+                    If dblAmpl > arrTrials(iTrialOffset)(iAmpOffsets + 1) Then
+                        arrTrials(iTrialOffset)(iAmpOffsets + 1) = dblAmpl
+                    End If
+                    'calculate mean atten
+                    arrTrials(iTrialOffset)(iAmpOffsets + 2) = arrTrials(iTrialOffset)(iAmpOffsets + 2) + ((dblAmpl - arrTrials(iTrialOffset)(iAmpOffsets + 2)) / (j + 1))
+                End If
+            Next
+            
+            Call objTTX.ResetFilters
 End Sub
