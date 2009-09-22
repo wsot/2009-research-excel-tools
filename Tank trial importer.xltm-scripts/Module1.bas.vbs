@@ -1,4 +1,5 @@
 Attribute VB_Name = "Module1"
+Option Explicit
 Global doImport
 Global theServer, theTank, theBlock
 
@@ -78,6 +79,7 @@ Sub processImport()
     dblStartTime = 0#
     
     Dim iArrLen As Long
+    Dim iArrOffset
     iArrOffset = 0
     
     Do
@@ -354,7 +356,7 @@ Sub readAcousticAttens(objTTX, arrTrials, iTrialOffset, iWhichTone As Integer, s
             Dim isAtten As Boolean
             Dim returnVal As Variant
             Dim j As Long
-            Dim dblAmp As Double
+            Dim dblAmpl As Double
             
             Dim iFreqOffset As Integer
             Dim iAmpOffsets As Integer
@@ -364,7 +366,7 @@ Sub readAcousticAttens(objTTX, arrTrials, iTrialOffset, iWhichTone As Integer, s
                     iFreqOffset = 5
                     iAmpOffsets = 7
                 Case 2
-                    iFreqOffsets = 6
+                    iFreqOffset = 6
                     iAmpOffsets = 10
             End Select
             
@@ -407,3 +409,4 @@ Sub readAcousticAttens(objTTX, arrTrials, iTrialOffset, iWhichTone As Integer, s
             
             Call objTTX.ResetFilters
 End Sub
+
