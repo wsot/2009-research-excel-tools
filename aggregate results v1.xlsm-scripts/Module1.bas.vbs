@@ -12,13 +12,15 @@ Global percOutside1585FC As FormatCondition
 Global percOutside2575FC As FormatCondition
 Global excludedTrialCell As Range
 
+Global clusterByDate As Boolean
+Global clusterByStimParams As Boolean
 
 Sub aggregrate_results()
     Dim exclusionInfo As Variant
     Dim oneAnimalOneSheet As Boolean
 
     Dim templateFilename As String
-    templateFilename = "\Code current\Excel tools\aggregate results output.xltm"
+
 
     Dim trialTypes As Dictionary
     Dim validTrialCount As Integer
@@ -31,20 +33,14 @@ Sub aggregrate_results()
     Application.Calculation = xlCalculationManual
 
     Dim objFS As FileSystemObject
-    Set objFS = CreateObject("Scripting.FileSystemObject")
-    
-    templateFilename = objFS.GetDriveName(ActiveWorkbook.FullName) & templateFilename 'get the drive letter for the template
-    
+        
     Dim thisWorkbook As Workbook
-    Set thisWorkbook = ActiveWorkbook
     
     Dim pathToData As String
-    pathToData = objFS.GetDriveName(ActiveWorkbook.FullName) & thisWorkbook.Worksheets("Controller").Cells(19, 2).Value
     
     'get the root folder under which all data is housed
     Dim rootFolder As Folder
 '    Set rootFolder = objFS.GetFolder(objFS.GetFolder(objFS.GetParentFolderName(ActiveWorkbook.FullName)))
-    Set rootFolder = objFS.GetFolder(pathToData)
     
     Dim AnimalFolders As Folders
     Dim objAnimalFolder As Folder
@@ -59,15 +55,22 @@ Sub aggregrate_results()
     Dim strExcelPathname As String
     
     Dim blnCurrFolderIsTrial As Boolean
-    blnCurrFolderIsTrial = False
-    
+       
     Dim thisAnimalWorksheet As Worksheet
-    
     Dim outputWorkbook As Workbook
-    Set outputWorkbook = Workbooks.Open(templateFilename)
+    Dim workbookToProcess As Workbook
+        
+    Set thisWorkbook = ActiveWorkbook
     
+    templateFilename = "\Code current\Excel tools\aggregate results output.xltm"
+    Set objFS = CreateObject("Scripting.FileSystemObject")
+    templateFilename = objFS.GetDriveName(ActiveWorkbook.FullName) & templateFilename 'get the drive letter for the template
+    
+    pathToData = objFS.GetDriveName(ActiveWorkbook.FullName) & thisWorkbook.Worksheets("Controller").Cells(19, 2).Value
+    Set rootFolder = objFS.GetFolder(pathToData)
+        
     oneAnimalOneSheet = thisWorkbook.Worksheets("Controller").Cells(9, 2).Value
-
+    
     exIntCountGT = CInt(thisWorkbook.Worksheets("Controller").Cells(3, 2).Value)
     exIntBeatsGT = CInt(thisWorkbook.Worksheets("Controller").Cells(4, 2).Value)
     exLongestIntDurGT = CInt(thisWorkbook.Worksheets("Controller").Cells(5, 2).Value)
@@ -81,8 +84,13 @@ Sub aggregrate_results()
     
     Set excludedTrialCell = thisWorkbook.Worksheets("Controller").Range("B17")
     
-    Dim workbookToProcess As Workbook
     
+    blnCurrFolderIsTrial = False
+    Set outputWorkbook = Workbooks.Open(templateFilename)
+
+    clusterByStimParams = thisWorkbook.Worksheets("Controller").Cells(20, 2).Value
+    clusterByDate = thisWorkbook.Worksheets("Controller").Cells(21, 2).Value
+        
     Call deleteOldWorksheets(thisWorkbook)
     
     Set AnimalFolders = rootFolder.Subfolders
@@ -212,7 +220,7 @@ Function parseTrials(outputDict As Dictionary, workbookToProcess As Workbook, ex
        
         trialArr = Array()
         ReDim trialArr(8) 'result array contains eight elements - date, HR 10-30s from start, reason for 10-30s exclusion (if excluded), HR at -4s, reason for -4s exclusion (if excluded), HR at 5-9s, reason for 5-9s exclusion (if excluded), reason for overall exclusion (from exclusion text file)
-        trialArr(0) = experimentTag & " Trial" & workbookToProcess.Worksheets("Settings").Cells(i, 2).Value
+
         If i = 2 Then
             trialArr(1) = "=NA()"
             trialArr(2) = "First trial"
@@ -264,10 +272,29 @@ Function parseTrials(outputDict As Dictionary, workbookToProcess As Workbook, ex
                  
                  param1str = CStr(param1) & " (" & acoAmps(0) & "dB to " & acoAmps(1) & "dB)"
                  param2str = CStr(param2) & " (" & acoAmps(2) & "dB to " & acoAmps(3) & "dB)"
-                 If CDbl(param1composite) > CDbl(param2composite) Then
-                     trialInfo = param1str & ", " & param2str
-                 Else
-                     trialInfo = param2str & ", " & param1str
+                 
+                 'organise the clustering info to generate the grouping value (trialInfo)
+                 If clusterByStimParams And clusterByDate Then
+                    trialArr(0) = experimentTag & " Trial " & workbookToProcess.Worksheets("Settings").Cells(i, 2).Value
+                    If CDbl(param1composite) > CDbl(param2composite) Then
+                        trialInfo = experimentDate & ": " & param1str & ", " & param2str
+                    Else
+                        trialInfo = experimentDate & ": " & param2str & ", " & param1str
+                    End If
+                 ElseIf clusterByStimParams Then
+                    trialArr(0) = experimentTag & " Trial " & workbookToProcess.Worksheets("Settings").Cells(i, 2).Value
+                    If CDbl(param1composite) > CDbl(param2composite) Then
+                        trialInfo = param1str & ", " & param2str
+                    Else
+                        trialInfo = param2str & ", " & param1str
+                    End If
+                 ElseIf clusterByDate Then
+                    If CDbl(param1composite) > CDbl(param2composite) Then
+                        trialArr(0) = "Trial " & workbookToProcess.Worksheets("Settings").Cells(i, 2).Value & ": " & param1str & ", " & param2str
+                    Else
+                        trialArr(0) = "Trial " & workbookToProcess.Worksheets("Settings").Cells(i, 2).Value & ": " & param2str & ", " & param1str
+                    End If
+                    trialInfo = experimentDate
                  End If
                  
                  If Not outputDict("Acoustic").Exists(trialInfo) Then
@@ -342,11 +369,35 @@ Function parseTrials(outputDict As Dictionary, workbookToProcess As Workbook, ex
                     param2str = "No stimulation"
                 End If
 
-                If CDbl(param1composite) > CDbl(param2composite) Then
-                    trialInfo = param1str & ", " & param2str
-                Else
-                    trialInfo = param2str & ", " & param1str
-                End If
+                 'organise the clustering info to generate the grouping value (trialInfo)
+                 If clusterByStimParams And clusterByDate Then
+                    trialArr(0) = experimentTag & " Trial " & workbookToProcess.Worksheets("Settings").Cells(i, 2).Value
+                    If CDbl(param1composite) > CDbl(param2composite) Then
+                        trialInfo = experimentDate & ": " & param1str & ", " & param2str
+                    Else
+                        trialInfo = experimentDate & ": " & param2str & ", " & param1str
+                    End If
+                 ElseIf clusterByStimParams Then
+                    trialArr(0) = experimentTag & " Trial " & workbookToProcess.Worksheets("Settings").Cells(i, 2).Value
+                    If CDbl(param1composite) > CDbl(param2composite) Then
+                        trialInfo = param1str & ", " & param2str
+                    Else
+                        trialInfo = param2str & ", " & param1str
+                    End If
+                 ElseIf clusterByDate Then
+                    If CDbl(param1composite) > CDbl(param2composite) Then
+                        trialArr(0) = "Trial " & workbookToProcess.Worksheets("Settings").Cells(i, 2).Value & ": " & param1str & ", " & param2str
+                    Else
+                        trialArr(0) = "Trial " & workbookToProcess.Worksheets("Settings").Cells(i, 2).Value & ": " & param2str & ", " & param1str
+                    End If
+                    trialInfo = experimentDate
+                 End If
+
+'                If CDbl(param1composite) > CDbl(param2composite) Then
+                    'trialInfo = param1str & ", " & param2str
+                'Else
+                    'trialInfo = param2str & ", " & param1str
+                'End If
                 
 '                If CDbl(param1composite) > CDbl(param2composite) Then
 '                    trialInfo = CStr(param1) & " (" & elAmps(0) & "uA to " & elAmps(1) & "uA), " & CStr(param2) & " (" & elAmps(2) & "uA to " & elAmps(3) & "uA)"
@@ -493,65 +544,66 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                 thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
                 thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = nInMeanSoFar
                 iExcelOffset = iExcelOffset + 1
-                thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "HR decrease trials:"
-                thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
-                thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = HRDecTrials
-                iExcelOffset = iExcelOffset + 1
-                thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "HR increase trials:"
-                thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
-                thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = HRIncTrials
-                iExcelOffset = iExcelOffset + 1
-                thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "% decrease trials:"
-                thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
-                thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = (HRDecTrials / nInMeanSoFar) * 100
-                thisAnimalWorksheet.Cells(iExcelOffset, 1).Style = "Percent"
-                Call thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions.Delete
-                Call thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions.Add(xlCellValue, xlNotBetween, "15", "85")
-                thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(1).Font.Color = percOutside1585FC.Font.Color
-                thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(1).Font.ColorIndex = percOutside1585FC.Font.ColorIndex
-                thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(1).Interior.Color = percOutside1585FC.Interior.Color
-                thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(1).Interior.ColorIndex = percOutside1585FC.Interior.ColorIndex
-                Call thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions.Add(xlCellValue, xlNotBetween, "25", "75")
-                thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Font.Color = percOutside2575FC.Font.Color
-                thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Font.ColorIndex = percOutside2575FC.Font.ColorIndex
-                thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Interior.Color = percOutside2575FC.Interior.Color
-                thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Interior.ColorIndex = percOutside2575FC.Interior.ColorIndex
-                iExcelOffset = iExcelOffset + 2
-                thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Mean change:"
-                thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
-                thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = meanHRChange
-                iExcelOffset = iExcelOffset + 1
-                If nInMeanSoFar > 1 Then
-                    thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Variance:"
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = HRChangeVar
-                    iExcelOffset = iExcelOffset + 1
-                    thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Standard Deviation:"
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = HRChangeVar ^ 0.5
-                    iExcelOffset = iExcelOffset + 1
-                    thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Std. Error of Mean:"
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = ((HRChangeVar / nInMeanSoFar) ^ 0.5)
-                    iExcelOffset = iExcelOffset + 1
-                    thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "T-statistic:"
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = tStat
-                    iExcelOffset = iExcelOffset + 1
-                    thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "P-value:"
+                If nInMeanSoFar > 0 Then
+                    thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "HR decrease trials:"
                     thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = "=TDIST(ABS(B" & CStr(iExcelOffset - 1) & ")," & CStr(nInMeanSoFar - 1) & ",1)"
+                    thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = HRDecTrials
+                    iExcelOffset = iExcelOffset + 1
+                    thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "HR increase trials:"
+                    thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
+                    thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = HRIncTrials
+                    iExcelOffset = iExcelOffset + 1
+                    thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "% decrease trials:"
+                    thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
+                    thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = (HRDecTrials / nInMeanSoFar) * 100
+                    thisAnimalWorksheet.Cells(iExcelOffset, 1).Style = "Percent"
                     Call thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions.Delete
-                    Call thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions.Add(xlCellValue, xlLessEqual, ".05")
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(1).Font.Color = pLess05FC.Font.Color
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(1).Font.ColorIndex = pLess05FC.Font.ColorIndex
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(1).Interior.Color = pLess05FC.Interior.Color
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(1).Interior.ColorIndex = pLess05FC.Interior.ColorIndex
-                    Call thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions.Add(xlCellValue, xlLessEqual, ".1")
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Font.Color = pLess10FC.Font.Color
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Font.ColorIndex = pLess10FC.Font.ColorIndex
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Interior.Color = pLess10FC.Interior.Color
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Interior.ColorIndex = pLess10FC.Interior.ColorIndex
-                Else
-                    thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Additional stats could not be calculated (N=1)"
+                    Call thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions.Add(xlCellValue, xlNotBetween, "15", "85")
+                    thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(1).Font.Color = percOutside1585FC.Font.Color
+                    thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(1).Font.ColorIndex = percOutside1585FC.Font.ColorIndex
+                    thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(1).Interior.Color = percOutside1585FC.Interior.Color
+                    thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(1).Interior.ColorIndex = percOutside1585FC.Interior.ColorIndex
+                    Call thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions.Add(xlCellValue, xlNotBetween, "25", "75")
+                    thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Font.Color = percOutside2575FC.Font.Color
+                    thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Font.ColorIndex = percOutside2575FC.Font.ColorIndex
+                    thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Interior.Color = percOutside2575FC.Interior.Color
+                    thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Interior.ColorIndex = percOutside2575FC.Interior.ColorIndex
+                    iExcelOffset = iExcelOffset + 2
+                    thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Mean change:"
+                    thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
+                    thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = meanHRChange
+                    iExcelOffset = iExcelOffset + 1
+                    If nInMeanSoFar > 1 Then
+                        thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Variance:"
+                        thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = HRChangeVar
+                        iExcelOffset = iExcelOffset + 1
+                        thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Standard Deviation:"
+                        thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = HRChangeVar ^ 0.5
+                        iExcelOffset = iExcelOffset + 1
+                        thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Std. Error of Mean:"
+                        thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = ((HRChangeVar / nInMeanSoFar) ^ 0.5)
+                        iExcelOffset = iExcelOffset + 1
+                        thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "T-statistic:"
+                        thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = tStat
+                        iExcelOffset = iExcelOffset + 1
+                        thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "P-value:"
+                        thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
+                        thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = "=TDIST(ABS(B" & CStr(iExcelOffset - 1) & ")," & CStr(nInMeanSoFar - 1) & ",1)"
+                        Call thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions.Delete
+                        Call thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions.Add(xlCellValue, xlLessEqual, ".05")
+                        thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(1).Font.Color = pLess05FC.Font.Color
+                        thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(1).Font.ColorIndex = pLess05FC.Font.ColorIndex
+                        thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(1).Interior.Color = pLess05FC.Interior.Color
+                        thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(1).Interior.ColorIndex = pLess05FC.Interior.ColorIndex
+                        Call thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions.Add(xlCellValue, xlLessEqual, ".1")
+                        thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Font.Color = pLess10FC.Font.Color
+                        thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Font.ColorIndex = pLess10FC.Font.ColorIndex
+                        thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Interior.Color = pLess10FC.Interior.Color
+                        thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Interior.ColorIndex = pLess10FC.Interior.ColorIndex
+                    Else
+                        thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Additional stats could not be calculated (N=1)"
+                    End If
                 End If
-                
                 
                 iExcelOffset = iExcelOffset + 2
             Next
