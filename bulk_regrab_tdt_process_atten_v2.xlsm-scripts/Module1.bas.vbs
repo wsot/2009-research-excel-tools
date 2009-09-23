@@ -13,10 +13,13 @@ Sub reprocess()
     Dim objFS As FileSystemObject
     Set objFS = CreateObject("Scripting.FileSystemObject")
     
+    Dim pathToData As String
+    pathToData = objFS.GetDriveName(ActiveWorkbook.FullName) & thisWorkbook.Worksheets("Controller").Cells(1, 2).Value
+    
     'get the root folder under which all data is housed
     Dim rootFolder As Folder
-    Set rootFolder = objFS.GetFolder(objFS.GetFolder(objFS.GetParentFolderName(ActiveWorkbook.FullName)))
-        
+    Set rootFolder = objFS.GetFolder(pathToData)
+           
     templateFilename = objFS.GetDriveName(ActiveWorkbook.FullName) & templateFilename 'get the drive letter for the template
 
     Set objFS = Nothing

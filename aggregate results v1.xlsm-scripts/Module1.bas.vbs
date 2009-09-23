@@ -10,10 +10,15 @@ Global pLess05FC As FormatCondition
 Global pLess10FC As FormatCondition
 Global percOutside1585FC As FormatCondition
 Global percOutside2575FC As FormatCondition
+Global excludedTrialCell As Range
 
 
 Sub aggregrate_results()
+    Dim exclusionInfo As Variant
     Dim oneAnimalOneSheet As Boolean
+
+    Dim templateFilename As String
+    templateFilename = "\Code current\Excel tools\aggregate results output.xltm"
 
     Dim trialTypes As Dictionary
     Dim validTrialCount As Integer
@@ -28,10 +33,19 @@ Sub aggregrate_results()
     Dim objFS As FileSystemObject
     Set objFS = CreateObject("Scripting.FileSystemObject")
     
+    templateFilename = objFS.GetDriveName(ActiveWorkbook.FullName) & templateFilename 'get the drive letter for the template
+    
+    Dim thisWorkbook As Workbook
+    Set thisWorkbook = ActiveWorkbook
+    
+    Dim pathToData As String
+    pathToData = objFS.GetDriveName(ActiveWorkbook.FullName) & thisWorkbook.Worksheets("Controller").Cells(19, 2).Value
+    
     'get the root folder under which all data is housed
     Dim rootFolder As Folder
-    Set rootFolder = objFS.GetFolder(objFS.GetFolder(objFS.GetParentFolderName(ActiveWorkbook.FullName)))
-        
+'    Set rootFolder = objFS.GetFolder(objFS.GetFolder(objFS.GetParentFolderName(ActiveWorkbook.FullName)))
+    Set rootFolder = objFS.GetFolder(pathToData)
+    
     Dim AnimalFolders As Folders
     Dim objAnimalFolder As Folder
     
@@ -47,11 +61,10 @@ Sub aggregrate_results()
     Dim blnCurrFolderIsTrial As Boolean
     blnCurrFolderIsTrial = False
     
-    Dim thisWorkbook As Workbook
-    Set thisWorkbook = ActiveWorkbook
     Dim thisAnimalWorksheet As Worksheet
     
-    'Call setUpStyles(thisWorkbook)
+    Dim outputWorkbook As Workbook
+    Set outputWorkbook = Workbooks.Open(templateFilename)
     
     oneAnimalOneSheet = thisWorkbook.Worksheets("Controller").Cells(9, 2).Value
 
@@ -66,13 +79,16 @@ Sub aggregrate_results()
     Set percOutside1585FC = thisWorkbook.Worksheets("Controller").Range("B14").FormatConditions(1)
     Set percOutside2575FC = thisWorkbook.Worksheets("Controller").Range("B15").FormatConditions(1)
     
+    Set excludedTrialCell = thisWorkbook.Worksheets("Controller").Range("B17")
+    
     Dim workbookToProcess As Workbook
     
     Call deleteOldWorksheets(thisWorkbook)
     
     Set AnimalFolders = rootFolder.Subfolders
     For Each objAnimalFolder In AnimalFolders 'cycle through the folder for each animal
-        If Not checkForExclusion(objAnimalFolder) Then
+        exclusionInfo = checkForExclusion(objAnimalFolder)
+        If Not exclusionInfo(0) = "folder" Then
             Set trialTypes = New Dictionary
             Call trialTypes.Add("Acoustic", New Dictionary)
             Call trialTypes.Add("Electrical", New Dictionary)
@@ -82,7 +98,8 @@ Sub aggregrate_results()
                         
             Set experimentFolders = objAnimalFolder.Subfolders
             For Each objExpFolder In experimentFolders 'go through the experiments within an animal folder
-                If Not checkForExclusion(objExpFolder) Then
+                exclusionInfo = checkForExclusion(objExpFolder)
+                If exclusionInfo(1) <> "" Or exclusionInfo(0) <> "all" Then 'check if the exclusion includes a message, or is only for some types of trial
                     experimentDate = Left(objExpFolder.Name, 10)
                     experimentTag = objExpFolder.Name
                     blnCurrFolderIsTrial = False 'assume until file detected this is not an experiment
@@ -103,7 +120,7 @@ Sub aggregrate_results()
                             validTrialCount = validTrialCount + 1
                             'open the workbook to read data from
                             Set workbookToProcess = Workbooks.Open(strExcelPathname)
-                            Call parseTrials(trialTypes, workbookToProcess, experimentDate, experimentTag)
+                            Call parseTrials(trialTypes, workbookToProcess, experimentDate, experimentTag, exclusionInfo)
                             'workbookToProcess.Activate
                             'workbookToProcess.Worksheets("Variables (do not edit)").Range("B2").Value = tankFilename
                             'workbookToProcess.Worksheets("Variables (do not edit)").Range("B3").Value = blockName
@@ -116,20 +133,20 @@ Sub aggregrate_results()
             Next
             If validTrialCount > 0 Then
                 If oneAnimalOneSheet Then
-                    Call thisWorkbook.Worksheets("Output template").Copy(, thisWorkbook.Worksheets("Output template"))
-                    Set thisAnimalWorksheet = thisWorkbook.Worksheets("Output template (2)")
+                    Call outputWorkbook.Worksheets("Output template").Copy(, thisWorkbook.Worksheets("Output template"))
+                    Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
                     thisAnimalWorksheet.Name = animalID
                     Call outputTrials(trialTypes, "", thisAnimalWorksheet)
                 Else
                     If trialTypes("Acoustic").Count > 0 Then
-                        Call thisWorkbook.Worksheets("Output template").Copy(, thisWorkbook.Worksheets("Output template"))
-                        Set thisAnimalWorksheet = thisWorkbook.Worksheets("Output template (2)")
+                        Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
+                        Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
                         thisAnimalWorksheet.Name = animalID & " Acoustic"
                         Call outputTrials(trialTypes, "Acoustic", thisAnimalWorksheet)
                     End If
                     If trialTypes("Electrical").Count > 0 Then
-                        Call thisWorkbook.Worksheets("Output template").Copy(, thisWorkbook.Worksheets("Output template"))
-                        Set thisAnimalWorksheet = thisWorkbook.Worksheets("Output template (2)")
+                        Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
+                        Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
                         thisAnimalWorksheet.Name = animalID & " Electrical"
                         Call outputTrials(trialTypes, "Electrical", thisAnimalWorksheet)
                     End If
@@ -154,23 +171,7 @@ Sub aggregrate_results()
     Application.Calculation = xlCalculationAutomatic
 End Sub
 
-Function checkForExclusion(objFolder As Folder) As Boolean
-    checkForExclusion = False
-    Dim Files As Files
-    Dim objFile As File
-
-    Set Files = objFolder.Files
-
-    For Each objFile In Files
-        If LCase(objFile.Name) = "exclude from results aggregration.txt" Then
-            checkForExclusion = True
-            Exit For
-        End If
-    Next
-
-End Function
-
-Function parseTrials(outputDict As Dictionary, workbookToProcess As Workbook, experimentDate As String, experimentTag As String)
+Function parseTrials(outputDict As Dictionary, workbookToProcess As Workbook, experimentDate As String, experimentTag As String, exclusionInfo As Variant)
     Dim i As Integer
     i = 2
     
@@ -187,6 +188,9 @@ Function parseTrials(outputDict As Dictionary, workbookToProcess As Workbook, ex
     Dim param1arr As Variant
     Dim param2arr As Variant
     
+    Dim param1str As String
+    Dim param2str As String
+    
     Dim trialArr
     Dim paramArr
     
@@ -194,21 +198,21 @@ Function parseTrials(outputDict As Dictionary, workbookToProcess As Workbook, ex
     
     Dim exclusionReason As String
     
-    While workbookToProcess.Worksheets("Settings").Cells(i, 6) <> ""
+    While workbookToProcess.Worksheets("Settings").Cells(i, 6).Value <> ""
         param1composite = ""
         param2composite = ""
     
-        param1 = workbookToProcess.Worksheets("Settings").Cells(i, 6)
-        param2 = workbookToProcess.Worksheets("Settings").Cells(i, 10)
+        param1 = workbookToProcess.Worksheets("Settings").Cells(i, 6).Value
+        param2 = workbookToProcess.Worksheets("Settings").Cells(i, 10).Value
 
-        If workbookToProcess.Worksheets("Settings").Cells(i, 1) <> iCurrBlockNum Then
-            iCurrBlockNum = workbookToProcess.Worksheets("Settings").Cells(i, 1)
-            Call readAmpArrays(acoAmps, elAmps, param1, param2, workbookToProcess, iCurrBlockNum)
-        End If
+'        If workbookToProcess.Worksheets("Settings").Cells(i, 1).Value <> iCurrBlockNum Then
+         iCurrBlockNum = workbookToProcess.Worksheets("Settings").Cells(i, 1).Value
+         Call readAmpArrays(acoAmps, elAmps, param1, param2, workbookToProcess, iCurrBlockNum)
+'        End If
        
         trialArr = Array()
-        ReDim trialArr(7) 'result array contains seven elements - date, HR 10-30s from start, reason for 10-30s exclusion (if excluded), HR at -4s, reason for -4s exclusion (if excluded), HR at 5-9s, reason for 5-9s exclusion (if excluded)
-        trialArr(0) = experimentTag & " Trial" & workbookToProcess.Worksheets("Settings").Cells(i, 2)
+        ReDim trialArr(8) 'result array contains eight elements - date, HR 10-30s from start, reason for 10-30s exclusion (if excluded), HR at -4s, reason for -4s exclusion (if excluded), HR at 5-9s, reason for 5-9s exclusion (if excluded), reason for overall exclusion (from exclusion text file)
+        trialArr(0) = experimentTag & " Trial" & workbookToProcess.Worksheets("Settings").Cells(i, 2).Value
         If i = 2 Then
             trialArr(1) = "=NA()"
             trialArr(2) = "First trial"
@@ -218,7 +222,7 @@ Function parseTrials(outputDict As Dictionary, workbookToProcess As Workbook, ex
                 trialArr(1) = "=NA()"
                 trialArr(2) = exclusionReason
             Else
-                trialArr(1) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 1)
+                trialArr(1) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 1).Value
             End If
         End If
         exclusionReason = checkForHRExclusions(workbookToProcess, i, 7)
@@ -226,103 +230,141 @@ Function parseTrials(outputDict As Dictionary, workbookToProcess As Workbook, ex
             trialArr(3) = "=NA()"
             trialArr(4) = exclusionReason
         Else
-            trialArr(3) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 7)
+            trialArr(3) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 7).Value
         End If
         exclusionReason = checkForHRExclusions(workbookToProcess, i, 13)
         If exclusionReason <> "" Then
             trialArr(5) = "=NA()"
             trialArr(6) = exclusionReason
         Else
-            trialArr(5) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 13)
+            trialArr(5) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 13).Value
         End If
         
-        If workbookToProcess.Worksheets("Settings").Cells(i, 5) = "Acoustic" Then 'acoustic trial - drop the last 2 letters to remove the Hz
-            If LCase(Right(param1, 2)) = "hz" Then
-                param1composite = Left(param1, Len(param1) - 2)
-            Else
-                param1composite = param1
+        If workbookToProcess.Worksheets("Settings").Cells(i, 5).Value = "Acoustic" Then
+            If Not ((exclusionInfo(0) = "Acoustic" Or exclusionInfo(0) = "all") And exclusionInfo(1) = "") Then
+                 If (exclusionInfo(0) = "Acoustic" Or exclusionInfo(0) = "all") And exclusionInfo(1) <> "" Then
+                    trialArr(7) = exclusionInfo(1)
+                 Else
+                    trialArr(7) = ""
+                 End If
+                 'acoustic trial - drop the last 2 letters to remove the Hz
+                 If LCase(Right(param1, 2)) = "hz" Then
+                     param1composite = Left(param1, Len(param1) - 2)
+                 Else
+                     param1composite = param1
+                 End If
+                 If LCase(Right(param2, 2)) = "hz" Then
+                     param2composite = Left(param2, Len(param2) - 2)
+                 Else
+                     param2composite = param2
+                 End If
+                 
+                 param1composite = param1composite & Replace(acoAmps(0), ".", "") & Replace(acoAmps(1), ".", "")
+                 param2composite = param2composite & Replace(acoAmps(2), ".", "") & Replace(acoAmps(3), ".", "")
+                 
+                 param1str = CStr(param1) & " (" & acoAmps(0) & "dB to " & acoAmps(1) & "dB)"
+                 param2str = CStr(param2) & " (" & acoAmps(2) & "dB to " & acoAmps(3) & "dB)"
+                 If CDbl(param1composite) > CDbl(param2composite) Then
+                     trialInfo = param1str & ", " & param2str
+                 Else
+                     trialInfo = param2str & ", " & param1str
+                 End If
+                 
+                 If Not outputDict("Acoustic").Exists(trialInfo) Then
+                     Call outputDict("Acoustic").Add(trialInfo, Array())
+                 End If
+                 paramArr = outputDict("Acoustic")(trialInfo)
+                 
+                 ReDim Preserve paramArr(UBound(paramArr) + 1)
+                 iParamOffset = UBound(paramArr)
+                 paramArr(iParamOffset) = trialArr
+                 
+                 outputDict("Acoustic")(trialInfo) = paramArr
             End If
-            If LCase(Right(param2, 2)) = "hz" Then
-                param2composite = Left(param2, Len(param2) - 2)
-            Else
-                param2composite = param2
-            End If
-            
-            param1composite = param1composite & Replace(acoAmps(0), ".", "") & Replace(acoAmps(1), ".", "")
-           
-            param2composite = param2composite & Replace(acoAmps(2), ".", "") & Replace(acoAmps(3), ".", "")
-            
-            If CDbl(param1composite) > CDbl(param2composite) Then
-                trialInfo = CStr(param1) & " (" & acoAmps(0) & "dB to " & acoAmps(1) & "dB), " & CStr(param2) & " (" & acoAmps(2) & "dB to " & acoAmps(3) & "dB)"
-            Else
-                trialInfo = CStr(param2) & " (" & acoAmps(2) & "dB to " & acoAmps(3) & "dB), " & CStr(param1) & " (" & acoAmps(0) & "dB to " & acoAmps(1) & "dB)"
-            End If
-            
-            If Not outputDict("Acoustic").Exists(trialInfo) Then
-                Call outputDict("Acoustic").Add(trialInfo, Array())
-            End If
-            paramArr = outputDict("Acoustic")(trialInfo)
-            
-            ReDim Preserve paramArr(UBound(paramArr) + 1)
-            iParamOffset = UBound(paramArr)
-            paramArr(iParamOffset) = trialArr
-            
-            outputDict("Acoustic")(trialInfo) = paramArr
         Else 'electrical trial
-            param1arr = Split(param1, " ")
-            param2arr = Split(param2, " ")
-            
-            If Right(param1arr(0), 1) = "*" Then
-                param1composite = param1composite & Left(param1arr(0), Len(param1arr(0)) - 1)
-            Else
-                param1composite = param1composite & param1arr(0)
+            If Not ((exclusionInfo(0) = "Electrical" Or exclusionInfo(0) = "all") And exclusionInfo(1) = "") Then
+                 If (exclusionInfo(0) = "Electrical" Or exclusionInfo(0) = "all") And exclusionInfo(1) <> "" Then
+                    trialArr(7) = exclusionInfo(1)
+                 Else
+                    trialArr(7) = ""
+                 End If
+                param1arr = Split(param1, " ")
+                param2arr = Split(param2, " ")
+                
+                If Right(param1arr(0), 1) = "*" Then
+                    param1composite = param1composite & Left(param1arr(0), Len(param1arr(0)) - 1)
+                Else
+                    param1composite = param1composite & param1arr(0)
+                End If
+                If Right(param1arr(2), 1) = "*" Then
+                    param1composite = param1composite & Left(param1arr(2), Len(param1arr(2)) - 1)
+                Else
+                    param1composite = param1composite & param1arr(2)
+                End If
+                If Not param1composite = "00" Then 'if stim and ref chans are 0, then the freq is irrelevant
+                    If Right(param1arr(4), 2) = "Hz" Then
+                        param1composite = param1composite & Left(param1arr(4), Len(param1arr(4)) - 2)
+                    Else
+                        param1composite = param1composite & param1arr(4)
+                    End If
+                End If
+                
+                If Right(param2arr(0), 1) = "*" Then
+                    param2composite = param2composite & Left(param2arr(0), Len(param2arr(0)) - 1)
+                Else
+                    param2composite = param2composite & param2arr(0)
+                End If
+                If Right(param2arr(2), 1) = "*" Then
+                    param2composite = param2composite & Left(param2arr(2), Len(param2arr(2)) - 1)
+                Else
+                    param2composite = param2composite & param2arr(2)
+                End If
+                If Not param2composite = "00" Then 'if stim and ref chans are 0, then the freq is irrelevant
+                    If Right(param2arr(4), 2) = "Hz" Then
+                        param2composite = param2composite & Left(param2arr(4), Len(param2arr(4)) - 2)
+                    Else
+                        param2composite = param2composite & param2arr(4)
+                    End If
+                End If
+                
+                param1composite = param1composite & Replace(elAmps(0), ".", "") & Replace(elAmps(1), ".", "")
+                param2composite = param2composite & Replace(elAmps(2), ".", "") & Replace(elAmps(3), ".", "")
+                
+                If param1composite <> "0000" Then
+                    param1str = CStr(param1) & " (" & elAmps(0) & "uA to " & elAmps(1) & "uA)"
+                Else
+                    param1str = "No stimulation"
+                End If
+                
+                If param2composite <> "0000" Then
+                    param2str = CStr(param2) & " (" & elAmps(2) & "uA to " & elAmps(3) & "uA)"
+                Else
+                    param2str = "No stimulation"
+                End If
+
+                If CDbl(param1composite) > CDbl(param2composite) Then
+                    trialInfo = param1str & ", " & param2str
+                Else
+                    trialInfo = param2str & ", " & param1str
+                End If
+                
+'                If CDbl(param1composite) > CDbl(param2composite) Then
+'                    trialInfo = CStr(param1) & " (" & elAmps(0) & "uA to " & elAmps(1) & "uA), " & CStr(param2) & " (" & elAmps(2) & "uA to " & elAmps(3) & "uA)"
+'                Else
+'                    trialInfo = CStr(param2) & " (" & elAmps(2) & "uA to " & elAmps(3) & "uA), " & CStr(param1) & " (" & elAmps(0) & "uA to " & elAmps(1) & "uA)"
+'                End If
+                
+                If Not outputDict("Electrical").Exists(trialInfo) Then
+                    Call outputDict("Electrical").Add(trialInfo, Array())
+                End If
+                paramArr = outputDict("Electrical")(trialInfo)
+                
+                ReDim Preserve paramArr(UBound(paramArr) + 1)
+                iParamOffset = UBound(paramArr)
+                paramArr(iParamOffset) = trialArr
+                
+                outputDict("Electrical")(trialInfo) = paramArr
             End If
-            If Right(param1arr(2), 1) = "*" Then
-                param1composite = param1composite & Left(param1arr(2), Len(param1arr(2)) - 1)
-            Else
-                param1composite = param1composite & param1arr(2)
-            End If
-            If Right(param1arr(4), 2) = "Hz" Then
-                param1composite = param1composite & Left(param1arr(4), Len(param1arr(4)) - 2)
-            Else
-                param1composite = param1composite & param1arr(4)
-            End If
-            
-            If Right(param2arr(0), 1) = "*" Then
-                param2composite = param2composite & Left(param2arr(0), Len(param2arr(0)) - 1)
-            Else
-                param2composite = param2composite & param2arr(0)
-            End If
-            If Right(param2arr(2), 1) = "*" Then
-                param2composite = param2composite & Left(param2arr(2), Len(param2arr(2)) - 1)
-            Else
-                param2composite = param2composite & param2arr(2)
-            End If
-            If Right(param2arr(4), 2) = "Hz" Then
-                param2composite = param2composite & Left(param2arr(4), Len(param2arr(4)) - 2)
-            Else
-                param2composite = param2composite & param2arr(4)
-            End If
-            
-            param1composite = param1composite & Replace(elAmps(0), ".", "") & Replace(elAmps(1), ".", "")
-            param2composite = param2composite & Replace(elAmps(2), ".", "") & Replace(elAmps(3), ".", "")
-            
-            If CDbl(param1composite) > CDbl(param2composite) Then
-                trialInfo = CStr(param1) & " (" & elAmps(0) & "uA to " & elAmps(1) & "uA), " & CStr(param2) & " (" & elAmps(2) & "uA to " & elAmps(3) & "uA)"
-            Else
-                trialInfo = CStr(param2) & " (" & elAmps(2) & "uA to " & elAmps(3) & "uA), " & CStr(param1) & " (" & elAmps(0) & "uA to " & elAmps(1) & "uA)"
-            End If
-            
-            If Not outputDict("Electrical").Exists(trialInfo) Then
-                Call outputDict("Electrical").Add(trialInfo, Array())
-            End If
-            paramArr = outputDict("Electrical")(trialInfo)
-            
-            ReDim Preserve paramArr(UBound(paramArr) + 1)
-            iParamOffset = UBound(paramArr)
-            paramArr(iParamOffset) = trialArr
-            
-            outputDict("Electrical")(trialInfo) = paramArr
         End If
         i = i + 1
     Wend
@@ -330,16 +372,16 @@ End Function
 
 Function checkForHRExclusions(workbookToProcess As Workbook, i As Integer, horizOffset As Integer) As String
             checkForHRExclusions = ""
-            If workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset) = -1 Then
-                checkForHRExclusions = "HR not detectable (" & workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset) & ")"
-            ElseIf workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 1) > exIntCountGT And exIntCountGT <> -1 Then
-                checkForHRExclusions = "Too many interpolations (" & workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 1) & ">" & exIntCountGT & ")"
-            ElseIf workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 2) > exIntBeatsGT And exIntBeatsGT <> -1 Then
-                checkForHRExclusions = "Too many interpolated beats (" & workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 2) & ">" & exIntBeatsGT & ")"
-            ElseIf workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 3) > exLongestIntDurGT And exLongestIntDurGT <> -1 Then
-                checkForHRExclusions = "Longest interpolation too long (" & workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 3) & ">" & exLongestIntDurGT & ")"
-            ElseIf workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 4) > exLongestIntBeatsGT And exLongestIntBeatsGT <> -1 Then
-                checkForHRExclusions = "Longest interpolation too many beats (" & workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 4) & ">" & exLongestIntBeatsGT & ")"
+            If workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset).Value = -1 Then
+                checkForHRExclusions = "HR not detectable (" & workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset).Value & ")"
+            ElseIf workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 1).Value > exIntCountGT And exIntCountGT <> -1 Then
+                checkForHRExclusions = "Too many interpolations (" & workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 1).Value & ">" & exIntCountGT & ")"
+            ElseIf workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 2).Value > exIntBeatsGT And exIntBeatsGT <> -1 Then
+                checkForHRExclusions = "Too many interpolated beats (" & workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 2).Value & ">" & exIntBeatsGT & ")"
+            ElseIf workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 3).Value > exLongestIntDurGT And exLongestIntDurGT <> -1 Then
+                checkForHRExclusions = "Longest interpolation too long (" & workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 3).Value & ">" & exLongestIntDurGT & ")"
+            ElseIf workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 4).Value > exLongestIntBeatsGT And exLongestIntBeatsGT <> -1 Then
+                checkForHRExclusions = "Longest interpolation too many beats (" & workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 4).Value & ">" & exLongestIntBeatsGT & ")"
             End If
 End Function
 
@@ -373,24 +415,25 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
     
     For iTrialTypeNum = 0 To UBound(arrTrialTypes)
         If arrTrialTypes(iTrialTypeNum) = trialType Or trialType = "" Then
-            thisAnimalWorksheet.Cells(iExcelOffset, 1) = arrTrialTypes(iTrialTypeNum) & " Trials"
+            thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = arrTrialTypes(iTrialTypeNum) & " Trials"
             'thisAnimalWorksheet.Cells(iExcelOffset, 1).Style = "Heading"
             thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Bold = True
             iExcelOffset = iExcelOffset + 1
             Set dictParamSets = trialTypes(arrTrialTypes(iTrialTypeNum))
             arrParamSets = dictParamSets.Keys
             For iParamSetNum = 0 To UBound(arrParamSets)
-                thisAnimalWorksheet.Cells(iExcelOffset, 1) = arrParamSets(iParamSetNum)
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = arrParamSets(iParamSetNum)
                 thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Bold = True
                 iExcelOffset = iExcelOffset + 1
-                thisAnimalWorksheet.Range("A" & iExcelOffset, "G" & iExcelOffset).Font.Italic = True
-                thisAnimalWorksheet.Cells(iExcelOffset, 1) = "Date"
-                thisAnimalWorksheet.Cells(iExcelOffset, 2) = "HR 10-30s"
-                thisAnimalWorksheet.Cells(iExcelOffset, 3) = "HR -4s-0s"
-                thisAnimalWorksheet.Cells(iExcelOffset, 4) = "HR 5s-9s"
-                thisAnimalWorksheet.Cells(iExcelOffset, 5) = "HR 10-30s exclusion reason"
-                thisAnimalWorksheet.Cells(iExcelOffset, 6) = "HR -4s-0s exclusion reason"
-                thisAnimalWorksheet.Cells(iExcelOffset, 7) = "HR 5s-9s exclusion reason"
+                thisAnimalWorksheet.Range("A" & iExcelOffset, "H" & iExcelOffset).Font.Italic = True
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Date"
+                thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = "HR 10-30s"
+                thisAnimalWorksheet.Cells(iExcelOffset, 3).Value = "HR -4s-0s"
+                thisAnimalWorksheet.Cells(iExcelOffset, 4).Value = "HR 5s-9s"
+                thisAnimalWorksheet.Cells(iExcelOffset, 5).Value = "HR 10-30s exclusion reason"
+                thisAnimalWorksheet.Cells(iExcelOffset, 6).Value = "HR -4s-0s exclusion reason"
+                thisAnimalWorksheet.Cells(iExcelOffset, 7).Value = "HR 5s-9s exclusion reason"
+                thisAnimalWorksheet.Cells(iExcelOffset, 8).Value = "Overall trial exclusion reason"
                 iExcelOffset = iExcelOffset + 1
                 arrTrials = dictParamSets(arrParamSets(iParamSetNum))
                 nInMeanSoFar = 0
@@ -400,16 +443,23 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                 HRDecTrials = 0
                 For iTrialNum = 0 To UBound(arrTrials)
                     arrTrial = arrTrials(iTrialNum)
-                    thisAnimalWorksheet.Cells(iExcelOffset, 1) = arrTrial(0)
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2) = arrTrial(1)
-                    thisAnimalWorksheet.Cells(iExcelOffset, 3) = arrTrial(3)
-                    thisAnimalWorksheet.Cells(iExcelOffset, 4) = arrTrial(5)
-                    thisAnimalWorksheet.Cells(iExcelOffset, 5) = arrTrial(2)
-                    thisAnimalWorksheet.Cells(iExcelOffset, 6) = arrTrial(4)
-                    thisAnimalWorksheet.Cells(iExcelOffset, 7) = arrTrial(6)
+                    thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = arrTrial(0)
+                    thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = arrTrial(1)
+                    thisAnimalWorksheet.Cells(iExcelOffset, 3).Value = arrTrial(3)
+                    thisAnimalWorksheet.Cells(iExcelOffset, 4).Value = arrTrial(5)
+                    thisAnimalWorksheet.Cells(iExcelOffset, 5).Value = arrTrial(2)
+                    thisAnimalWorksheet.Cells(iExcelOffset, 6).Value = arrTrial(4)
+                    thisAnimalWorksheet.Cells(iExcelOffset, 7).Value = arrTrial(6)
+                    If arrTrial(4) <> "" Or arrTrial(6) <> "" Or arrTrial(7) <> "" Then
+                        thisAnimalWorksheet.Cells(iExcelOffset, 8).Value = arrTrial(7)
+                        thisAnimalWorksheet.Range("A" & iExcelOffset, "H" & iExcelOffset).Interior.Color = excludedTrialCell.Interior.Color
+                        thisAnimalWorksheet.Range("A" & iExcelOffset, "H" & iExcelOffset).Interior.ColorIndex = excludedTrialCell.Interior.ColorIndex
+                        thisAnimalWorksheet.Range("A" & iExcelOffset, "H" & iExcelOffset).Font.Color = excludedTrialCell.Font.Color
+                        thisAnimalWorksheet.Range("A" & iExcelOffset, "H" & iExcelOffset).Font.ColorIndex = excludedTrialCell.Font.ColorIndex
+                    End If
                     iExcelOffset = iExcelOffset + 1
                     
-                    If arrTrial(4) = "" And arrTrial(6) = "" Then
+                    If arrTrial(4) = "" And arrTrial(6) = "" And arrTrial(7) = "" Then
                         'contribute to the mean
                         nInMeanSoFar = nInMeanSoFar + 1
                         diff = arrTrial(3) - arrTrial(5)
@@ -428,7 +478,7 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                 'calculate variance
                 For iTrialNum = 0 To UBound(arrTrials)
                     arrTrial = arrTrials(iTrialNum)
-                    If arrTrial(4) = "" And arrTrial(6) = "" Then
+                    If arrTrial(4) = "" And arrTrial(6) = "" And arrTrial(7) = "" Then
                         diff = arrTrial(3) - arrTrial(5)
                         HRChangeVar = HRChangeVar + (meanHRChange - diff) ^ 2
                     End If
@@ -439,21 +489,21 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                 End If
                 
                 iExcelOffset = iExcelOffset + 1
-                thisAnimalWorksheet.Cells(iExcelOffset, 1) = "N included:"
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "N included:"
                 thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
-                thisAnimalWorksheet.Cells(iExcelOffset, 2) = nInMeanSoFar
+                thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = nInMeanSoFar
                 iExcelOffset = iExcelOffset + 1
-                thisAnimalWorksheet.Cells(iExcelOffset, 1) = "HR decrease trials:"
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "HR decrease trials:"
                 thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
-                thisAnimalWorksheet.Cells(iExcelOffset, 2) = HRDecTrials
+                thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = HRDecTrials
                 iExcelOffset = iExcelOffset + 1
-                thisAnimalWorksheet.Cells(iExcelOffset, 1) = "HR increase trials:"
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "HR increase trials:"
                 thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
-                thisAnimalWorksheet.Cells(iExcelOffset, 2) = HRIncTrials
+                thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = HRIncTrials
                 iExcelOffset = iExcelOffset + 1
-                thisAnimalWorksheet.Cells(iExcelOffset, 1) = "% decrease trials:"
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "% decrease trials:"
                 thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
-                thisAnimalWorksheet.Cells(iExcelOffset, 2) = (HRDecTrials / nInMeanSoFar) * 100
+                thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = (HRDecTrials / nInMeanSoFar) * 100
                 thisAnimalWorksheet.Cells(iExcelOffset, 1).Style = "Percent"
                 Call thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions.Delete
                 Call thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions.Add(xlCellValue, xlNotBetween, "15", "85")
@@ -467,26 +517,26 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                 thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Interior.Color = percOutside2575FC.Interior.Color
                 thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Interior.ColorIndex = percOutside2575FC.Interior.ColorIndex
                 iExcelOffset = iExcelOffset + 2
-                thisAnimalWorksheet.Cells(iExcelOffset, 1) = "Mean change:"
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Mean change:"
                 thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
-                thisAnimalWorksheet.Cells(iExcelOffset, 2) = meanHRChange
+                thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = meanHRChange
                 iExcelOffset = iExcelOffset + 1
                 If nInMeanSoFar > 1 Then
-                    thisAnimalWorksheet.Cells(iExcelOffset, 1) = "Variance:"
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2) = HRChangeVar
+                    thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Variance:"
+                    thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = HRChangeVar
                     iExcelOffset = iExcelOffset + 1
-                    thisAnimalWorksheet.Cells(iExcelOffset, 1) = "Standard Deviation:"
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2) = HRChangeVar ^ 0.5
+                    thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Standard Deviation:"
+                    thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = HRChangeVar ^ 0.5
                     iExcelOffset = iExcelOffset + 1
-                    thisAnimalWorksheet.Cells(iExcelOffset, 1) = "Std. Error of Mean:"
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2) = ((HRChangeVar / nInMeanSoFar) ^ 0.5)
+                    thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Std. Error of Mean:"
+                    thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = ((HRChangeVar / nInMeanSoFar) ^ 0.5)
                     iExcelOffset = iExcelOffset + 1
-                    thisAnimalWorksheet.Cells(iExcelOffset, 1) = "T-statistic:"
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2) = tStat
+                    thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "T-statistic:"
+                    thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = tStat
                     iExcelOffset = iExcelOffset + 1
-                    thisAnimalWorksheet.Cells(iExcelOffset, 1) = "P-value:"
+                    thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "P-value:"
                     thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2) = "=TDIST(ABS(B" & CStr(iExcelOffset - 1) & ")," & CStr(nInMeanSoFar - 1) & ",1)"
+                    thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = "=TDIST(ABS(B" & CStr(iExcelOffset - 1) & ")," & CStr(nInMeanSoFar - 1) & ",1)"
                     Call thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions.Delete
                     Call thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions.Add(xlCellValue, xlLessEqual, ".05")
                     thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(1).Font.Color = pLess05FC.Font.Color
@@ -499,7 +549,7 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                     thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Interior.Color = pLess10FC.Interior.Color
                     thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Interior.ColorIndex = pLess10FC.Interior.ColorIndex
                 Else
-                    thisAnimalWorksheet.Cells(iExcelOffset, 1) = "Additional stats could not be calculated (N=1)"
+                    thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Additional stats could not be calculated (N=1)"
                 End If
                 
                 
@@ -637,3 +687,58 @@ Function trimAmpTrailingChars(strToTrim As String) As String
         trimAmpTrailingChars = strToTrim
     End If
 End Function
+Function checkForExclusion(objFolder As Folder) As Variant
+    Dim exclusionInfo(1) As String
+    
+    exclusionInfo(0) = ""
+    checkForExclusion = False
+    Dim Files As Files
+    Dim objFile As File
+
+    Set Files = objFolder.Files
+
+    Dim tmpStr1 As String
+    Dim tmpStr2 As String
+    Dim iLenOfPrefix As Integer
+    iLenOfPrefix = Len("exclude from results aggregration - ")
+
+    For Each objFile In Files
+        If LCase(objFile.Name) = "exclude from results aggregration.txt" Then
+            exclusionInfo(0) = "folder"
+            Exit For
+        ElseIf LCase(Left(objFile.Name, iLenOfPrefix)) = "exclude from results aggregration - " Then
+            'exclude from results aggregration - all.txt
+            tmpStr1 = Right(LCase(objFile.Name), Len(objFile.Name) - iLenOfPrefix)
+            tmpStr2 = Left(tmpStr1, Len(tmpStr1) - 4)
+            Select Case tmpStr2
+                Case "all":
+                    exclusionInfo(0) = "all"
+                Case "all with message":
+                    exclusionInfo(0) = "all"
+                    exclusionInfo(1) = readCommentFromFile(objFile)
+                Case "acoustic":
+                    exclusionInfo(0) = "Acoustic"
+                Case "acoustic with message":
+                    exclusionInfo(0) = "Acoustic"
+                    exclusionInfo(1) = readCommentFromFile(objFile)
+                Case "electical":
+                    exclusionInfo(0) = "Electrical"
+                Case "electrical with message":
+                    exclusionInfo(0) = "Electrical"
+                    exclusionInfo(1) = readCommentFromFile(objFile)
+            End Select
+            Exit For
+        End If
+    Next
+    
+    checkForExclusion = exclusionInfo
+
+End Function
+
+Function readCommentFromFile(objFile As File) As String
+    Dim ts As TextStream
+    Set ts = objFile.OpenAsTextStream
+    readCommentFromFile = ts.ReadLine
+    ts.Close
+End Function
+

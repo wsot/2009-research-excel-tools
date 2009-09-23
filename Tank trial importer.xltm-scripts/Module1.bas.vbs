@@ -27,14 +27,16 @@ Sub processImport()
     Dim dAtten As Dictionary
     Set dAtten = New Dictionary
     
-    Call loadAttenList(dAtten)
-
+    Dim dOldAtten As Dictionary
+    Set dOldAtten = New Dictionary
+    
+    Call loadAttenList(dAtten, "Attenuations")
+    Call loadAttenList(dOldAtten, "Attenuations (incorrect)")
 
     Dim strChan As String
     Dim strRef As String
     
     Dim strSChnName As String
-
     
     Dim i As Long
     i = 0
@@ -187,8 +189,8 @@ Sub processImport()
             strStim2Filter = "TriS = " & arrTrials(iTrialOffset)(1) & " AND AFrq = " & returnVal(6, 1)
             'Obtain the attenuations for each of the 20 presentations
 
-            Call readAcousticAttens(objTTX, arrTrials, iTrialOffset, 1, strStim1Filter, dAtten)
-            Call readAcousticAttens(objTTX, arrTrials, iTrialOffset, 2, strStim2Filter, dAtten)
+            Call readAcousticAttens(objTTX, arrTrials, iTrialOffset, 1, strStim1Filter, dAtten, dOldAtten)
+            Call readAcousticAttens(objTTX, arrTrials, iTrialOffset, 2, strStim2Filter, dAtten, dOldAtten)
 
             arrTrials(iTrialOffset)(5) = arrTrials(iTrialOffset)(5) & "Hz"
             arrTrials(iTrialOffset)(6) = arrTrials(iTrialOffset)(6) & "Hz"
@@ -338,21 +340,21 @@ Sub processImport()
     Call objTTX.ReleaseServer
 End Sub
 
-Sub loadAttenList(dAtten As Dictionary)
+Sub loadAttenList(dAtten As Dictionary, whichWorksheet As String)
     Dim i As Long
     'Dim lFrq As Long
     'Dim dblAtten As Double
     
     i = 0
     
-    While Worksheets("Attenuations").Range("A" & (i + 2)).Value <> ""
-        Call dAtten.Add(CLng(Worksheets("Attenuations").Range("A" & (i + 2)).Value), CDbl(Worksheets("Attenuations").Range("B" & (i + 2)).Value))
+    While Worksheets(whichWorksheet).Range("A" & (i + 2)).Value <> ""
+        Call dAtten.Add(CLng(Worksheets(whichWorksheet).Range("A" & (i + 2)).Value), CDbl(Worksheets(whichWorksheet).Range("B" & (i + 2)).Value))
         i = i + 1
     Wend
 End Sub
 
 
-Sub readAcousticAttens(objTTX, arrTrials, iTrialOffset, iWhichTone As Integer, strStimFilter As String, dAtten)
+Sub readAcousticAttens(objTTX, arrTrials, iTrialOffset, iWhichTone As Integer, strStimFilter As String, dAtten, dOldAtten)
             Dim isAtten As Boolean
             Dim returnVal As Variant
             Dim j As Long
@@ -386,7 +388,7 @@ Sub readAcousticAttens(objTTX, arrTrials, iTrialOffset, iWhichTone As Integer, s
                 If isAtten Then
                     dblAmpl = dAtten(CLng(arrTrials(iTrialOffset)(iFreqOffset))) - returnVal(0, j)
                 Else
-                    dblAmpl = returnVal(0, j)
+                    dblAmpl = dAtten(CLng(arrTrials(iTrialOffset)(iFreqOffset))) - (dOldAtten(CLng(arrTrials(iTrialOffset)(iFreqOffset))) - returnVal(0, j))
                 End If
                 'if this is the first presentation, set it as max, min, and avg values
                 If j = 0 Then
