@@ -2,8 +2,11 @@ Attribute VB_Name = "Module1"
 Option Explicit
 
 Sub reprocess()
-    Const regenerateExcelFiles = False
-    
+    Dim regenerateExcelFiles As Boolean
+
+    Dim thisWorkbook As Workbook
+    Set thisWorkbook = ActiveWorkbook
+
     Dim templateFilename As String
     templateFilename = "\Code current\Excel tools\Tank trial importer.xltm"
     
@@ -14,7 +17,7 @@ Sub reprocess()
     Set objFS = CreateObject("Scripting.FileSystemObject")
     
     Dim pathToData As String
-    pathToData = objFS.GetDriveName(ActiveWorkbook.FullName) & thisWorkbook.Worksheets("Controller").Cells(1, 2).Value
+    pathToData = objFS.GetDriveName(ActiveWorkbook.FullName) & thisWorkbook.Worksheets("Configuration").Cells(1, 2).Value
     
     'get the root folder under which all data is housed
     Dim rootFolder As Folder
@@ -38,9 +41,8 @@ Sub reprocess()
     
     Dim blnCurrFolderIsTrial As Boolean
     blnCurrFolderIsTrial = False
-    
-    Dim thisWorkbook As Workbook
-    Set thisWorkbook = ActiveWorkbook
+        
+    regenerateExcelFiles = thisWorkbook.Worksheets("Configuration").Cells(2, 2).Value
     
     Dim tankFilename As String
     Dim blockName As String
