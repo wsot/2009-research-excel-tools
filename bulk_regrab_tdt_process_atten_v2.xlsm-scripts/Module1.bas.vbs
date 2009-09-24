@@ -3,9 +3,21 @@ Option Explicit
 
 Sub reprocess()
     Dim regenerateExcelFiles As Boolean
+    Dim regenerateTDTdata As Boolean
+    Dim regenerateDropoutData As Boolean
+    Dim regenerateHRcalculations As Boolean
+    Dim updateAttenData As Boolean
 
+    Dim maxAllowVariation As Double
+    Dim minAcceptableHR As Integer
+    Dim maxAcceptableHR As Integer
+    
     Dim thisWorkbook As Workbook
     Set thisWorkbook = ActiveWorkbook
+
+    maxAllowVariation = Worksheets("Configuration").Cells(7, 2).Value
+    minAcceptableHR = Worksheets("Configuration").Cells(4, 2).Value
+    maxAcceptableHR = Worksheets("Configuration").Cells(5, 2).Value
 
     Dim templateFilename As String
     templateFilename = "\Code current\Excel tools\Tank trial importer.xltm"
@@ -42,6 +54,10 @@ Sub reprocess()
     blnCurrFolderIsTrial = False
         
     regenerateExcelFiles = thisWorkbook.Worksheets("Configuration").Cells(2, 2).Value
+    regenerateTDTdata = thisWorkbook.Worksheets("Configuration").Cells(9, 2).Value
+    regenerateDropoutData = thisWorkbook.Worksheets("Configuration").Cells(10, 2).Value
+    regenerateHRcalculations = thisWorkbook.Worksheets("Configuration").Cells(11, 2).Value
+    updateAttenData = thisWorkbook.Worksheets("Configuration").Cells(12, 2).Value
     
     Dim tankFilename As String
     Dim blockName As String
@@ -76,13 +92,33 @@ Sub reprocess()
                             If regenerateExcelFiles Then 'do we need to update from the template?
                                 Set workbookToProcess = Workbooks.Open(strExcelPathname)
                                 Set newWorkbook = Workbooks.Open(templateFilename)
-                                'newWorkbook.Worksheets("Settings").Range("O2:Q173").Value = workbookToProcess.Worksheets("Settings").Range("O2:Q173").Value
+                                'newWorkbook.Worksheets("Output").Range("O2:Q173").Value = workbookToProcess.Worksheets("Output").Range("O2:Q173").Value
                                 'newWorkbook.Worksheets("HR detection").Range("A3:Q83").Value = workbookToProcess.Worksheets("HR detection").Range("A3:Q83").Value
                                 
                                 strUsedRange = workbookToProcess.Worksheets("Beat points from LabChart").UsedRange.Address
                                 newWorkbook.Worksheets("Beat points from LabChart").Range(strUsedRange).Value = workbookToProcess.Worksheets("Beat points from LabChart").Range(strUsedRange).Value
                                 strUsedRange = workbookToProcess.Worksheets("Trial points from LabChart").UsedRange.Address
                                 newWorkbook.Worksheets("Trial points from LabChart").Range(strUsedRange).Value = workbookToProcess.Worksheets("Trial points from LabChart").Range(strUsedRange).Value
+                                                                
+                                If Not regenerateTDTdata Then
+                                    newWorkbook.Worksheets("Output").Range("A2:N173").Value = workbookToProcess.Worksheets("Output").Range("A2:N173").Value
+                                End If
+                                
+                                If Not regenerateDropoutData Then
+                                    strUsedRange = workbookToProcess.Worksheets("Deadzones").UsedRange.Address
+                                    newWorkbook.Worksheets("Deadzones").Range(strUsedRange).Value = workbookToProcess.Worksheets("Deadzones").Range(strUsedRange).Value
+                                End If
+                                                                
+                                If Not regenerateHRcalculations Then
+                                    strUsedRange = workbookToProcess.Worksheets("Interpolations").UsedRange.Address
+                                    newWorkbook.Worksheets("Interpolations").Range(strUsedRange).Value = workbookToProcess.Worksheets("Interpolations").Range(strUsedRange).Value
+                                    strUsedRange = workbookToProcess.Worksheets("Overbeats").UsedRange.Address
+                                    newWorkbook.Worksheets("Overbeats").Range(strUsedRange).Value = workbookToProcess.Worksheets("Overbeats").Range(strUsedRange).Value
+                                    strUsedRange = workbookToProcess.Worksheets("HR detection").UsedRange.Address
+                                    newWorkbook.Worksheets("Overbeats").Range(strUsedRange).Value = workbookToProcess.Worksheets("HR detection").Range(strUsedRange).Value
+                                    newWorkbook.Worksheets("Output").Range("O2:Q173").Value = workbookToProcess.Worksheets("Output").Range("O2:Q173").Value
+                                End If
+                                                                
                                                                 
                                 Call workbookToProcess.Close
                                 If Not objFS.FolderExists(objExpFolder.Path & "\xls backups") Then
@@ -102,16 +138,31 @@ Sub reprocess()
                             End If
                             
                             workbookToProcess.Activate
-                            workbookToProcess.Worksheets("Attenuations").Range("B2:B44301").Value = thisWorkbook.Worksheets("Attenuation").Range("B1:B44300").Value
+                            workbookToProcess.Worksheets("Settings").Cells(5, 2).Value = maxAllowVariation
+                            workbookToProcess.Worksheets("Settings").Cells(2, 2).Value = minAcceptableHR
+                            workbookToProcess.Worksheets("Settings").Cells(3, 2).Value = maxAcceptableHR
+                            
+                            If updateAttenData Then
+                                workbookToProcess.Worksheets("Attenuations").Range("B2:B44301").Value = thisWorkbook.Worksheets("Attenuation").Range("B1:B44300").Value
+                            End If
+                            
                             If getTDTTank(objExpFolder, tankFilename, blockName) Then
                                 workbookToProcess.Worksheets("Variables (do not edit)").Range("B2").Value = tankFilename
                                 workbookToProcess.Worksheets("Variables (do not edit)").Range("B3").Value = blockName
-                                Application.Run ("'" & strExcelFilename & "'!importTrialsFromLabchart")
-                                Application.Run ("'" & strExcelFilename & "'!processHeartRate")
-                                Application.Run ("'" & strExcelFilename & "'!buildDeadzoneLists")
-                                Call workbookToProcess.Save
-                                Call workbookToProcess.Close
+                                If regenerateTDTdata Then
+                                    Application.Run ("'" & strExcelFilename & "'!importTrialsFromLabchart")
+                                End If
                             End If
+                            
+                            If regenerateHRcalculations Then
+                                Application.Run ("'" & strExcelFilename & "'!processHeartRate")
+                            End If
+                            If regenerateDropoutData Then
+                                Application.Run ("'" & strExcelFilename & "'!buildDeadzoneLists")
+                            End If
+
+                            Call workbookToProcess.Save
+                            Call workbookToProcess.Close
                         End If
                     End If
                 End If

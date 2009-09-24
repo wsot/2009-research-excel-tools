@@ -240,7 +240,16 @@ Function parseTrials(outputDict As Dictionary, workbookToProcess As Workbook, ex
 '        End If
        
         trialArr = Array()
-        ReDim trialArr(8) 'result array contains eight elements - date, HR 10-30s from start, reason for 10-30s exclusion (if excluded), HR at -4s, reason for -4s exclusion (if excluded), HR at 5-9s, reason for 5-9s exclusion (if excluded), reason for overall exclusion (from exclusion text file)
+        ReDim trialArr(8)
+        'result array contains eight elements
+        '1: date/label
+        '2:HR 10-30s from start
+        '3:reason for 10-30s exclusion (if excluded)
+        '4:HR at -4s
+        '5:reason for -4s exclusion (if excluded)
+        '6:HR at 5-9s
+        '7:reason for 5-9s exclusion (if excluded)
+        '8:reason for overall exclusion (from exclusion text file)
 
         If i = 2 Then
             trialArr(1) = "=NA()"
@@ -251,22 +260,22 @@ Function parseTrials(outputDict As Dictionary, workbookToProcess As Workbook, ex
                 trialArr(1) = "=NA()"
                 trialArr(2) = exclusionReason
             Else
-                trialArr(1) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 1).Value
+                trialArr(1) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 6).Value
             End If
         End If
-        exclusionReason = checkForHRExclusions(workbookToProcess, i, 7)
+        exclusionReason = checkForHRExclusions(workbookToProcess, i, 15)
         If exclusionReason <> "" Then
             trialArr(3) = "=NA()"
             trialArr(4) = exclusionReason
         Else
-            trialArr(3) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 7).Value
+            trialArr(3) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 18).Value
         End If
-        exclusionReason = checkForHRExclusions(workbookToProcess, i, 13)
+        exclusionReason = checkForHRExclusions(workbookToProcess, i, 29)
         If exclusionReason <> "" Then
             trialArr(5) = "=NA()"
             trialArr(6) = exclusionReason
         Else
-            trialArr(5) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 13).Value
+            trialArr(5) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 30).Value
         End If
         
         If workbookToProcess.Worksheets("Output").Cells(i, 5).Value = "Acoustic" Then
@@ -444,16 +453,16 @@ End Function
 
 Function checkForHRExclusions(workbookToProcess As Workbook, i As Integer, horizOffset As Integer) As String
             checkForHRExclusions = ""
-            If workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset).Value = -1 Then
-                checkForHRExclusions = "HR not detectable (" & workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset).Value & ")"
-            ElseIf workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 1).Value > exIntCountGT And exIntCountGT <> -1 Then
-                checkForHRExclusions = "Too many interpolations (" & workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 1).Value & ">" & exIntCountGT & ")"
-            ElseIf workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 2).Value > exIntBeatsGT And exIntBeatsGT <> -1 Then
-                checkForHRExclusions = "Too many interpolated beats (" & workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 2).Value & ">" & exIntBeatsGT & ")"
-            ElseIf workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 3).Value > exLongestIntDurGT And exLongestIntDurGT <> -1 Then
-                checkForHRExclusions = "Longest interpolation too long (" & workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 3).Value & ">" & exLongestIntDurGT & ")"
-            ElseIf workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 4).Value > exLongestIntBeatsGT And exLongestIntBeatsGT <> -1 Then
-                checkForHRExclusions = "Longest interpolation too many beats (" & workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 4).Value & ">" & exLongestIntBeatsGT & ")"
+            If workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 5).Value = -1 Then
+                checkForHRExclusions = "HR not detectable (" & workbookToProcess.Worksheets("HR detection").Cells(i + 5, horizOffset).Value & ")"
+            ElseIf workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 6).Value > exIntCountGT And exIntCountGT <> -1 Then
+                checkForHRExclusions = "Too many interpolations (" & workbookToProcess.Worksheets("HR detection").Cells(i + 6, horizOffset + 1).Value & ">" & exIntCountGT & ")"
+            ElseIf workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 7).Value > exIntBeatsGT And exIntBeatsGT <> -1 Then
+                checkForHRExclusions = "Too many interpolated beats (" & workbookToProcess.Worksheets("HR detection").Cells(i + 7, horizOffset + 2).Value & ">" & exIntBeatsGT & ")"
+            ElseIf workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 9).Value > exLongestIntDurGT And exLongestIntDurGT <> -1 Then
+                checkForHRExclusions = "Longest interpolation too long (" & workbookToProcess.Worksheets("HR detection").Cells(i + 9, horizOffset + 3).Value & ">" & exLongestIntDurGT & ")"
+            ElseIf workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 11).Value > exLongestIntBeatsGT And exLongestIntBeatsGT <> -1 Then
+                checkForHRExclusions = "Longest interpolation too many beats (" & workbookToProcess.Worksheets("HR detection").Cells(i + 11, horizOffset + 4).Value & ">" & exLongestIntBeatsGT & ")"
             End If
 End Function
 

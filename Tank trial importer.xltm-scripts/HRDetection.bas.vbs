@@ -1,18 +1,34 @@
 Attribute VB_Name = "HRDetection"
 Option Explicit
-Const minAcceptableHR = 180
-Const maxAcceptableHR = 650
-Const maxInterBeatOverrun = 1.6
-Const maxInterBeatUnderrun = 0.6
+Global minAcceptableHR As Integer
+Global maxAcceptableHR As Integer
+Global maxInterBeatOverrun As Double
+Global maxInterBeatUnderrun As Double
+
+'Const minAcceptableHR = 180
+'Const maxAcceptableHR = 650
+'Const maxInterBeatOverrun = 1.6
+'Const maxInterBeatUnderrun = 0.6
 
 Sub processHeartRate()
+  
+    Dim maxAllowVariation As Double
+    
+    maxAllowVariation = Worksheets("Settings").Cells(5, 2).Value
+    
+    minAcceptableHR = Worksheets("Settings").Cells(2, 2).Value
+    maxAcceptableHR = Worksheets("Settings").Cells(3, 2).Value
+    maxInterBeatOverrun = 1 + maxAllowVariation
+    maxInterBeatUnderrun = 1 - maxAllowVariation
   
     Dim detectedHR As Double
     Dim overlyCloseBeats As Integer
     Dim interpolations As Integer
     Dim longestInterpolation As Long
+    Dim shortestInterpolation As Long
     Dim interpolationDuration As Long
     Dim interpolatedBeatsMax As Double
+    Dim interpolatedBeatsMin As Double
     Dim interpolatedBeats As Double
     
     Dim beatWorksheet As Worksheet
@@ -23,11 +39,16 @@ Sub processHeartRate()
     
     Dim interpWS As Worksheet
     Set interpWS = Worksheets("Interpolations")
-          
+    
+    Dim overbWS As Worksheet
+    Set overbWS = Worksheets("Overbeats")
+    
     Dim checkForDropouts As Boolean
     checkForDropouts = False
 
     Dim iTrialNum As Integer
+    Dim iOutputNum As Integer
+    Dim iColsPerOutput As Integer
     Dim blnNeedToSave As Boolean
 
     Dim lLastOffset As Long
@@ -37,11 +58,15 @@ Sub processHeartRate()
     Dim lTrialSampEnd As Long
 
     Dim cumulativeInterpolations As Long
+    Dim iOverlyCloseBeatsOffset As Long
 
     iTrialNum = 1
-
+    iColsPerOutput = 14
+        
     Do
         cumulativeInterpolations = 0
+        iOverlyCloseBeatsOffset = 0
+        iOutputNum = 0
     
         If commentWorksheet.Cells(iTrialNum + 1, 1) = "" Then 'go until there are no more trial numbers
             Exit Do
@@ -51,56 +76,95 @@ Sub processHeartRate()
         interpWS.Cells(2, ((iTrialNum - 1) * 5) + 1).Value = "For range"
         interpWS.Cells(2, ((iTrialNum - 1) * 5) + 1).Value = "LC Sample"
         interpWS.Cells(2, ((iTrialNum - 1) * 5) + 2).Value = "LC Time"
+    
+        overbWS.Cells(1, ((iTrialNum - 1) * 5) + 1).Value = "Trial " & iTrialNum
+        overbWS.Cells(2, ((iTrialNum - 1) * 5) + 1).Value = "For range"
+        overbWS.Cells(2, ((iTrialNum - 1) * 5) + 1).Value = "LC Sample"
+        overbWS.Cells(2, ((iTrialNum - 1) * 5) + 2).Value = "LC Time"
         
         lPretrialSampStart = commentWorksheet.Cells(iTrialNum + 1, 2)
         lTrialSampStart = commentWorksheet.Cells(iTrialNum + 1, 3)
         lTrialSampEnd = commentWorksheet.Cells(iTrialNum + 1, 4)
         
-        Call detectHROnSelection(lPretrialSampStart + 20000, lPretrialSampStart + 60000, detectedHR, overlyCloseBeats, interpolations, longestInterpolation, interpolationDuration, interpolatedBeatsMax, interpolatedBeats, iTrialNum, "10-30s", 0)
+        Call detectHROnSelection(lPretrialSampStart + 20000, lPretrialSampStart + 60000, detectedHR, overlyCloseBeats, interpolations, longestInterpolation, shortestInterpolation, interpolationDuration, interpolatedBeatsMax, interpolatedBeatsMin, interpolatedBeats, iTrialNum, "10-30s", cumulativeInterpolations, iOverlyCloseBeatsOffset)
 
         cumulativeInterpolations = interpolations
+        iOverlyCloseBeatsOffset = overlyCloseBeats
+
+        iOutputNum = iOutputNum + 1
 
         Worksheets("Output").Range("O" & (iTrialNum + 1)).Value = detectedHR
-        Worksheets("HR detection").Range("A" & (iTrialNum + 2)).Value = detectedHR
-        Worksheets("HR detection").Range("B" & (iTrialNum + 2)).Value = interpolations
-        Worksheets("HR detection").Range("C" & (iTrialNum + 2)).Value = interpolatedBeats
-        Worksheets("HR detection").Range("D" & (iTrialNum + 2)).Value = longestInterpolation
-        Worksheets("HR detection").Range("E" & (iTrialNum + 2)).Value = interpolatedBeatsMax
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 1)).Value = "Trial " & iTrialNum
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 2)).Value = lPretrialSampStart + 20000
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 3)).Value = "'" & calculateLCTime(lPretrialSampStart + 20000)
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 4)).Value = lPretrialSampStart + 60000
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 5)).Value = "'" & calculateLCTime(lPretrialSampStart + 60000)
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 6)).Value = detectedHR
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 7)).Value = interpolations
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 8)).Value = interpolatedBeats
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 9)).Value = shortestInterpolation
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 10)).Value = longestInterpolation
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 11)).Value = interpolatedBeatsMin
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 12)).Value = interpolatedBeatsMax
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 13)).Value = overlyCloseBeats
 
-        Call detectHROnSelection(lTrialSampStart - 8000, lTrialSampStart, detectedHR, overlyCloseBeats, interpolations, longestInterpolation, interpolationDuration, interpolatedBeatsMax, interpolatedBeats, iTrialNum, "-4-0s", cumulativeInterpolations)
+        Call detectHROnSelection(lTrialSampStart - 8000, lTrialSampStart, detectedHR, overlyCloseBeats, interpolations, longestInterpolation, shortestInterpolation, interpolationDuration, interpolatedBeatsMax, interpolatedBeatsMin, interpolatedBeats, iTrialNum, "-4-0s", cumulativeInterpolations, iOverlyCloseBeatsOffset)
         
         cumulativeInterpolations = cumulativeInterpolations + interpolations
+        iOverlyCloseBeatsOffset = overlyCloseBeats
         
-        Worksheets("Output").Range("P" & (iTrialNum + 1)).Value = detectedHR
-        Worksheets("HR detection").Range("G" & (iTrialNum + 2)).Value = detectedHR
-        Worksheets("HR detection").Range("H" & (iTrialNum + 2)).Value = interpolations
-        Worksheets("HR detection").Range("I" & (iTrialNum + 2)).Value = interpolatedBeats
-        Worksheets("HR detection").Range("J" & (iTrialNum + 2)).Value = longestInterpolation
-        Worksheets("HR detection").Range("K" & (iTrialNum + 2)).Value = interpolatedBeatsMax
-        
-        Call detectHROnSelection(lTrialSampStart + 10000, lTrialSampStart + 18000, detectedHR, overlyCloseBeats, interpolations, longestInterpolation, interpolationDuration, interpolatedBeatsMax, interpolatedBeats, iTrialNum, "-5-9s", cumulativeInterpolations)
-        
-        Worksheets("Output").Range("Q" & (iTrialNum + 1)).Value = detectedHR
-        Worksheets("HR detection").Range("M" & (iTrialNum + 2)).Value = detectedHR
-        Worksheets("HR detection").Range("N" & (iTrialNum + 2)).Value = interpolations
-        Worksheets("HR detection").Range("O" & (iTrialNum + 2)).Value = interpolatedBeats
-        Worksheets("HR detection").Range("P" & (iTrialNum + 2)).Value = longestInterpolation
-        Worksheets("HR detection").Range("Q" & (iTrialNum + 2)).Value = interpolatedBeatsMax
+        iOutputNum = iOutputNum + 1
 
+        Worksheets("Output").Range("P" & (iTrialNum + 1)).Value = detectedHR
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 1)).Value = "Trial " & iTrialNum
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 2)).Value = lTrialSampStart - 8000
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 3)).Value = "'" & calculateLCTime(lTrialSampStart - 8000)
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 4)).Value = lTrialSampStart
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 5)).Value = "'" & calculateLCTime(lTrialSampStart)
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 6)).Value = detectedHR
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 7)).Value = interpolations
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 8)).Value = interpolatedBeats
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 9)).Value = shortestInterpolation
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 10)).Value = longestInterpolation
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 11)).Value = interpolatedBeatsMin
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 12)).Value = interpolatedBeatsMax
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 13)).Value = overlyCloseBeats
+        
+        Call detectHROnSelection(lTrialSampStart + 10000, lTrialSampStart + 18000, detectedHR, overlyCloseBeats, interpolations, longestInterpolation, shortestInterpolation, interpolationDuration, interpolatedBeatsMax, interpolatedBeatsMin, interpolatedBeats, iTrialNum, "-5-9s", cumulativeInterpolations, iOverlyCloseBeatsOffset)
+        
+        iOutputNum = iOutputNum + 1
+
+        Worksheets("Output").Range("Q" & (iTrialNum + 1)).Value = detectedHR
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 1)).Value = "Trial " & iTrialNum
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 2)).Value = lTrialSampStart + 10000
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 3)).Value = "'" & calculateLCTime(lTrialSampStart + 10000)
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 4)).Value = lTrialSampStart + 18000
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 5)).Value = "'" & calculateLCTime(lTrialSampStart + 18000)
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 6)).Value = detectedHR
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 7)).Value = interpolations
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 8)).Value = interpolatedBeats
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 9)).Value = shortestInterpolation
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 10)).Value = longestInterpolation
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 11)).Value = interpolatedBeatsMin
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 12)).Value = interpolatedBeatsMax
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 13)).Value = overlyCloseBeats
+        
         iTrialNum = iTrialNum + 1
     Loop
     
 End Sub
 
 
-Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef detectedHR, ByRef overlyCloseBeats, ByRef interpolations, ByRef longestInterpolation, ByRef interpolationDuration, ByRef interpolatedBeatsMax, ByRef interpolatedBeats, iTrialNum As Integer, strRangeTitle As String, iInterpOffset As Long)
+Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef detectedHR, ByRef overlyCloseBeats, ByRef interpolations, ByRef longestInterpolation, ByRef shortestInterpolation, ByRef interpolationDuration, ByRef interpolatedBeatsMax, ByRef interpolatedBeatsMin, ByRef interpolatedBeats, iTrialNum As Integer, strRangeTitle As String, iInterpOffset As Long, iOverlyCloseBeatsOffset As Long)
 
     detectedHR = 0
     overlyCloseBeats = 0
     interpolations = 0
     interpolatedBeats = 0
     longestInterpolation = 0
+    shortestInterpolation = 0
     interpolatedBeatsMax = 0
+    interpolatedBeatsMin = 0
     
     Dim returnFailed As Boolean
     
@@ -112,17 +176,16 @@ Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef detectedHR
     Dim interpWS As Worksheet
     Set interpWS = Worksheets("Interpolations")
       
-    interpWS.Cells(1, ((iTrialNum - 1) * 5) + 1).Value = "Trial " & iTrialNum
-    interpWS.Cells(2, ((iTrialNum - 1) * 5) + 1).Value = "For range"
-    interpWS.Cells(2, ((iTrialNum - 1) * 5) + 1).Value = "LC Sample"
-    interpWS.Cells(2, ((iTrialNum - 1) * 5) + 2).Value = "LC Time"
-    
+    Dim overbWS As Worksheet
+    Set overbWS = Worksheets("Overbeats")
+      
     Dim beatCount As Double
     beatCount = 0#
     Dim beatDuration As Long
     Dim currentBeatOffset As Long 'offset (in columns) from first beat
     Dim currentBeatSamp As Long 'current beat position in time (in samples)
     Dim prevAcceptedBeatSamp As Long 'previous beat position in time (in samples)
+    Dim nextBeatSamp As Long 'the beat position of the next beat in samples - only used in interpolation/overly close beat processing
 
     Dim thisInterpolationBeats As Double
     Dim thisInterpolationDuration As Long
@@ -163,7 +226,7 @@ Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef detectedHR
             
             'Inter-beat variation is more than what is allowable, so probably missed beats - calculate beat duration after gap for interpolation
             lPostBeatDuration = (beatWorksheet.Cells(iTrialNum, lStartColNum + currentBeatOffset + 1).Value - currentBeatSamp)
-            If lPostBeatDuration > ((maxInterBeatOverrun + (maxInterBeatOverrun * 0.1)) * beatDuration) Then   'check if the next beat might also have missed
+            If lPostBeatDuration > ((maxInterBeatOverrun + (maxInterBeatOverrun * 0.1)) * beatDuration) Then 'check if the next beat might also have missed
                 'next beat also looks like a miss; check the following beat
                 lPostBeatDuration = (beatWorksheet.Cells(iTrialNum, lStartColNum + currentBeatOffset + 2).Value - beatWorksheet.Cells(iTrialNum, lStartColNum + currentBeatOffset + 1))
                 If lPostBeatDuration > ((maxInterBeatOverrun + (maxInterBeatOverrun * 0.2)) * beatDuration) Then 'check if the next beat might also have missed. Give a bit more leeway on how much the duration can have changed, as it is more temporally distant
@@ -187,14 +250,32 @@ Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef detectedHR
             End If
             interpolationDuration = interpolationDuration + thisInterpolationDuration
             interpolatedBeats = interpolatedBeats + thisInterpolationBeats
+            
+            prevAcceptedBeatSamp = currentBeatSamp
+            
+        ElseIf (currentBeatSamp - prevAcceptedBeatSamp) < (maxInterBeatUnderrun * beatDuration) Then 'is the beat smaller than the minimum variation allowed
+            If (nextBeatSamp - prevAcceptedBeatSamp) < (maxInterBeatOverrun * beatDuration) And (nextBeatSamp - prevAcceptedBeatSamp) > (maxInterBeatUnderrun * beatDuration) Then
+                'looks like this is an abberant beat that shouldn't be counted
+                overlyCloseBeats = overlyCloseBeats + 1
+                overbWS.Cells(overlyCloseBeats + iOverlyCloseBeatsOffset + 2, ((iTrialNum - 1) * 5) + 1).Value = strRangeTitle
+                overbWS.Cells(overlyCloseBeats + iOverlyCloseBeatsOffset + 2, ((iTrialNum - 1) * 5) + 2).Value = currentBeatSamp
+                overbWS.Cells(overlyCloseBeats + iOverlyCloseBeatsOffset + 2, ((iTrialNum - 1) * 5) + 3).Value = "'" & calculateLCTime(currentBeatSamp)
+            Else
+                'maybe a normal beat - count it as normal
+                beatCount = beatCount + 1#
+                beatDuration = ((currentBeatSamp - prevAcceptedBeatSamp) + beatDuration) / 2
+                prevAcceptedBeatSamp = currentBeatSamp
+            End If
         Else
             beatCount = beatCount + 1#
             beatDuration = ((currentBeatSamp - prevAcceptedBeatSamp) + beatDuration) / 2
+            prevAcceptedBeatSamp = currentBeatSamp
         End If
         
-        prevAcceptedBeatSamp = currentBeatSamp
+        'prevAcceptedBeatSamp = currentBeatSamp
         currentBeatOffset = currentBeatOffset + 1
         currentBeatSamp = beatWorksheet.Cells(iTrialNum, lStartColNum + currentBeatOffset).Value
+        nextBeatSamp = beatWorksheet.Cells(iTrialNum, lStartColNum + currentBeatOffset + 1).Value
         If currentBeatSamp > lEndPoint Then 'check if we've overrun our endpoint
             Exit Do
         End If
@@ -259,7 +340,5 @@ Function getPrecedingBeatOffset(lSampNum As Long, iTrialNum As Integer)
     
     getPrecedingBeatOffset = lOffset
 End Function
-
-
 
 

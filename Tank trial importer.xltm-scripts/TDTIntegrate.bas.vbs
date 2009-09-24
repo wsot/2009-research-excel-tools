@@ -1,4 +1,4 @@
-Attribute VB_Name = "Module1"
+Attribute VB_Name = "TDTIntegrate"
 Option Explicit
 Global doImport
 Global theServer, theTank, theBlock
@@ -176,17 +176,26 @@ Sub processImport()
         'find the first 3 acoustic sweeps of the trial (SweS). If >2 sweeps, then currently doing acoustic presentations
         i = objTTX.ReadEventsV(3, "SweS", 0, 0, dblStartTime, arrTrials(iTrialOffset)(3), "ALL")
         If i > 2 Then
-            'acoustic presentations - get the first two instances of AFrq, which will be the two different frequencies
-            i = objTTX.ReadEventsV(2, "AFrq", 0, 0, dblStartTime, arrTrials(iTrialOffset)(3), "ALL")
+            'acoustic presentations - get the first three instances of AFrq, including the one before first alternating. This will be the two different frequencies, and tell us the 'repeated' frequency
+            i = objTTX.ReadEventsV(3, "AFrq", 0, 0, dblStartTime - 0.5, arrTrials(iTrialOffset)(3), "ALL")
             If i = 0 Then 'catch and exit on errors - e.g. if manually terminated trials
                 Exit For
             End If
             arrTrials(iTrialOffset)(4) = "Acoustic"
             returnVal = objTTX.ParseEvInfoV(0, i, 0)
-            arrTrials(iTrialOffset)(5) = CStr(returnVal(6, 0))
-            arrTrials(iTrialOffset)(6) = CStr(returnVal(6, 1))
-            strStim1Filter = "TriS = " & arrTrials(iTrialOffset)(1) & " AND AFrq = " & returnVal(6, 0)
-            strStim2Filter = "TriS = " & arrTrials(iTrialOffset)(1) & " AND AFrq = " & returnVal(6, 1)
+            
+            If returnVal(6, 0) = returnVal(6, 1) Then 'check if first stim is same as leadup (which it will be in more recent versions of the approach)
+                'first stim of 'trial' is same as repeated; use the first and second stim of trial as the alternators
+                arrTrials(iTrialOffset)(5) = CStr(returnVal(6, 1))
+                arrTrials(iTrialOffset)(6) = CStr(returnVal(6, 2))
+            Else
+                'first stim of 'trial' is NOT same as repeated; use the stim preceding the trial as 'first' and first stim of trial as the one alternated with
+                arrTrials(iTrialOffset)(5) = CStr(returnVal(6, 0))
+                arrTrials(iTrialOffset)(6) = CStr(returnVal(6, 1))
+            End If
+            
+            strStim1Filter = "TriS = " & arrTrials(iTrialOffset)(1) & " AND AFrq = " & arrTrials(iTrialOffset)(5)
+            strStim2Filter = "TriS = " & arrTrials(iTrialOffset)(1) & " AND AFrq = " & arrTrials(iTrialOffset)(6)
             'Obtain the attenuations for each of the 20 presentations
 
             Call readAcousticAttens(objTTX, arrTrials, iTrialOffset, 1, strStim1Filter, dAtten, dOldAtten)
