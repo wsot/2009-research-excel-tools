@@ -9,6 +9,7 @@ Sub reprocess()
 
     Dim templateFilename As String
     templateFilename = "\Code current\Excel tools\Tank trial importer.xltm"
+    Dim newFilename As String
     
     Application.DisplayAlerts = False
     Application.Calculation = xlCalculationManual
@@ -25,8 +26,6 @@ Sub reprocess()
            
     templateFilename = objFS.GetDriveName(ActiveWorkbook.FullName) & templateFilename 'get the drive letter for the template
 
-    Set objFS = Nothing
-        
     Dim AnimalFolders As Folders
     Dim objAnimalFolder As Folder
     
@@ -46,6 +45,7 @@ Sub reprocess()
     
     Dim tankFilename As String
     Dim blockName As String
+    Dim strUsedRange As String
     
     Dim workbookToProcess As Workbook
     Dim newWorkbook As Workbook
@@ -76,11 +76,23 @@ Sub reprocess()
                             If regenerateExcelFiles Then 'do we need to update from the template?
                                 Set workbookToProcess = Workbooks.Open(strExcelPathname)
                                 Set newWorkbook = Workbooks.Open(templateFilename)
-                                newWorkbook.Worksheets("Settings").Range("O2:Q173").Value = workbookToProcess.Worksheets("Settings").Range("O2:Q173").Value
-                                newWorkbook.Worksheets("HR detection").Range("A3:Q83").Value = workbookToProcess.Worksheets("HR detection").Range("A3:Q83").Value
+                                'newWorkbook.Worksheets("Settings").Range("O2:Q173").Value = workbookToProcess.Worksheets("Settings").Range("O2:Q173").Value
+                                'newWorkbook.Worksheets("HR detection").Range("A3:Q83").Value = workbookToProcess.Worksheets("HR detection").Range("A3:Q83").Value
                                 
+                                strUsedRange = workbookToProcess.Worksheets("Beat points from LabChart").UsedRange.Address
+                                newWorkbook.Worksheets("Beat points from LabChart").Range(strUsedRange).Value = workbookToProcess.Worksheets("Beat points from LabChart").Range(strUsedRange).Value
+                                strUsedRange = workbookToProcess.Worksheets("Trial points from LabChart").UsedRange.Address
+                                newWorkbook.Worksheets("Trial points from LabChart").Range(strUsedRange).Value = workbookToProcess.Worksheets("Trial points from LabChart").Range(strUsedRange).Value
+                                                                
                                 Call workbookToProcess.Close
+                                If Not objFS.FolderExists(objExpFolder.Path & "\xls backups") Then
+                                    Call objFS.CreateFolder(objExpFolder.Path & "\xls backups")
+                                End If
                                 
+                                newFilename = objExpFolder.Path & "\xls backups\" & Left(strExcelFilename, Len(strExcelFilename) - 5) & Year(Now()) & "-" & Month(Now()) & "-" & Day(Now()) & "_" & Hour(Now()) & "-" & Minute(Now()) & "-" & Second(Now()) & ".XLSM"
+                                Call objFS.CopyFile(strExcelPathname, newFilename)
+                    
+                                                                
                                 Call newWorkbook.SaveAs(objExpFolder.Path & "\" & objExpFolder.Name & ".xlsm", 52)
                                 strExcelFilename = objExpFolder.Name & ".xlsm"
 
@@ -95,6 +107,8 @@ Sub reprocess()
                                 workbookToProcess.Worksheets("Variables (do not edit)").Range("B2").Value = tankFilename
                                 workbookToProcess.Worksheets("Variables (do not edit)").Range("B3").Value = blockName
                                 Application.Run ("'" & strExcelFilename & "'!importTrialsFromLabchart")
+                                Application.Run ("'" & strExcelFilename & "'!processHeartRate")
+                                Application.Run ("'" & strExcelFilename & "'!buildDeadzoneLists")
                                 Call workbookToProcess.Save
                                 Call workbookToProcess.Close
                             End If
