@@ -1,6 +1,7 @@
 Attribute VB_Name = "Module1"
 Option Explicit
 
+
 Sub reprocess()
     Dim regenerateExcelFiles As Boolean
     Dim regenerateTDTdata As Boolean
@@ -12,12 +13,20 @@ Sub reprocess()
     Dim minAcceptableHR As Integer
     Dim maxAcceptableHR As Integer
     
+    Dim maxPercOfBeatsInt As Double
+    Dim maxSingleIntSamples As Double
+    Dim maxSingleIntBeats As Double
+    
     Dim thisWorkbook As Workbook
     Set thisWorkbook = ActiveWorkbook
 
     maxAllowVariation = Worksheets("Configuration").Cells(7, 2).Value
     minAcceptableHR = Worksheets("Configuration").Cells(4, 2).Value
     maxAcceptableHR = Worksheets("Configuration").Cells(5, 2).Value
+
+    maxPercOfBeatsInt = Worksheets("Configuration").Cells(16, 2).Value
+    maxSingleIntSamples = Worksheets("Configuration").Cells(17, 2).Value
+    maxSingleIntBeats = Worksheets("Configuration").Cells(18, 2).Value
 
     Dim templateFilename As String
     templateFilename = "\Code current\Excel tools\Tank trial importer.xltm"
@@ -141,6 +150,10 @@ Sub reprocess()
                             workbookToProcess.Worksheets("Settings").Cells(5, 2).Value = maxAllowVariation
                             workbookToProcess.Worksheets("Settings").Cells(2, 2).Value = minAcceptableHR
                             workbookToProcess.Worksheets("Settings").Cells(3, 2).Value = maxAcceptableHR
+                            
+                            workbookToProcess.Worksheets("Settings").Cells(9, 2).Value = maxPercOfBeatsInt
+                            workbookToProcess.Worksheets("Settings").Cells(10, 2).Value = maxSingleIntSamples
+                            workbookToProcess.Worksheets("Settings").Cells(11, 2).Value = maxSingleIntBeats
                             
                             If updateAttenData Then
                                 workbookToProcess.Worksheets("Attenuations").Range("B2:B44301").Value = thisWorkbook.Worksheets("Attenuation").Range("B1:B44300").Value

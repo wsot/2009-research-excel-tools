@@ -1,10 +1,14 @@
 Attribute VB_Name = "Module1"
 Option Explicit
 
-Global exIntCountGT As Integer
-Global exIntBeatsGT As Integer
-Global exLongestIntDurGT As Integer
-Global exLongestIntBeatsGT As Integer
+Global maxPercOfBeatsInt As Double
+Global maxSingleIntSamples As Double
+Global maxSingleIntBeats As Double
+    
+'Global exIntCountGT As Integer
+'Global exIntBeatsGT As Integer
+'Global exLongestIntDurGT As Integer
+'Global exLongestIntBeatsGT As Integer
 
 Global pLess05FC As FormatCondition
 Global pLess10FC As FormatCondition
@@ -73,10 +77,14 @@ Sub aggregrate_results()
         
     oneAnimalOneSheet = thisWorkbook.Worksheets("Controller").Cells(9, 2).Value
     
-    exIntCountGT = CInt(thisWorkbook.Worksheets("Controller").Cells(3, 2).Value)
-    exIntBeatsGT = CInt(thisWorkbook.Worksheets("Controller").Cells(4, 2).Value)
-    exLongestIntDurGT = CInt(thisWorkbook.Worksheets("Controller").Cells(5, 2).Value)
-    exLongestIntBeatsGT = CInt(thisWorkbook.Worksheets("Controller").Cells(6, 2).Value)
+    maxPercOfBeatsInt = thisWorkbook.Worksheets("Controller").Cells(3, 2).Value
+    maxSingleIntSamples = thisWorkbook.Worksheets("Controller").Cells(4, 2).Value
+    maxSingleIntBeats = thisWorkbook.Worksheets("Controller").Cells(5, 2).Value
+
+    'exIntCountGT = CInt(thisWorkbook.Worksheets("Controller").Cells(3, 2).Value)
+    'exIntBeatsGT = CInt(thisWorkbook.Worksheets("Controller").Cells(4, 2).Value)
+    'exLongestIntDurGT = CInt(thisWorkbook.Worksheets("Controller").Cells(5, 2).Value)
+    'exLongestIntBeatsGT = CInt(thisWorkbook.Worksheets("Controller").Cells(6, 2).Value)
     
     Set pLess05FC = thisWorkbook.Worksheets("Controller").Range("B11").FormatConditions(1)
     Set pLess10FC = thisWorkbook.Worksheets("Controller").Range("B12").FormatConditions(1)
@@ -243,8 +251,8 @@ Function parseTrials(outputDict As Dictionary, workbookToProcess As Workbook, ex
         ReDim trialArr(8)
         'result array contains eight elements
         '1: date/label
-        '2:HR 10-30s from start
-        '3:reason for 10-30s exclusion (if excluded)
+        '2:HR -84-4s from start
+        '3:reason for -84-4s exclusion (if excluded)
         '4:HR at -4s
         '5:reason for -4s exclusion (if excluded)
         '6:HR at 5-9s
@@ -263,19 +271,19 @@ Function parseTrials(outputDict As Dictionary, workbookToProcess As Workbook, ex
                 trialArr(1) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 6).Value
             End If
         End If
-        exclusionReason = checkForHRExclusions(workbookToProcess, i, 15)
+        exclusionReason = checkForHRExclusions(workbookToProcess, i, 16)
         If exclusionReason <> "" Then
             trialArr(3) = "=NA()"
             trialArr(4) = exclusionReason
         Else
-            trialArr(3) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 20).Value
+            trialArr(3) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 21).Value
         End If
-        exclusionReason = checkForHRExclusions(workbookToProcess, i, 29)
+        exclusionReason = checkForHRExclusions(workbookToProcess, i, 31)
         If exclusionReason <> "" Then
             trialArr(5) = "=NA()"
             trialArr(6) = exclusionReason
         Else
-            trialArr(5) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 34).Value
+            trialArr(5) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 36).Value
         End If
         
         If workbookToProcess.Worksheets("Output").Cells(i, 5).Value = "Acoustic" Then
@@ -453,16 +461,19 @@ End Function
 
 Function checkForHRExclusions(workbookToProcess As Workbook, i As Integer, horizOffset As Integer) As String
             checkForHRExclusions = ""
+            
+            'maxPercOfBeatsInt
+            'maxSingleIntSamples
+            'maxSingleIntBeats
+
             If workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 5).Value = -1 Then
-                checkForHRExclusions = "HR not detectable (" & workbookToProcess.Worksheets("HR detection").Cells(i + 5, horizOffset).Value & ")"
-            ElseIf workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 6).Value > exIntCountGT And exIntCountGT <> -1 Then
-                checkForHRExclusions = "Too many interpolations (" & workbookToProcess.Worksheets("HR detection").Cells(i + 6, horizOffset + 1).Value & ">" & exIntCountGT & ")"
-            ElseIf workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 7).Value > exIntBeatsGT And exIntBeatsGT <> -1 Then
-                checkForHRExclusions = "Too many interpolated beats (" & workbookToProcess.Worksheets("HR detection").Cells(i + 7, horizOffset + 2).Value & ">" & exIntBeatsGT & ")"
-            ElseIf workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 9).Value > exLongestIntDurGT And exLongestIntDurGT <> -1 Then
-                checkForHRExclusions = "Longest interpolation too long (" & workbookToProcess.Worksheets("HR detection").Cells(i + 9, horizOffset + 3).Value & ">" & exLongestIntDurGT & ")"
-            ElseIf workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 11).Value > exLongestIntBeatsGT And exLongestIntBeatsGT <> -1 Then
-                checkForHRExclusions = "Longest interpolation too many beats (" & workbookToProcess.Worksheets("HR detection").Cells(i + 11, horizOffset + 4).Value & ">" & exLongestIntBeatsGT & ")"
+                checkForHRExclusions = "HR not detectable (" & workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 5).Value & ")"
+            ElseIf workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 8).Value > maxPercOfBeatsInt And maxPercOfBeatsInt <> -1 Then
+                checkForHRExclusions = "Too large % interpolated (" & workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 8).Value & ">" & maxPercOfBeatsInt & ")"
+            ElseIf workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 10).Value > maxSingleIntSamples And maxSingleIntSamples <> -1 Then
+                checkForHRExclusions = "Longest interpolation too long (" & workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 10).Value & ">" & maxSingleIntSamples & ")"
+            ElseIf workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 12).Value > maxSingleIntBeats And maxSingleIntBeats <> -1 Then
+                checkForHRExclusions = "Longest interpolation too many beats (" & workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 12).Value & ">" & maxSingleIntBeats & ")"
             End If
 End Function
 
@@ -508,10 +519,10 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                 iExcelOffset = iExcelOffset + 1
                 thisAnimalWorksheet.Range("A" & iExcelOffset, "H" & iExcelOffset).Font.Italic = True
                 thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Date"
-                thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = "HR 10-30s"
+                thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = "HR -84-4s"
                 thisAnimalWorksheet.Cells(iExcelOffset, 3).Value = "HR -4s-0s"
                 thisAnimalWorksheet.Cells(iExcelOffset, 4).Value = "HR 5s-9s"
-                thisAnimalWorksheet.Cells(iExcelOffset, 5).Value = "HR 10-30s exclusion reason"
+                thisAnimalWorksheet.Cells(iExcelOffset, 5).Value = "HR -84-4s exclusion reason"
                 thisAnimalWorksheet.Cells(iExcelOffset, 6).Value = "HR -4s-0s exclusion reason"
                 thisAnimalWorksheet.Cells(iExcelOffset, 7).Value = "HR 5s-9s exclusion reason"
                 thisAnimalWorksheet.Cells(iExcelOffset, 8).Value = "Overall trial exclusion reason"
