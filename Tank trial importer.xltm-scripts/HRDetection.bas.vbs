@@ -60,7 +60,7 @@ Sub processHeartRate()
 
         cumulativeInterpolations = interpolations
 
-        Worksheets("Settings").Range("O" & (iTrialNum + 1)).Value = detectedHR
+        Worksheets("Output").Range("O" & (iTrialNum + 1)).Value = detectedHR
         Worksheets("HR detection").Range("A" & (iTrialNum + 2)).Value = detectedHR
         Worksheets("HR detection").Range("B" & (iTrialNum + 2)).Value = interpolations
         Worksheets("HR detection").Range("C" & (iTrialNum + 2)).Value = interpolatedBeats
@@ -71,7 +71,7 @@ Sub processHeartRate()
         
         cumulativeInterpolations = cumulativeInterpolations + interpolations
         
-        Worksheets("Settings").Range("P" & (iTrialNum + 1)).Value = detectedHR
+        Worksheets("Output").Range("P" & (iTrialNum + 1)).Value = detectedHR
         Worksheets("HR detection").Range("G" & (iTrialNum + 2)).Value = detectedHR
         Worksheets("HR detection").Range("H" & (iTrialNum + 2)).Value = interpolations
         Worksheets("HR detection").Range("I" & (iTrialNum + 2)).Value = interpolatedBeats
@@ -80,7 +80,7 @@ Sub processHeartRate()
         
         Call detectHROnSelection(lTrialSampStart + 10000, lTrialSampStart + 18000, detectedHR, overlyCloseBeats, interpolations, longestInterpolation, interpolationDuration, interpolatedBeatsMax, interpolatedBeats, iTrialNum, "-5-9s", cumulativeInterpolations)
         
-        Worksheets("Settings").Range("Q" & (iTrialNum + 1)).Value = detectedHR
+        Worksheets("Output").Range("Q" & (iTrialNum + 1)).Value = detectedHR
         Worksheets("HR detection").Range("M" & (iTrialNum + 2)).Value = detectedHR
         Worksheets("HR detection").Range("N" & (iTrialNum + 2)).Value = interpolations
         Worksheets("HR detection").Range("O" & (iTrialNum + 2)).Value = interpolatedBeats

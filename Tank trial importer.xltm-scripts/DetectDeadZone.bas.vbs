@@ -1,4 +1,5 @@
 Attribute VB_Name = "DetectDeadZone"
+Option Explicit
 Const samplesForDeadzone = 4000
 
 
@@ -51,7 +52,7 @@ Function calculateLCTime(lSampleNum) As String
     iSecs = (Int(lSampleNum / 2000) Mod 60)
     iMSecs = Int(lSampleNum / 1000) Mod 1000
 
-    calculateLCTime = Right("00" & iHrs, 2) & ":" & Right("00" & iMin, 2) & ":" & Right("00" & iSecs, 2) & "." & Right("0000" & iMSecs, 4)
+    calculateLCTime = Right("00" & iHrs, 2) & ":" & Right("00" & iMins, 2) & ":" & Right("00" & iSecs, 2) & "." & Right("0000" & iMSecs, 4)
 
 End Function
 

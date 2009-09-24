@@ -60,13 +60,15 @@ Sub aggregrate_results()
     Dim outputWorkbook As Workbook
     Dim workbookToProcess As Workbook
         
+    Dim outputFilename As String
+        
     Set thisWorkbook = ActiveWorkbook
     
     templateFilename = "\Code current\Excel tools\aggregate results output.xltm"
     Set objFS = CreateObject("Scripting.FileSystemObject")
-    templateFilename = objFS.GetDriveName(ActiveWorkbook.FullName) & templateFilename 'get the drive letter for the template
+    templateFilename = objFS.GetDriveName(thisWorkbook.FullName) & templateFilename 'get the drive letter for the template
     
-    pathToData = objFS.GetDriveName(ActiveWorkbook.FullName) & thisWorkbook.Worksheets("Controller").Cells(19, 2).Value
+    pathToData = objFS.GetDriveName(thisWorkbook.FullName) & thisWorkbook.Worksheets("Controller").Cells(19, 2).Value
     Set rootFolder = objFS.GetFolder(pathToData)
         
     oneAnimalOneSheet = thisWorkbook.Worksheets("Controller").Cells(9, 2).Value
@@ -84,83 +86,102 @@ Sub aggregrate_results()
     
     Set excludedTrialCell = thisWorkbook.Worksheets("Controller").Range("B17")
     
+    Dim iPass As Integer
     
-    blnCurrFolderIsTrial = False
-    Set outputWorkbook = Workbooks.Open(templateFilename)
-
-    clusterByStimParams = thisWorkbook.Worksheets("Controller").Cells(20, 2).Value
-    clusterByDate = thisWorkbook.Worksheets("Controller").Cells(21, 2).Value
+    For iPass = 0 To 2
+        Select Case iPass
+            Case 0:
+                clusterByStimParams = True
+                clusterByDate = False
+                outputFilename = pathToData & "\aggregate by stim params.xlsx"
+            Case 1:
+                clusterByStimParams = False
+                clusterByDate = True
+                outputFilename = pathToData & "\aggregate by date.xlsx"
+            Case 2:
+                clusterByStimParams = True
+                clusterByDate = True
+                outputFilename = pathToData & "\aggregate by stim params and date.xlsx"
+            End Select
+        blnCurrFolderIsTrial = False
+        Set outputWorkbook = Workbooks.Open(templateFilename)
+    
+'        clusterByStimParams = thisWorkbook.Worksheets("Controller").Cells(20, 2).Value
+'        clusterByDate = thisWorkbook.Worksheets("Controller").Cells(21, 2).Value
+            
+        Call deleteOldWorksheets(thisWorkbook)
         
-    Call deleteOldWorksheets(thisWorkbook)
-    
-    Set AnimalFolders = rootFolder.Subfolders
-    For Each objAnimalFolder In AnimalFolders 'cycle through the folder for each animal
-        exclusionInfo = checkForExclusion(objAnimalFolder)
-        If Not exclusionInfo(0) = "folder" Then
-            Set trialTypes = New Dictionary
-            Call trialTypes.Add("Acoustic", New Dictionary)
-            Call trialTypes.Add("Electrical", New Dictionary)
-            validTrialCount = 0
-            Set thisAnimalWorksheet = Nothing
-            animalID = objAnimalFolder.Name
+        Set AnimalFolders = rootFolder.Subfolders
+        For Each objAnimalFolder In AnimalFolders 'cycle through the folder for each animal
+            exclusionInfo = checkForExclusion(objAnimalFolder)
+            If Not exclusionInfo(0) = "folder" Then
+                Set trialTypes = New Dictionary
+                Call trialTypes.Add("Acoustic", New Dictionary)
+                Call trialTypes.Add("Electrical", New Dictionary)
+                validTrialCount = 0
+                Set thisAnimalWorksheet = Nothing
+                animalID = objAnimalFolder.Name
+                            
+                Set experimentFolders = objAnimalFolder.Subfolders
+                For Each objExpFolder In experimentFolders 'go through the experiments within an animal folder
+                    exclusionInfo = checkForExclusion(objExpFolder)
+                    If exclusionInfo(1) <> "" Or exclusionInfo(0) <> "all" Then 'check if the exclusion includes a message, or is only for some types of trial
+                        experimentDate = Left(objExpFolder.Name, 10)
+                        experimentTag = objExpFolder.Name
+                        blnCurrFolderIsTrial = False 'assume until file detected this is not an experiment
+                        strExcelFilename = ""
+                        Set Files = objExpFolder.Files
+                        For Each objFile In Files 'inside the experiment file, check for a file ending with ".adicht" to check it is a test
+                            If UCase(Right(objFile.Name, 7)) = ".ADICHT" Then
+                                blnCurrFolderIsTrial = True
+                            End If
+                            If UCase(Right(objFile.Name, 5)) = ".XLSM" And Left(objFile.Name, 1) <> "~" Then 'locate the spreadsheet file with trial data
+                                strExcelFilename = objFile.Name
+                                strExcelPathname = objFile.Path
+                            End If
+                        Next
                         
-            Set experimentFolders = objAnimalFolder.Subfolders
-            For Each objExpFolder In experimentFolders 'go through the experiments within an animal folder
-                exclusionInfo = checkForExclusion(objExpFolder)
-                If exclusionInfo(1) <> "" Or exclusionInfo(0) <> "all" Then 'check if the exclusion includes a message, or is only for some types of trial
-                    experimentDate = Left(objExpFolder.Name, 10)
-                    experimentTag = objExpFolder.Name
-                    blnCurrFolderIsTrial = False 'assume until file detected this is not an experiment
-                    strExcelFilename = ""
-                    Set Files = objExpFolder.Files
-                    For Each objFile In Files 'inside the experiment file, check for a file ending with ".adicht" to check it is a test
-                        If UCase(Right(objFile.Name, 7)) = ".ADICHT" Then
-                            blnCurrFolderIsTrial = True
-                        End If
-                        If UCase(Right(objFile.Name, 5)) = ".XLSM" And Left(objFile.Name, 1) <> "~" Then 'locate the spreadsheet file with trial data
-                            strExcelFilename = objFile.Name
-                            strExcelPathname = objFile.Path
-                        End If
-                    Next
-                    
-                    If blnCurrFolderIsTrial Then
-                        If strExcelFilename <> "" Then
-                            validTrialCount = validTrialCount + 1
-                            'open the workbook to read data from
-                            Set workbookToProcess = Workbooks.Open(strExcelPathname)
-                            Call parseTrials(trialTypes, workbookToProcess, experimentDate, experimentTag, exclusionInfo)
-                            'workbookToProcess.Activate
-                            'workbookToProcess.Worksheets("Variables (do not edit)").Range("B2").Value = tankFilename
-                            'workbookToProcess.Worksheets("Variables (do not edit)").Range("B3").Value = blockName
-                            'Application.Run ("'" & strExcelFilename & "'!importTrialsFromLabchart")
-                            'Call workbookToProcess.Save
-                            Call workbookToProcess.Close
+                        If blnCurrFolderIsTrial Then
+                            If strExcelFilename <> "" Then
+                                validTrialCount = validTrialCount + 1
+                                'open the workbook to read data from
+                                Set workbookToProcess = Workbooks.Open(strExcelPathname)
+                                Call parseTrials(trialTypes, workbookToProcess, experimentDate, experimentTag, exclusionInfo)
+                                'workbookToProcess.Activate
+                                'workbookToProcess.Worksheets("Variables (do not edit)").Range("B2").Value = tankFilename
+                                'workbookToProcess.Worksheets("Variables (do not edit)").Range("B3").Value = blockName
+                                'Application.Run ("'" & strExcelFilename & "'!importTrialsFromLabchart")
+                                'Call workbookToProcess.Save
+                                Call workbookToProcess.Close
+                            End If
                         End If
                     End If
-                End If
-            Next
-            If validTrialCount > 0 Then
-                If oneAnimalOneSheet Then
-                    Call outputWorkbook.Worksheets("Output template").Copy(, thisWorkbook.Worksheets("Output template"))
-                    Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
-                    thisAnimalWorksheet.Name = animalID
-                    Call outputTrials(trialTypes, "", thisAnimalWorksheet)
-                Else
-                    If trialTypes("Acoustic").Count > 0 Then
-                        Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
+                Next
+                If validTrialCount > 0 Then
+                    If oneAnimalOneSheet Then
+                        Call outputWorkbook.Worksheets("Output template").Copy(, thisWorkbook.Worksheets("Output template"))
                         Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
-                        thisAnimalWorksheet.Name = animalID & " Acoustic"
-                        Call outputTrials(trialTypes, "Acoustic", thisAnimalWorksheet)
-                    End If
-                    If trialTypes("Electrical").Count > 0 Then
-                        Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
-                        Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
-                        thisAnimalWorksheet.Name = animalID & " Electrical"
-                        Call outputTrials(trialTypes, "Electrical", thisAnimalWorksheet)
+                        thisAnimalWorksheet.Name = animalID
+                        Call outputTrials(trialTypes, "", thisAnimalWorksheet)
+                    Else
+                        If trialTypes("Acoustic").Count > 0 Then
+                            Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
+                            Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
+                            thisAnimalWorksheet.Name = animalID & " Acoustic"
+                            Call outputTrials(trialTypes, "Acoustic", thisAnimalWorksheet)
+                        End If
+                        If trialTypes("Electrical").Count > 0 Then
+                            Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
+                            Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
+                            thisAnimalWorksheet.Name = animalID & " Electrical"
+                            Call outputTrials(trialTypes, "Electrical", thisAnimalWorksheet)
+                        End If
                     End If
                 End If
             End If
-        End If
+        Next
+        Call outputWorkbook.SaveAs(outputFilename)
+        Call outputWorkbook.Close
     Next
             
     Set objFile = Nothing
@@ -206,15 +227,15 @@ Function parseTrials(outputDict As Dictionary, workbookToProcess As Workbook, ex
     
     Dim exclusionReason As String
     
-    While workbookToProcess.Worksheets("Settings").Cells(i, 6).Value <> ""
+    While workbookToProcess.Worksheets("Output").Cells(i, 6).Value <> ""
         param1composite = ""
         param2composite = ""
     
-        param1 = workbookToProcess.Worksheets("Settings").Cells(i, 6).Value
-        param2 = workbookToProcess.Worksheets("Settings").Cells(i, 10).Value
+        param1 = workbookToProcess.Worksheets("Output").Cells(i, 6).Value
+        param2 = workbookToProcess.Worksheets("Output").Cells(i, 10).Value
 
-'        If workbookToProcess.Worksheets("Settings").Cells(i, 1).Value <> iCurrBlockNum Then
-         iCurrBlockNum = workbookToProcess.Worksheets("Settings").Cells(i, 1).Value
+'        If workbookToProcess.Worksheets("Output").Cells(i, 1).Value <> iCurrBlockNum Then
+         iCurrBlockNum = workbookToProcess.Worksheets("Output").Cells(i, 1).Value
          Call readAmpArrays(acoAmps, elAmps, param1, param2, workbookToProcess, iCurrBlockNum)
 '        End If
        
@@ -248,7 +269,7 @@ Function parseTrials(outputDict As Dictionary, workbookToProcess As Workbook, ex
             trialArr(5) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 13).Value
         End If
         
-        If workbookToProcess.Worksheets("Settings").Cells(i, 5).Value = "Acoustic" Then
+        If workbookToProcess.Worksheets("Output").Cells(i, 5).Value = "Acoustic" Then
             If Not ((exclusionInfo(0) = "Acoustic" Or exclusionInfo(0) = "all") And exclusionInfo(1) = "") Then
                  If (exclusionInfo(0) = "Acoustic" Or exclusionInfo(0) = "all") And exclusionInfo(1) <> "" Then
                     trialArr(7) = exclusionInfo(1)
@@ -275,14 +296,14 @@ Function parseTrials(outputDict As Dictionary, workbookToProcess As Workbook, ex
                  
                  'organise the clustering info to generate the grouping value (trialInfo)
                  If clusterByStimParams And clusterByDate Then
-                    trialArr(0) = experimentTag & " Trial " & workbookToProcess.Worksheets("Settings").Cells(i, 2).Value
+                    trialArr(0) = experimentTag & " Trial " & workbookToProcess.Worksheets("Output").Cells(i, 2).Value
                     If CDbl(param1composite) > CDbl(param2composite) Then
                         trialInfo = experimentDate & ": " & param1str & ", " & param2str
                     Else
                         trialInfo = experimentDate & ": " & param2str & ", " & param1str
                     End If
                  ElseIf clusterByStimParams Then
-                    trialArr(0) = experimentTag & " Trial " & workbookToProcess.Worksheets("Settings").Cells(i, 2).Value
+                    trialArr(0) = experimentTag & " Trial " & workbookToProcess.Worksheets("Output").Cells(i, 2).Value
                     If CDbl(param1composite) > CDbl(param2composite) Then
                         trialInfo = param1str & ", " & param2str
                     Else
@@ -290,9 +311,9 @@ Function parseTrials(outputDict As Dictionary, workbookToProcess As Workbook, ex
                     End If
                  ElseIf clusterByDate Then
                     If CDbl(param1composite) > CDbl(param2composite) Then
-                        trialArr(0) = "Trial " & workbookToProcess.Worksheets("Settings").Cells(i, 2).Value & ": " & param1str & ", " & param2str
+                        trialArr(0) = "Trial " & workbookToProcess.Worksheets("Output").Cells(i, 2).Value & ": " & param1str & ", " & param2str
                     Else
-                        trialArr(0) = "Trial " & workbookToProcess.Worksheets("Settings").Cells(i, 2).Value & ": " & param2str & ", " & param1str
+                        trialArr(0) = "Trial " & workbookToProcess.Worksheets("Output").Cells(i, 2).Value & ": " & param2str & ", " & param1str
                     End If
                     trialInfo = experimentDate
                  End If
@@ -371,14 +392,14 @@ Function parseTrials(outputDict As Dictionary, workbookToProcess As Workbook, ex
 
                  'organise the clustering info to generate the grouping value (trialInfo)
                  If clusterByStimParams And clusterByDate Then
-                    trialArr(0) = experimentTag & " Trial " & workbookToProcess.Worksheets("Settings").Cells(i, 2).Value
+                    trialArr(0) = experimentTag & " Trial " & workbookToProcess.Worksheets("Output").Cells(i, 2).Value
                     If CDbl(param1composite) > CDbl(param2composite) Then
                         trialInfo = experimentDate & ": " & param1str & ", " & param2str
                     Else
                         trialInfo = experimentDate & ": " & param2str & ", " & param1str
                     End If
                  ElseIf clusterByStimParams Then
-                    trialArr(0) = experimentTag & " Trial " & workbookToProcess.Worksheets("Settings").Cells(i, 2).Value
+                    trialArr(0) = experimentTag & " Trial " & workbookToProcess.Worksheets("Output").Cells(i, 2).Value
                     If CDbl(param1composite) > CDbl(param2composite) Then
                         trialInfo = param1str & ", " & param2str
                     Else
@@ -386,9 +407,9 @@ Function parseTrials(outputDict As Dictionary, workbookToProcess As Workbook, ex
                     End If
                  ElseIf clusterByDate Then
                     If CDbl(param1composite) > CDbl(param2composite) Then
-                        trialArr(0) = "Trial " & workbookToProcess.Worksheets("Settings").Cells(i, 2).Value & ": " & param1str & ", " & param2str
+                        trialArr(0) = "Trial " & workbookToProcess.Worksheets("Output").Cells(i, 2).Value & ": " & param1str & ", " & param2str
                     Else
-                        trialArr(0) = "Trial " & workbookToProcess.Worksheets("Settings").Cells(i, 2).Value & ": " & param2str & ", " & param1str
+                        trialArr(0) = "Trial " & workbookToProcess.Worksheets("Output").Cells(i, 2).Value & ": " & param2str & ", " & param1str
                     End If
                     trialInfo = experimentDate
                  End If
@@ -650,10 +671,10 @@ Sub setUpStyles(thisWorkbook As Workbook)
 End Sub
 Function readAmpArrays(ByRef acoAmps, ByRef elAmps, param1 As String, param2 As String, workbookToProcess As Workbook, iCurrBlockNum As Integer) As Boolean
     readAmpArrays = True
-'        param1acoLoweramp = workbookToProcess.Worksheets("Settings").Cells(i, 7)
-'        param1acoUpperamp = workbookToProcess.Worksheets("Settings").Cells(i, 8)
-'        param2acoLoweramp = workbookToProcess.Worksheets("Settings").Cells(i, 11)
-'        param2acoUpperamp = workbookToProcess.Worksheets("Settings").Cells(i, 12)
+'        param1acoLoweramp = workbookToProcess.Worksheets("Output").Cells(i, 7)
+'        param1acoUpperamp = workbookToProcess.Worksheets("Output").Cells(i, 8)
+'        param2acoLoweramp = workbookToProcess.Worksheets("Output").Cells(i, 11)
+'        param2acoUpperamp = workbookToProcess.Worksheets("Output").Cells(i, 12)
     Dim iRow As Integer
     Dim iIsFirstAcoEntry As Boolean
     Dim iIsFirstElEntry As Boolean
@@ -665,28 +686,28 @@ Function readAmpArrays(ByRef acoAmps, ByRef elAmps, param1 As String, param2 As 
     Dim param1UpperAmp As Double
     Dim param2LowerAmp As Double
     Dim param2UpperAmp As Double
-    While workbookToProcess.Worksheets("Settings").Cells(iRow, 1).Value <> iCurrBlockNum And workbookToProcess.Worksheets("Settings").Cells(iRow, 1).Value <> ""
+    While workbookToProcess.Worksheets("Output").Cells(iRow, 1).Value <> iCurrBlockNum And workbookToProcess.Worksheets("Output").Cells(iRow, 1).Value <> ""
         iRow = iRow + 1
     Wend
-    If workbookToProcess.Worksheets("Settings").Cells(iRow, 1).Value = "" Then 'check we found the row for the block
+    If workbookToProcess.Worksheets("Output").Cells(iRow, 1).Value = "" Then 'check we found the row for the block
         readAmpArrays = False
         Exit Function
     End If
-    While workbookToProcess.Worksheets("Settings").Cells(iRow, 1).Value = iCurrBlockNum And workbookToProcess.Worksheets("Settings").Cells(iRow, 1).Value <> ""
+    While workbookToProcess.Worksheets("Output").Cells(iRow, 1).Value = iCurrBlockNum And workbookToProcess.Worksheets("Output").Cells(iRow, 1).Value <> ""
 
-        If workbookToProcess.Worksheets("Settings").Cells(iRow, 6).Value = param1 Then
-            param1LowerAmp = CDbl(trimAmpTrailingChars(workbookToProcess.Worksheets("Settings").Cells(iRow, 7).Value))
-            param1UpperAmp = CDbl(trimAmpTrailingChars(workbookToProcess.Worksheets("Settings").Cells(iRow, 8).Value))
-            param2LowerAmp = CDbl(trimAmpTrailingChars(workbookToProcess.Worksheets("Settings").Cells(iRow, 11).Value))
-            param2UpperAmp = CDbl(trimAmpTrailingChars(workbookToProcess.Worksheets("Settings").Cells(iRow, 12).Value))
+        If workbookToProcess.Worksheets("Output").Cells(iRow, 6).Value = param1 Then
+            param1LowerAmp = CDbl(trimAmpTrailingChars(workbookToProcess.Worksheets("Output").Cells(iRow, 7).Value))
+            param1UpperAmp = CDbl(trimAmpTrailingChars(workbookToProcess.Worksheets("Output").Cells(iRow, 8).Value))
+            param2LowerAmp = CDbl(trimAmpTrailingChars(workbookToProcess.Worksheets("Output").Cells(iRow, 11).Value))
+            param2UpperAmp = CDbl(trimAmpTrailingChars(workbookToProcess.Worksheets("Output").Cells(iRow, 12).Value))
         Else
-            param1LowerAmp = CDbl(trimAmpTrailingChars(workbookToProcess.Worksheets("Settings").Cells(iRow, 11).Value))
-            param1UpperAmp = CDbl(trimAmpTrailingChars(workbookToProcess.Worksheets("Settings").Cells(iRow, 12).Value))
-            param2LowerAmp = CDbl(trimAmpTrailingChars(workbookToProcess.Worksheets("Settings").Cells(iRow, 7).Value))
-            param2UpperAmp = CDbl(trimAmpTrailingChars(workbookToProcess.Worksheets("Settings").Cells(iRow, 8).Value))
+            param1LowerAmp = CDbl(trimAmpTrailingChars(workbookToProcess.Worksheets("Output").Cells(iRow, 11).Value))
+            param1UpperAmp = CDbl(trimAmpTrailingChars(workbookToProcess.Worksheets("Output").Cells(iRow, 12).Value))
+            param2LowerAmp = CDbl(trimAmpTrailingChars(workbookToProcess.Worksheets("Output").Cells(iRow, 7).Value))
+            param2UpperAmp = CDbl(trimAmpTrailingChars(workbookToProcess.Worksheets("Output").Cells(iRow, 8).Value))
         End If
 
-        If workbookToProcess.Worksheets("Settings").Cells(iRow, 5).Value = "Acoustic" Then
+        If workbookToProcess.Worksheets("Output").Cells(iRow, 5).Value = "Acoustic" Then
             If iIsFirstAcoEntry Then
                 acoAmps(0) = param1LowerAmp
                 acoAmps(1) = param1UpperAmp
