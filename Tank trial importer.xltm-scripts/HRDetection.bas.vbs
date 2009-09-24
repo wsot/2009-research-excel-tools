@@ -242,11 +242,17 @@ Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef detectedHR
             beatCount = beatCount + thisInterpolationBeats
             
             'update cumulative information
-            If thisInterpolationDuration > longestInterpolation Then
+            If thisInterpolationDuration > longestInterpolation Or interpolations = 1 Then
                 longestInterpolation = thisInterpolationDuration
             End If
-            If thisInterpolationBeats > interpolatedBeatsMax Then
+            If thisInterpolationBeats > interpolatedBeatsMax Or interpolations = 1 Then
                 interpolatedBeatsMax = thisInterpolationBeats
+            End If
+            If thisInterpolationDuration < shortestInterpolation Or interpolations = 1 Then
+                shortestInterpolation = thisInterpolationDuration
+            End If
+            If thisInterpolationBeats < interpolatedBeatsMin Or interpolations = 1 Then
+                interpolatedBeatsMin = thisInterpolationBeats
             End If
             interpolationDuration = interpolationDuration + thisInterpolationDuration
             interpolatedBeats = interpolatedBeats + thisInterpolationBeats

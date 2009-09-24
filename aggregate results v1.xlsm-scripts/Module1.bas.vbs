@@ -268,14 +268,14 @@ Function parseTrials(outputDict As Dictionary, workbookToProcess As Workbook, ex
             trialArr(3) = "=NA()"
             trialArr(4) = exclusionReason
         Else
-            trialArr(3) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 18).Value
+            trialArr(3) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 20).Value
         End If
         exclusionReason = checkForHRExclusions(workbookToProcess, i, 29)
         If exclusionReason <> "" Then
             trialArr(5) = "=NA()"
             trialArr(6) = exclusionReason
         Else
-            trialArr(5) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 30).Value
+            trialArr(5) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 34).Value
         End If
         
         If workbookToProcess.Worksheets("Output").Cells(i, 5).Value = "Acoustic" Then
