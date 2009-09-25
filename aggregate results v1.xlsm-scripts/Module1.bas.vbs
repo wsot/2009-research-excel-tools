@@ -1,6 +1,9 @@
 Attribute VB_Name = "Module1"
 Option Explicit
 
+Const HRDetCols = 16
+Const HRDetHROffset = 5
+
 Global maxPercOfBeatsInt As Double
 Global maxSingleIntSamples As Double
 Global maxSingleIntBeats As Double
@@ -259,6 +262,10 @@ Function parseTrials(outputDict As Dictionary, workbookToProcess As Workbook, ex
         '7:reason for 5-9s exclusion (if excluded)
         '8:reason for overall exclusion (from exclusion text file)
 
+'Const HRDetCols = 16
+'Const HRDetHROffset = 5
+
+
         If i = 2 Then
             trialArr(1) = "=NA()"
             trialArr(2) = "First trial"
@@ -268,22 +275,22 @@ Function parseTrials(outputDict As Dictionary, workbookToProcess As Workbook, ex
                 trialArr(1) = "=NA()"
                 trialArr(2) = exclusionReason
             Else
-                trialArr(1) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 6).Value
+                trialArr(1) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 1 + HRDetHROffset).Value
             End If
         End If
-        exclusionReason = checkForHRExclusions(workbookToProcess, i, 16)
+        exclusionReason = checkForHRExclusions(workbookToProcess, i, 1 + HRDetCols)
         If exclusionReason <> "" Then
             trialArr(3) = "=NA()"
             trialArr(4) = exclusionReason
         Else
-            trialArr(3) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 21).Value
+            trialArr(3) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 1 + HRDetCols + HRDetHROffset).Value
         End If
-        exclusionReason = checkForHRExclusions(workbookToProcess, i, 31)
+        exclusionReason = checkForHRExclusions(workbookToProcess, i, 1 + (2 * HRDetCols))
         If exclusionReason <> "" Then
             trialArr(5) = "=NA()"
             trialArr(6) = exclusionReason
         Else
-            trialArr(5) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 36).Value
+            trialArr(5) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 1 + (HRDetCols * 2) + HRDetHROffset).Value
         End If
         
         If workbookToProcess.Worksheets("Output").Cells(i, 5).Value = "Acoustic" Then

@@ -121,10 +121,16 @@ Sub reprocess()
                                 If Not regenerateHRcalculations Then
                                     strUsedRange = workbookToProcess.Worksheets("Interpolations").UsedRange.Address
                                     newWorkbook.Worksheets("Interpolations").Range(strUsedRange).Value = workbookToProcess.Worksheets("Interpolations").Range(strUsedRange).Value
+                                    
                                     strUsedRange = workbookToProcess.Worksheets("Overbeats").UsedRange.Address
                                     newWorkbook.Worksheets("Overbeats").Range(strUsedRange).Value = workbookToProcess.Worksheets("Overbeats").Range(strUsedRange).Value
+                                    
+                                    strUsedRange = workbookToProcess.Worksheets("Abberant beats").UsedRange.Address
+                                    newWorkbook.Worksheets("Abberant beats").Range(strUsedRange).Value = workbookToProcess.Worksheets("Abberant beats").Range(strUsedRange).Value
+                                    
                                     strUsedRange = workbookToProcess.Worksheets("HR detection").UsedRange.Address
-                                    newWorkbook.Worksheets("Overbeats").Range(strUsedRange).Value = workbookToProcess.Worksheets("HR detection").Range(strUsedRange).Value
+                                    newWorkbook.Worksheets("HR detection").Range(strUsedRange).Value = workbookToProcess.Worksheets("HR detection").Range(strUsedRange).Value
+                                    
                                     newWorkbook.Worksheets("Output").Range("O2:Q173").Value = workbookToProcess.Worksheets("Output").Range("O2:Q173").Value
                                 End If
                                                                 

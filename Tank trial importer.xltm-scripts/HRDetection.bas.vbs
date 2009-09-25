@@ -39,6 +39,7 @@ Sub processHeartRate()
   
     Dim detectedHR As Double
     Dim overlyCloseBeats As Integer
+    Dim abberantBeats As Integer
     Dim interpolations As Integer
     Dim longestInterpolation As Long
     Dim shortestInterpolation As Long
@@ -60,7 +61,10 @@ Sub processHeartRate()
     
     Dim overbWS As Worksheet
     Set overbWS = Worksheets("Overbeats")
-    
+
+    Dim abberWS As Worksheet
+    Set abberWS = Worksheets("Abberant beats")
+
     Dim checkForDropouts As Boolean
     checkForDropouts = False
 
@@ -80,12 +84,14 @@ Sub processHeartRate()
 
     Dim cumulativeInterpolations As Long
     Dim iOverlyCloseBeatsOffset As Long
+    Dim iAbberOffset As Long
 
     iTrialNum = 1
-    iColsPerOutput = 15
+    iColsPerOutput = 16
         
     Do
         cumulativeInterpolations = 0
+        iAbberOffset = 0
         iOverlyCloseBeatsOffset = 0
         iOutputNum = 0
     
@@ -95,13 +101,21 @@ Sub processHeartRate()
         
         interpWS.Cells(1, ((iTrialNum - 1) * 5) + 1).Value = "Trial " & iTrialNum
         interpWS.Cells(2, ((iTrialNum - 1) * 5) + 1).Value = "For range"
-        interpWS.Cells(2, ((iTrialNum - 1) * 5) + 1).Value = "LC Sample"
-        interpWS.Cells(2, ((iTrialNum - 1) * 5) + 2).Value = "LC Time"
+        interpWS.Cells(2, ((iTrialNum - 1) * 5) + 2).Value = "LC Sample"
+        interpWS.Cells(2, ((iTrialNum - 1) * 5) + 3).Value = "LC Time"
+        interpWS.Cells(2, ((iTrialNum - 1) * 5) + 4).Value = "Beats"
     
         overbWS.Cells(1, ((iTrialNum - 1) * 5) + 1).Value = "Trial " & iTrialNum
         overbWS.Cells(2, ((iTrialNum - 1) * 5) + 1).Value = "For range"
-        overbWS.Cells(2, ((iTrialNum - 1) * 5) + 1).Value = "LC Sample"
-        overbWS.Cells(2, ((iTrialNum - 1) * 5) + 2).Value = "LC Time"
+        overbWS.Cells(2, ((iTrialNum - 1) * 5) + 2).Value = "LC Sample"
+        overbWS.Cells(2, ((iTrialNum - 1) * 5) + 3).Value = "LC Time"
+        overbWS.Cells(2, ((iTrialNum - 1) * 5) + 4).Value = "Beats"
+        
+        abberWS.Cells(1, ((iTrialNum - 1) * 5) + 1).Value = "Trial " & iTrialNum
+        abberWS.Cells(2, ((iTrialNum - 1) * 5) + 1).Value = "For range"
+        abberWS.Cells(2, ((iTrialNum - 1) * 5) + 2).Value = "LC Sample"
+        abberWS.Cells(2, ((iTrialNum - 1) * 5) + 3).Value = "LC Time"
+        abberWS.Cells(2, ((iTrialNum - 1) * 5) + 4).Value = "Beats"
         
         lPretrialSampStart = commentWorksheet.Cells(iTrialNum + 1, 2)
         lTrialSampStart = commentWorksheet.Cells(iTrialNum + 1, 3)
@@ -109,10 +123,11 @@ Sub processHeartRate()
         
         thisStartPoint = lTrialSampStart - 168000
         thisEndPoint = lTrialSampStart - 8000
-        Call detectHROnSelection(thisStartPoint, thisEndPoint, proportionInterpolated, detectedHR, overlyCloseBeats, interpolations, longestInterpolation, shortestInterpolation, interpolationDuration, interpolatedBeatsMax, interpolatedBeatsMin, interpolatedBeats, beatCount, iTrialNum, "-84-4s", cumulativeInterpolations, iOverlyCloseBeatsOffset)
+        Call detectHROnSelection(thisStartPoint, thisEndPoint, proportionInterpolated, detectedHR, overlyCloseBeats, interpolations, abberantBeats, longestInterpolation, shortestInterpolation, interpolationDuration, interpolatedBeatsMax, interpolatedBeatsMin, interpolatedBeats, beatCount, iTrialNum, "-84-4s", cumulativeInterpolations, iOverlyCloseBeatsOffset, iAbberOffset)
 
-        cumulativeInterpolations = interpolations
-        iOverlyCloseBeatsOffset = overlyCloseBeats
+        cumulativeInterpolations = cumulativeInterpolations + interpolations
+        iAbberOffset = iAbberOffset + abberantBeats
+        iOverlyCloseBeatsOffset = iOverlyCloseBeatsOffset + overlyCloseBeats
 
         iOutputNum = iOutputNum + 1
 
@@ -159,14 +174,21 @@ Sub processHeartRate()
         Else
             Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 14)), "Clear")
         End If
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 15)).Value = abberantBeats
+        If abberantBeats > 0 Then
+            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 15)), "Note")
+        Else
+            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 15)), "Clear")
+        End If
         
         thisStartPoint = lTrialSampStart - 8000
         thisEndPoint = lTrialSampStart
 
-        Call detectHROnSelection(thisStartPoint, thisEndPoint, proportionInterpolated, detectedHR, overlyCloseBeats, interpolations, longestInterpolation, shortestInterpolation, interpolationDuration, interpolatedBeatsMax, interpolatedBeatsMin, interpolatedBeats, beatCount, iTrialNum, "-4-0s", cumulativeInterpolations, iOverlyCloseBeatsOffset)
+        Call detectHROnSelection(thisStartPoint, thisEndPoint, proportionInterpolated, detectedHR, overlyCloseBeats, interpolations, abberantBeats, longestInterpolation, shortestInterpolation, interpolationDuration, interpolatedBeatsMax, interpolatedBeatsMin, interpolatedBeats, beatCount, iTrialNum, "-4-0s", cumulativeInterpolations, iOverlyCloseBeatsOffset, iAbberOffset)
         
         cumulativeInterpolations = cumulativeInterpolations + interpolations
-        iOverlyCloseBeatsOffset = overlyCloseBeats
+        iAbberOffset = iAbberOffset + abberantBeats
+        iOverlyCloseBeatsOffset = iOverlyCloseBeatsOffset + overlyCloseBeats
         
         iOutputNum = iOutputNum + 1
 
@@ -213,12 +235,18 @@ Sub processHeartRate()
         Else
             Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 14)), "Clear")
         End If
-        
-        
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 15)).Value = abberantBeats
+        If abberantBeats > 0 Then
+            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 15)), "Note")
+        Else
+            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 15)), "Clear")
+        End If
+
+
         thisStartPoint = lTrialSampStart + 10000
         thisEndPoint = lTrialSampStart + 18000
         
-        Call detectHROnSelection(thisStartPoint, thisEndPoint, proportionInterpolated, detectedHR, overlyCloseBeats, interpolations, longestInterpolation, shortestInterpolation, interpolationDuration, interpolatedBeatsMax, interpolatedBeatsMin, interpolatedBeats, beatCount, iTrialNum, "-5-9s", cumulativeInterpolations, iOverlyCloseBeatsOffset)
+        Call detectHROnSelection(thisStartPoint, thisEndPoint, proportionInterpolated, detectedHR, overlyCloseBeats, interpolations, abberantBeats, longestInterpolation, shortestInterpolation, interpolationDuration, interpolatedBeatsMax, interpolatedBeatsMin, interpolatedBeats, beatCount, iTrialNum, "-5-9s", cumulativeInterpolations, iOverlyCloseBeatsOffset, iAbberOffset)
         
         iOutputNum = iOutputNum + 1
 
@@ -265,6 +293,12 @@ Sub processHeartRate()
         Else
             Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 14)), "Clear")
         End If
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 15)).Value = abberantBeats
+        If abberantBeats > 0 Then
+            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 15)), "Note")
+        Else
+            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 15)), "Clear")
+        End If
         
         iTrialNum = iTrialNum + 1
     Loop
@@ -272,7 +306,7 @@ Sub processHeartRate()
 End Sub
 
 
-Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportionInterpolated, ByRef detectedHR, ByRef overlyCloseBeats, ByRef interpolations, ByRef longestInterpolation, ByRef shortestInterpolation, ByRef interpolationDuration, ByRef interpolatedBeatsMax, ByRef interpolatedBeatsMin, ByRef interpolatedBeats, ByRef beatCount, iTrialNum As Integer, strRangeTitle As String, iInterpOffset As Long, iOverlyCloseBeatsOffset As Long)
+Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportionInterpolated, ByRef detectedHR, ByRef overlyCloseBeats, ByRef interpolations, ByRef abberantBeats, ByRef longestInterpolation, ByRef shortestInterpolation, ByRef interpolationDuration, ByRef interpolatedBeatsMax, ByRef interpolatedBeatsMin, ByRef interpolatedBeats, ByRef beatCount, iTrialNum As Integer, strRangeTitle As String, iInterpOffset As Long, iOverlyCloseBeatsOffset As Long, iAbberOffset As Long)
 
     detectedHR = 0
     overlyCloseBeats = 0
@@ -282,6 +316,7 @@ Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportion
     shortestInterpolation = 0
     interpolatedBeatsMax = 0
     interpolatedBeatsMin = 0
+    abberantBeats = 0
     beatCount = 0#
     proportionInterpolated = 0#
     
@@ -299,6 +334,9 @@ Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportion
       
     Dim overbWS As Worksheet
     Set overbWS = Worksheets("Overbeats")
+    
+    Dim abberWS As Worksheet
+    Set abberWS = Worksheets("Abberant beats")
     
     Dim beatDuration As Long
     Dim currentBeatOffset As Long 'offset (in columns) from first beat
@@ -338,11 +376,6 @@ Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportion
         If (currentBeatSamp - prevAcceptedBeatSamp) > (maxInterBeatOverrun * beatDuration) Then
             thisInterpolationDuration = (currentBeatSamp - prevAcceptedBeatSamp)
             strInterpolationAddr = beatWorksheet.Cells(iTrialNum, lStartColNum + currentBeatOffset).Address()
-            interpolations = interpolations + 1
-            
-            interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 1).Value = strRangeTitle
-            interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 2).Value = currentBeatSamp
-            interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 3).Value = "'" & calculateLCTime(currentBeatSamp)
             
             'Inter-beat variation is more than what is allowable, so probably missed beats - calculate beat duration after gap for interpolation
             lPostBeatDuration = (beatWorksheet.Cells(iTrialNum, lStartColNum + currentBeatOffset + 1).Value - currentBeatSamp)
@@ -352,34 +385,84 @@ Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportion
                 If lPostBeatDuration > ((maxInterBeatOverrun + (maxInterBeatOverrun * 0.2)) * beatDuration) Then 'check if the next beat might also have missed. Give a bit more leeway on how much the duration can have changed, as it is more temporally distant
                     'beat after is also a miss. Give up the ghost.
                     returnFailed = True
+                End If
+            End If
+            thisInterpolationBeats = thisInterpolationDuration / ((beatDuration + lPostBeatDuration) / 2) 'calculate the number of beats to interpolate;
+            If isFirstBeat Then
+                If Round(thisInterpolationBeats) = 1 Then
+                    abberantBeats = abberantBeats + 1
+                    beatCount = beatCount + 1# * ((currentBeatSamp - lEndPoint) / (currentBeatSamp - prevAcceptedBeatSamp)) 'if first beat, only include a potion of a beat matching the proportion within the set boundaries
+                    abberWS.Cells(abberantBeats + iAbberOffset + 2, ((iTrialNum - 1) * 5) + 1).Value = strRangeTitle
+                    abberWS.Cells(abberantBeats + iAbberOffset + 2, ((iTrialNum - 1) * 5) + 2).Value = currentBeatSamp
+                    abberWS.Cells(abberantBeats + iAbberOffset + 2, ((iTrialNum - 1) * 5) + 3).Value = "'" & calculateLCTime(currentBeatSamp)
+                    abberWS.Cells(abberantBeats + iAbberOffset + 2, ((iTrialNum - 1) * 5) + 4).Value = thisInterpolationBeats - 1
                 Else
-                    If isFirstBeat Then
-                        thisInterpolationBeats = thisInterpolationDuration / ((beatDuration + lPostBeatDuration) / 2) 'calculate the number of beats to interpolate;
-                        beatCount = beatCount + (thisInterpolationBeats * ((currentBeatSamp - lStartPoint) / (currentBeatSamp - prevAcceptedBeatSamp))) 'if first beat, only include a potion of a beat matching the proportion within the set boundaries
-                        thisInterpolationBeats = (thisInterpolationBeats - 1) * ((currentBeatSamp - lStartPoint) / (currentBeatSamp - prevAcceptedBeatSamp)) 'if first beat, only include a potion of a beat matching the proportion within the set boundaries
-                        isFirstBeat = False
-                    ElseIf isLastBeat Then
-                        thisInterpolationBeats = thisInterpolationDuration / ((beatDuration + lPostBeatDuration) / 2) 'calculate the number of beats to interpolate;
-                        beatCount = beatCount + (thisInterpolationBeats * (1 - ((currentBeatSamp - lEndPoint) / (currentBeatSamp - prevAcceptedBeatSamp)))) 'if first beat, only include a potion of a beat matching the proportion within the set boundaries
-                        thisInterpolationBeats = (thisInterpolationBeats - 1) * (1 - ((currentBeatSamp - lEndPoint) / (currentBeatSamp - prevAcceptedBeatSamp))) 'if first beat, only include a potion of a beat matching the proportion within the set boundaries
-                    Else
-                        beatCount = beatCount + (thisInterpolationDuration / ((beatDuration + lPostBeatDuration) / 2)) 'calculate the number of beats to interpolate;
-                        thisInterpolationBeats = (thisInterpolationDuration / ((beatDuration + lPostBeatDuration) / 2)) - 1 'calculate the number of beats to interpolate;
+                    interpolations = interpolations + 1
+                    If (thisInterpolationBeats - 1) > interpolatedBeatsMax Or interpolations = 1 Then
+                        interpolatedBeatsMax = (thisInterpolationBeats - 1)
                     End If
+                    If (thisInterpolationBeats - 1) < interpolatedBeatsMin Or interpolations = 1 Then
+                        interpolatedBeatsMin = (thisInterpolationBeats - 1)
+                    End If
+                    
+                    interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 1).Value = strRangeTitle
+                    interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 2).Value = currentBeatSamp
+                    interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 3).Value = "'" & calculateLCTime(currentBeatSamp)
+                    interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 4).Value = thisInterpolationBeats - 1
+                    
+                    beatCount = beatCount + (CDbl(Round(thisInterpolationBeats)) * ((currentBeatSamp - lStartPoint) / (currentBeatSamp - prevAcceptedBeatSamp))) 'if first beat, only include a potion of a beat matching the proportion within the set boundaries
+                    thisInterpolationBeats = CDbl(Round((thisInterpolationBeats - 1))) * ((currentBeatSamp - lStartPoint) / (currentBeatSamp - prevAcceptedBeatSamp)) 'if first beat, only include a potion of a beat matching the proportion within the set boundaries
+                End If
+                isFirstBeat = False
+            ElseIf isLastBeat Then
+                If Round(thisInterpolationBeats) = 1 Then
+                    abberantBeats = abberantBeats + 1
+                    beatCount = beatCount + 1# * (1 - ((currentBeatSamp - lEndPoint) / (currentBeatSamp - prevAcceptedBeatSamp)))  'if first beat, only include a potion of a beat matching the proportion within the set boundaries
+                    abberWS.Cells(abberantBeats + iAbberOffset + 2, ((iTrialNum - 1) * 5) + 1).Value = strRangeTitle
+                    abberWS.Cells(abberantBeats + iAbberOffset + 2, ((iTrialNum - 1) * 5) + 2).Value = currentBeatSamp
+                    abberWS.Cells(abberantBeats + iAbberOffset + 2, ((iTrialNum - 1) * 5) + 3).Value = "'" & calculateLCTime(currentBeatSamp)
+                    abberWS.Cells(abberantBeats + iAbberOffset + 2, ((iTrialNum - 1) * 5) + 4).Value = thisInterpolationBeats - 1
+                Else
+                    interpolations = interpolations + 1
+                    If (thisInterpolationBeats - 1) > interpolatedBeatsMax Or interpolations = 1 Then
+                        interpolatedBeatsMax = (thisInterpolationBeats - 1)
+                    End If
+                    If (thisInterpolationBeats - 1) < interpolatedBeatsMin Or interpolations = 1 Then
+                        interpolatedBeatsMin = (thisInterpolationBeats - 1)
+                    End If
+                    
+                    interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 1).Value = strRangeTitle
+                    interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 2).Value = currentBeatSamp
+                    interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 3).Value = "'" & calculateLCTime(currentBeatSamp)
+                    interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 4).Value = thisInterpolationBeats - 1
+                
+                    beatCount = beatCount + (CDbl(Round(thisInterpolationBeats)) * (1 - ((currentBeatSamp - lEndPoint) / (currentBeatSamp - prevAcceptedBeatSamp)))) 'if first beat, only include a potion of a beat matching the proportion within the set boundaries
+                    thisInterpolationBeats = CDbl(Round((thisInterpolationBeats - 1))) * (1 - ((currentBeatSamp - lEndPoint) / (currentBeatSamp - prevAcceptedBeatSamp))) 'if first beat, only include a potion of a beat matching the proportion within the set boundaries
                 End If
             Else
-                If isFirstBeat Then
-                    thisInterpolationBeats = thisInterpolationDuration / ((beatDuration + lPostBeatDuration) / 2) 'calculate the number of beats to interpolate;
-                    beatCount = beatCount + (thisInterpolationBeats * ((currentBeatSamp - lStartPoint) / (currentBeatSamp - prevAcceptedBeatSamp))) 'if first beat, only include a potion of a beat matching the proportion within the set boundaries
-                    thisInterpolationBeats = (thisInterpolationBeats - 1) * ((currentBeatSamp - lStartPoint) / (currentBeatSamp - prevAcceptedBeatSamp)) 'if first beat, only include a potion of a beat matching the proportion within the set boundaries
-                    isFirstBeat = False
-                ElseIf isLastBeat Then
-                    thisInterpolationBeats = thisInterpolationDuration / ((beatDuration + lPostBeatDuration) / 2) 'calculate the number of beats to interpolate;
-                    beatCount = beatCount + (thisInterpolationBeats * (1 - ((currentBeatSamp - lEndPoint) / (currentBeatSamp - prevAcceptedBeatSamp)))) 'if first beat, only include a potion of a beat matching the proportion within the set boundaries
-                    thisInterpolationBeats = (thisInterpolationBeats - 1) * (1 - ((currentBeatSamp - lEndPoint) / (currentBeatSamp - prevAcceptedBeatSamp))) 'if first beat, only include a potion of a beat matching the proportion within the set boundaries
+                If Round(thisInterpolationBeats) = 1 Then
+                    abberantBeats = abberantBeats + 1
+                    beatCount = beatCount + 1#
+                    abberWS.Cells(abberantBeats + iAbberOffset + 2, ((iTrialNum - 1) * 5) + 1).Value = strRangeTitle
+                    abberWS.Cells(abberantBeats + iAbberOffset + 2, ((iTrialNum - 1) * 5) + 2).Value = currentBeatSamp
+                    abberWS.Cells(abberantBeats + iAbberOffset + 2, ((iTrialNum - 1) * 5) + 3).Value = "'" & calculateLCTime(currentBeatSamp)
+                    abberWS.Cells(abberantBeats + iAbberOffset + 2, ((iTrialNum - 1) * 5) + 4).Value = thisInterpolationBeats - 1
                 Else
-                    beatCount = beatCount + (thisInterpolationDuration / ((beatDuration + lPostBeatDuration) / 2)) 'calculate the number of beats to interpolate;
-                    thisInterpolationBeats = (thisInterpolationDuration / ((beatDuration + lPostBeatDuration) / 2)) - 1 'calculate the number of beats to interpolate;
+                    interpolations = interpolations + 1
+                    If (thisInterpolationBeats - 1) > interpolatedBeatsMax Or interpolations = 1 Then
+                        interpolatedBeatsMax = (thisInterpolationBeats - 1)
+                    End If
+                    If (thisInterpolationBeats - 1) < interpolatedBeatsMin Or interpolations = 1 Then
+                        interpolatedBeatsMin = (thisInterpolationBeats - 1)
+                    End If
+                    
+                    interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 1).Value = strRangeTitle
+                    interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 2).Value = currentBeatSamp
+                    interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 3).Value = "'" & calculateLCTime(currentBeatSamp)
+                    interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 4).Value = thisInterpolationBeats - 1
+                
+                    beatCount = beatCount + CDbl(Round((thisInterpolationDuration / ((beatDuration + lPostBeatDuration) / 2)))) 'calculate the number of beats to interpolate;
+                    thisInterpolationBeats = CDbl(Round(thisInterpolationBeats - 1)) 'correct the number of actual interpolated beats
                 End If
             End If
             
@@ -389,15 +472,10 @@ Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportion
             If thisInterpolationDuration > longestInterpolation Or interpolations = 1 Then
                 longestInterpolation = thisInterpolationDuration
             End If
-            If thisInterpolationBeats > interpolatedBeatsMax Or interpolations = 1 Then
-                interpolatedBeatsMax = thisInterpolationBeats
-            End If
             If thisInterpolationDuration < shortestInterpolation Or interpolations = 1 Then
                 shortestInterpolation = thisInterpolationDuration
             End If
-            If thisInterpolationBeats < interpolatedBeatsMin Or interpolations = 1 Then
-                interpolatedBeatsMin = thisInterpolationBeats
-            End If
+            
             interpolationDuration = interpolationDuration + thisInterpolationDuration
             interpolatedBeats = interpolatedBeats + thisInterpolationBeats
             
@@ -410,6 +488,7 @@ Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportion
                 overbWS.Cells(overlyCloseBeats + iOverlyCloseBeatsOffset + 2, ((iTrialNum - 1) * 5) + 1).Value = strRangeTitle
                 overbWS.Cells(overlyCloseBeats + iOverlyCloseBeatsOffset + 2, ((iTrialNum - 1) * 5) + 2).Value = currentBeatSamp
                 overbWS.Cells(overlyCloseBeats + iOverlyCloseBeatsOffset + 2, ((iTrialNum - 1) * 5) + 3).Value = "'" & calculateLCTime(currentBeatSamp)
+                overbWS.Cells(overlyCloseBeats + iOverlyCloseBeatsOffset + 2, ((iTrialNum - 1) * 5) + 4).Value = ((currentBeatSamp - prevAcceptedBeatSamp) / beatDuration)
             Else
                 'maybe a normal beat - count it as normal
                 If isFirstBeat Then
