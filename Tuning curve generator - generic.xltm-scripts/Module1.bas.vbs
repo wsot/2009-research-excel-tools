@@ -13,34 +13,112 @@ Global dHeadingList As Dictionary
 Global dHeadingsSelected As Dictionary
 Global bXAxisLog As Boolean
 
+Global thisWorkbook As Workbook
+Global outputWorkbook As Workbook
+Global plotWorkbook As Workbook
+
 Dim vXAxisKeys As Variant
 Dim vYAxisKeys As Variant
 
-
 Sub buildTuningCurves()
+'        Dim thisWorkbook As Workbook
+    Set thisWorkbook = Application.ActiveWorkbook
+
+    If IsEmpty(theTank) Then
+        theServer = thisWorkbook.Worksheets("Variables (do not edit)").Range("B1").Value
+        theTank = thisWorkbook.Worksheets("Variables (do not edit)").Range("B2").Value
+        theBlock = thisWorkbook.Worksheets("Variables (do not edit)").Range("B3").Value
+    End If
+
     ImportFrom.Show
     
     If doImport Then
-        Call processImport(False)
+        Dim outputDir As String
+        outputDir = thisWorkbook.Worksheets("Settings").Range("B12").Value
+        outputDir = getOutputDir(outputDir, theTank)
+               
+        If outputDir = "" Then
+            MsgBox ("Output directory " & outputDir & " could not be found." & vbCrLf & "Please update the path and try again")
+            Exit Sub
+        End If
+        
+        Dim templatePath As String
+        templatePath = thisWorkbook.Worksheets("Settings").Range("B16").Value
+        templatePath = getTemplateFilename(templatePath, theTank)
+        
+        Dim outputFilePrefix As String
+        outputFilePrefix = thisWorkbook.Worksheets("Settings").Range("B11").Value
+        
+        Dim blnAutoclose As Boolean
+        blnAutoclose = thisWorkbook.Worksheets("Settings").Range("B10").Value
+        
+        Dim blnAutosave As Boolean
+        If blnAutoclose Then
+            blnAutosave = True
+        Else
+            blnAutosave = thisWorkbook.Worksheets("Settings").Range("B9").Value
+        End If
+        
+        Dim blnAutoPlot As Boolean
+        blnAutoPlot = thisWorkbook.Worksheets("Settings").Range("B5").Value
+
+        
+        Dim dBlocks As Dictionary
+        Set dBlocks = New Dictionary
+        Dim i As Integer
+        i = 2
+        
+        While thisWorkbook.Worksheets("Variables (do not edit)").Range("N" & i).Value <> ""
+            If Not dBlocks.Exists(thisWorkbook.Worksheets("Variables (do not edit)").Range("N" & i).Value) Then
+                Call dBlocks.Add(thisWorkbook.Worksheets("Variables (do not edit)").Range("N" & i).Value, 0)
+            End If
+            i = i + 1
+        Wend
+    
+        Dim theBlocks As Variant
+        theBlocks = dBlocks.Keys
+        
+        Application.DisplayAlerts = False
+        
+'        Dim outputWorkbook As Workbook
+        
+        For i = LBound(theBlocks) To UBound(theBlocks)
+            Set outputWorkbook = Workbooks.Open(templatePath)
+            'Call Worksheets("Totals").UsedRange.ClearContents
+            'Call Worksheets("StdDev").UsedRange.ClearContents
+            'Call Worksheets("Means").UsedRange.ClearContents
+            'Call Worksheets("N").UsedRange.ClearContents
+            theBlock = theBlocks(i)
+            outputWorkbook.Worksheets("Variables (do not edit)").Range("B3").Value = theBlock 'update the block on the worksheet
+            Call processImport(False)
+            If blnAutosave Then
+                Call outputWorkbook.SaveAs(outputDir & "\" & outputFilePrefix & theBlock, 52)
+                If blnAutoPlot Then
+                    Set plotWorkbook = outputWorkbook
+                    Call transferAllToSigmaplot
+                End If
+                If blnAutoclose Then
+                    Call outputWorkbook.Close
+                End If
+            End If
+        Next
+        Application.DisplayAlerts = True
     End If
 End Sub
 
-Sub buildTuningCurvesIntoSigmaplot()
-'    ImportFrom.Show
-    
-'    If doImport Then
-'        Call processImport(True)
-'    End If
-Call TransferToSigmaplot
-End Sub
 
 Sub processImport(importIntoSigmaplot As Boolean)
 
     'load the bin width for histogram generation
-    lBinWidth = Worksheets("Settings").Range("B1").Value
+    lBinWidth = thisWorkbook.Worksheets("Settings").Range("B1").Value
+    outputWorkbook.Worksheets("Settings").Range("B1").Value = lBinWidth
     
     'load the # of msec to ignore at the start (for filtering stimulation artifact
-    lIgnoreFirstMsec = Worksheets("Settings").Range("B2").Value
+    lIgnoreFirstMsec = thisWorkbook.Worksheets("Settings").Range("B2").Value
+    outputWorkbook.Worksheets("Settings").Range("B2").Value = lIgnoreFirstMsec
+    
+    'write number of channels to output template
+    outputWorkbook.Worksheets("Settings").Range("B3").Value = thisWorkbook.Worksheets("Settings").Range("B3").Value
     
     'used to store the maximum histogram peak for normalisation
     Dim lMaxHistHeight As Double
@@ -48,7 +126,8 @@ Sub processImport(importIntoSigmaplot As Boolean)
     
     Dim theWorksheets As Variant 'stores the created worksheets to write to
     Dim arrHistTmp() As Long 'used to store the histogram data for each channel as it is generated
-    ReDim arrHistTmp(31)
+    ReDim arrHistTmp(thisWorkbook.Worksheets("Settings").Range("B3").Value - 1)
+    'ReDim arrHistTmp(31)
     
     Dim yCount As Long
     Dim xCount As Long
@@ -159,12 +238,12 @@ Sub processImport(importIntoSigmaplot As Boolean)
     Call objTTX.CloseTank
     Call objTTX.ReleaseServer
     
-    Worksheets("Variables (do not edit)").Range("H1").Value = xCount
-    Worksheets("Variables (do not edit)").Range("H2").Value = yCount
-    Worksheets("Variables (do not edit)").Range("H3").Value = zOffsetSize
-    Worksheets("Variables (do not edit)").Range("H4").Value = lMaxHistHeight
-    Worksheets("Variables (do not edit)").Range("H5").Value = iColOffset
-    Worksheets("Variables (do not edit)").Range("H6").Value = iRowOffset
+    outputWorkbook.Worksheets("Variables (do not edit)").Range("H1").Value = xCount
+    outputWorkbook.Worksheets("Variables (do not edit)").Range("H2").Value = yCount
+    outputWorkbook.Worksheets("Variables (do not edit)").Range("H3").Value = zOffsetSize
+    outputWorkbook.Worksheets("Variables (do not edit)").Range("H4").Value = lMaxHistHeight
+    outputWorkbook.Worksheets("Variables (do not edit)").Range("H5").Value = iColOffset
+    outputWorkbook.Worksheets("Variables (do not edit)").Range("H6").Value = iRowOffset
     
     'If importIntoSigmaplot Then
         'Call transferToSigmaplot(xCount, yCount, zOffsetSize, iColOffset, iRowOffset, lMaxHistHeight)
@@ -172,74 +251,24 @@ Sub processImport(importIntoSigmaplot As Boolean)
     
 End Sub
 
-Function buildWorksheetArray() As Variant
-    Dim theWorksheets(31)
-   Dim strWsname As String
-   Dim intWSNum As Long
-
-    Dim i As Integer
-
-    For i = 1 To Worksheets.Count
-        strWsname = Worksheets.Item(i).Name
-        If Left(strWsname, 4) = "Site" Then
-            If IsNumeric(Right(strWsname, Len(strWsname) - 4)) Then
-                intWSNum = CInt(Right(strWsname, Len(strWsname) - 4))
-                If intWSNum < 33 And intWSNum > 0 Then
-                    Set theWorksheets(intWSNum - 1) = Worksheets.Item(i)
-                End If
-            End If
-        End If
-    Next
-
-    For i = 0 To 31
-        If IsEmpty(theWorksheets(i)) Then
-            If i > 0 Then
-                Set theWorksheets(i) = Worksheets.Add(, theWorksheets(i - 1), 1, xlWorksheet)
-            Else
-                Set theWorksheets(i) = Worksheets.Add(, Worksheets.Item(Worksheets.Count), 1, xlWorksheet)
-            End If
-            theWorksheets(i).Name = "Site" & CStr(i + 1)
-        End If
-    Next
-    buildWorksheetArray = theWorksheets
-End Function
-
 Sub writeAxes(colLabels As Variant, rowLabels As Variant, iColOffset, iRowOffset, zOffset)
     Dim j As Long
         
     For j = 0 To UBound(rowLabels)
-        Worksheets("Output").Cells(iRowOffset + j + 2 + zOffset, iColOffset + 1).Value = rowLabels(j)
+        outputWorkbook.Worksheets("Totals").Cells(iRowOffset + j + 2 + zOffset, iColOffset + 1).Value = rowLabels(j)
+        outputWorkbook.Worksheets("StdDev").Cells(iRowOffset + j + 2 + zOffset, iColOffset + 1).Value = rowLabels(j)
+        outputWorkbook.Worksheets("Means").Cells(iRowOffset + j + 2 + zOffset, iColOffset + 1).Value = rowLabels(j)
+        outputWorkbook.Worksheets("N").Cells(iRowOffset + j + 2 + zOffset, iColOffset + 1).Value = rowLabels(j)
     Next
     For j = 0 To UBound(colLabels)
-        Worksheets("Output").Cells(iRowOffset + zOffset + 1, j + 2).Value = colLabels(j)
+        outputWorkbook.Worksheets("Totals").Cells(iRowOffset + zOffset + 1, j + 2).Value = colLabels(j)
+        outputWorkbook.Worksheets("StdDev").Cells(iRowOffset + zOffset + 1, j + 2).Value = colLabels(j)
+        outputWorkbook.Worksheets("Means").Cells(iRowOffset + zOffset + 1, j + 2).Value = colLabels(j)
+        outputWorkbook.Worksheets("N").Cells(iRowOffset + zOffset + 1, j + 2).Value = colLabels(j)
     Next
 
 End Sub
 
-Sub deleteWorksheets()
-   Dim strWsname As String
-   Dim intWSNum As Long
-
-    Dim i As Integer
-    
-    i = Worksheets.Count
-    
-    Do
-        If i = 0 Then
-            Exit Do
-        End If
-        strWsname = Worksheets.Item(i).Name
-        If Left(strWsname, 4) = "Site" Then
-            If IsNumeric(Right(strWsname, Len(strWsname) - 4)) Then
-                intWSNum = CInt(Right(strWsname, Len(strWsname) - 4))
-                If intWSNum < 33 And intWSNum > 0 Then
-                    Worksheets.Item(i).Delete
-                End If
-            End If
-        End If
-        i = i - 1
-    Loop
-End Sub
 
 Sub TransferToSigmaplot()
 
@@ -250,12 +279,12 @@ Sub TransferToSigmaplot()
     Dim iColOffset As Integer
     Dim iRowOffset As Integer
 
-    xCount = Worksheets("Variables (do not edit)").Range("H1").Value
-    yCount = Worksheets("Variables (do not edit)").Range("H2").Value
-    zOffsetSize = Worksheets("Variables (do not edit)").Range("H3").Value
-    lMaxHistHeight = Worksheets("Variables (do not edit)").Range("H4").Value
-    iColOffset = Worksheets("Variables (do not edit)").Range("H5").Value
-    iRowOffset = Worksheets("Variables (do not edit)").Range("H6").Value
+    xCount = plotWorkbook.Worksheets("Variables (do not edit)").Range("H1").Value
+    yCount = plotWorkbook.Worksheets("Variables (do not edit)").Range("H2").Value
+    zOffsetSize = plotWorkbook.Worksheets("Variables (do not edit)").Range("H3").Value
+    lMaxHistHeight = plotWorkbook.Worksheets("Variables (do not edit)").Range("H4").Value
+    iColOffset = plotWorkbook.Worksheets("Variables (do not edit)").Range("H5").Value
+    iRowOffset = plotWorkbook.Worksheets("Variables (do not edit)").Range("H6").Value
     
     Const SAA_FROMVAL = &H406
     Const SAA_TOVAL = &H407
@@ -295,28 +324,28 @@ Sub TransferToSigmaplot()
     yPos = iRowOffset
     
     Do
-        If Worksheets("Output").Cells(yPos, xPos).Value <> "" Then
-            If dHeadingsSelected.Exists(Worksheets("Output").Cells(yPos, xPos).Value) Then
-                strTitle = Worksheets("Output").Cells(yPos, xPos).Value
+        If plotWorkbook.Worksheets("Totals").Cells(yPos, xPos).Value <> "" Then
+            If dHeadingsSelected.Exists(plotWorkbook.Worksheets("Totals").Cells(yPos, xPos).Value) Then
+                strTitle = plotWorkbook.Worksheets("Totals").Cells(yPos, xPos).Value
                 Set spNB = SPApp.Notebooks.Item(SPApp.Notebooks.Count - 1)
                 Set spWS = spNB.NotebookItems.Item(spNB.NotebookItems.Count - 1)
-                spWS.Name = Worksheets("Output").Cells(yPos, xPos).Value
+                spWS.Name = plotWorkbook.Worksheets("Totals").Cells(yPos, xPos).Value
                 Set spDT = spWS.DataTable
                 
                 yPos = yPos
                             
                 For j = 0 To (xCount - 1)
-                    spDT.Cell(0, j) = Worksheets("Output").Cells(yPos + 1, xPos + j + 1).Value
+                    spDT.Cell(0, j) = plotWorkbook.Worksheets("Totals").Cells(yPos + 1, xPos + j + 1).Value
                 Next
                 
                 For j = 0 To (yCount - 1)
-                    spDT.Cell(1, j) = Worksheets("Output").Cells(yPos + j + 2, xPos).Value
+                    spDT.Cell(1, j) = plotWorkbook.Worksheets("Totals").Cells(yPos + j + 2, xPos).Value
                 Next
                 
                 
                 For j = 0 To (xCount - 1)
                     For k = 0 To (yCount - 1)
-                        spDT.Cell(3 + k, j) = Worksheets("Output").Cells(yPos + k + 2, xPos + j + 1).Value
+                        spDT.Cell(3 + k, j) = plotWorkbook.Worksheets("Totals").Cells(yPos + k + 2, xPos + j + 1).Value
                     Next
                 Next
                 
@@ -430,54 +459,6 @@ Sub TransferToSigmaplot()
     Loop
 End Sub
 
-Sub testSigmaPlot()
-    Const SAA_FROMVAL = &H406
-    Const SAA_TOVAL = &H407
-    Const GPM_SETPLOTATTR = &H301
-    Const GPM_SETAXISATTR = 1025
-    Const SLA_SELECTDIM = 776
-    Const SAA_OPTIONS = 1027
-    Const GPM_SETAXISATTRSTRING = 1032
-    Const SEA_COLORCOL = 1557
-    Const SEA_COLORREPEAT = 1555
-    Const SLA_CONTOURFILLTYPE = 856
-    Const SAA_SELECTLINE = 1034
-    Const SEA_THICKNESS = 1537
-    Const SEA_COLOR = 1542
-    Const SAA_SUB1OPTIONS = 1040
-
-    Dim SPApp As Object
-    Set SPApp = CreateObject("SigmaPlot.Application.1")
-    SPApp.Visible = True
-    SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Name = "Site y"
-    SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Axes(0).Name = "Attenuation"
-    SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Axes(1).Name = "Frequency"
-    
-    Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETPLOTATTR, SLA_SELECTDIM, 3)
-    Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_OPTIONS, 10)
-    Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_OPTIONS, 51380225)
-    Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_OPTIONS, 12583938)
-    Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTRSTRING, SAA_FROMVAL, "0")
-    Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTRSTRING, SAA_TOVAL, "150")
-    
-    Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETPLOTATTR, SLA_SELECTDIM, 3)
-    Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 2)
-    Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_THICKNESS, 10)
-    Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 4)
-    Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLOR, &HFFFFFF)
-    Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLORCOL, 2)
-    Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLORREPEAT, 4)
-    Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETPLOTATTR, SLA_CONTOURFILLTYPE, 1)
-    Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 5)
-    Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLOR, &HFFFFFF)
-    Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLORCOL, 2)
-    Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLORREPEAT, 4)
-    Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 4)
-    Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SUB1OPTIONS, 1298)
-    Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SUB1OPTIONS, 3889)
-    Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 1)
-
-End Sub
 
 Function buildEpocList(objTTX, AxisEp, bReverseOrder)
     'build list of epocs for the given axis epoc name
@@ -492,7 +473,7 @@ Function buildEpocList(objTTX, AxisEp, bReverseOrder)
     Dim j As Integer
     
     If AxisEp = "Channel" Then
-        For i = 1 To 32
+        For i = 1 To thisWorkbook.Worksheets("Settings").Range("B3").Value
             Call AxisList.Add(i, 0)
         Next
     Else
@@ -565,7 +546,10 @@ Function processSearch(ByRef objTTX, ByRef arrOtherEp, ByRef arrOtherEpocKeys, i
             Call objTTX.SetFilterWithDescEx(strFilter)
             
             If xOffset = 1 And yOffset = 1 Then
-                Worksheets("Output").Cells(iRowOffset + (i * zOffset), iColOffset + 1).Value = Left(strAddedTitle, Len(strAddedTitle) - 2)
+                outputWorkbook.Worksheets("Totals").Cells(iRowOffset + (i * zOffset), iColOffset + 1).Value = Left(strAddedTitle, Len(strAddedTitle) - 2)
+                outputWorkbook.Worksheets("N").Cells(iRowOffset + (i * zOffset), iColOffset + 1).Value = Left(strAddedTitle, Len(strAddedTitle) - 2)
+                outputWorkbook.Worksheets("Means").Cells(iRowOffset + (i * zOffset), iColOffset + 1).Value = Left(strAddedTitle, Len(strAddedTitle) - 2)
+                outputWorkbook.Worksheets("StdDev").Cells(iRowOffset + (i * zOffset), iColOffset + 1).Value = Left(strAddedTitle, Len(strAddedTitle) - 2)
                 Call writeAxes(vXAxisKeys, vYAxisKeys, iColOffset, iRowOffset, (i * zOffset))
             End If
 
@@ -595,9 +579,18 @@ Sub writeResults(ByRef objTTX, xOffset, yOffset, zOffset, iChanNum, ByRef lMaxHi
     Dim k As Long
     
     Dim histTmp As Long
+    Dim histVariance As Double
+    Dim histStddev As Double
+    Dim histMean As Double
+    Dim nSweps As Long
+    nSweps = 0
+
+    Dim swepVals()
 
     varReturn = objTTX.GetEpocsExV("Swep", 0)
     If IsArray(varReturn) Then
+        ReDim swepVals(UBound(varReturn, 2))
+        nSweps = UBound(varReturn, 2) + 1
         For i = 0 To UBound(varReturn, 2)
             dblStartTime = varReturn(2, i) + lIgnoreFirstMsec
             dblEndTime = dblStartTime + lBinWidth + lIgnoreFirstMsec
@@ -609,22 +602,41 @@ Sub writeResults(ByRef objTTX, xOffset, yOffset, zOffset, iChanNum, ByRef lMaxHi
                 End If
     
                 histTmp = CLng(histTmp) + CLng(k)
+                swepVals(i) = CLng(swepVals(i)) + CLng(k)
                 If k < 500 Then
                     Exit Do
                 Else
                     varChanData = objTTX.ParseEvInfoV(k - 1, 1, 6)
                     dblStartTime = varChanData(0) + (1 / 100000)
                 End If
+                
             Loop
             dblStartTime = dblSwepStartTime
         Next
         
+        histMean = CDbl(histTmp) / CDbl((UBound(swepVals) + 1))
+        histVariance = 0#
+        
+        For i = 0 To UBound(swepVals)
+            histVariance = histVariance + (histMean - CDbl(swepVals(i))) ^ 2
+        Next
+        histStddev = (histVariance / UBound(swepVals)) ^ 0.5
+                
         If xAxisEp = "Channel" Then
-            Worksheets("Output").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value = histTmp
+            outputWorkbook.Worksheets("Totals").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value = histTmp
+            outputWorkbook.Worksheets("Means").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value = histMean
+            outputWorkbook.Worksheets("StdDev").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value = histStddev
+            outputWorkbook.Worksheets("N").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value = nSweps
         ElseIf yAxisEp = "Channel" Then
-            Worksheets("Output").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value = histTmp
+            outputWorkbook.Worksheets("Totals").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value = histTmp
+            outputWorkbook.Worksheets("Means").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value = histMean
+            outputWorkbook.Worksheets("StdDev").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value = histStddev
+            outputWorkbook.Worksheets("N").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value = nSweps
         Else
-            Worksheets("Output").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value = histTmp
+            outputWorkbook.Worksheets("Totals").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value = histTmp
+            outputWorkbook.Worksheets("Means").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value = histMean
+            outputWorkbook.Worksheets("StdDev").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value = histStddev
+            outputWorkbook.Worksheets("N").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value = nSweps
         End If
         If histTmp > lMaxHistHeight Then
             lMaxHistHeight = histTmp
@@ -633,15 +645,24 @@ Sub writeResults(ByRef objTTX, xOffset, yOffset, zOffset, iChanNum, ByRef lMaxHi
     End If
     
 End Sub
-
+Sub buildTuningCurvesIntoSigmaplot()
+'    ImportFrom.Show
+    
+'    If doImport Then
+'        Call processImport(True)
+'    End If
+    Call TransferToSigmaplot
+End Sub
 Sub transferToSigmaplotButton()
+    Set plotWorkbook = Application.ActiveWorkbook
+
     Dim zOffsetSize As Long
     Dim iColOffset As Integer
     Dim iRowOffset As Integer
 
-    zOffsetSize = Worksheets("Variables (do not edit)").Range("H3").Value
-    iColOffset = Worksheets("Variables (do not edit)").Range("H5").Value
-    iRowOffset = Worksheets("Variables (do not edit)").Range("H6").Value
+    zOffsetSize = plotWorkbook.Worksheets("Variables (do not edit)").Range("H3").Value
+    iColOffset = plotWorkbook.Worksheets("Variables (do not edit)").Range("H5").Value
+    iRowOffset = plotWorkbook.Worksheets("Variables (do not edit)").Range("H6").Value
 
     Dim xPos As Long
     Dim yPos As Long
@@ -652,9 +673,9 @@ Sub transferToSigmaplotButton()
     Set dHeadingList = New Dictionary
     
     Do
-        If Worksheets("Output").Cells(yPos, xPos).Value <> "" Then
-            If Not dHeadingList.Exists(Worksheets("Output").Cells(yPos, xPos).Value) Then
-                Call dHeadingList.Add(Worksheets("Output").Cells(yPos, xPos).Value, 0)
+        If plotWorkbook.Worksheets("Totals").Cells(yPos, xPos).Value <> "" Then
+            If Not dHeadingList.Exists(plotWorkbook.Worksheets("Totals").Cells(yPos, xPos).Value) Then
+                Call dHeadingList.Add(plotWorkbook.Worksheets("Totals").Cells(yPos, xPos).Value, 0)
             End If
             yPos = yPos + zOffsetSize
         Else
@@ -668,3 +689,83 @@ Sub transferToSigmaplotButton()
     End If
 
 End Sub
+
+Sub transferAllToSigmaplot()
+
+    Dim zOffsetSize As Long
+    Dim iColOffset As Integer
+    Dim iRowOffset As Integer
+
+    zOffsetSize = plotWorkbook.Worksheets("Variables (do not edit)").Range("H3").Value
+    iColOffset = plotWorkbook.Worksheets("Variables (do not edit)").Range("H5").Value
+    iRowOffset = plotWorkbook.Worksheets("Variables (do not edit)").Range("H6").Value
+
+    Dim xPos As Long
+    Dim yPos As Long
+   
+    xPos = iColOffset + 1
+    yPos = iRowOffset
+    
+    Set dHeadingsSelected = New Dictionary
+    
+    Do
+        If plotWorkbook.Worksheets("Totals").Cells(yPos, xPos).Value <> "" Then
+            If Not dHeadingsSelected.Exists(plotWorkbook.Worksheets("Totals").Cells(yPos, xPos).Value) Then
+                Call dHeadingsSelected.Add(plotWorkbook.Worksheets("Totals").Cells(yPos, xPos).Value, 0)
+            End If
+            yPos = yPos + zOffsetSize
+        Else
+            Exit Do
+        End If
+    Loop
+    
+    If doImport Then
+        Call TransferToSigmaplot
+    End If
+End Sub
+
+Function getOutputDir(theOutputDir, fileOnTargetDrive) As String
+    
+    Dim objFS As FileSystemObject
+    Set objFS = CreateObject("Scripting.FileSystemObject")
+    
+    If theOutputDir = "" Then
+        theOutputDir = objFS.GetParentFolderName(fileOnTargetDrive)
+    ElseIf Right(Left(theOutputDir, 2), 1) <> ":" Then
+        Dim theDrive As String
+        theDrive = objFS.GetDriveName(fileOnTargetDrive)
+        theOutputDir = theDrive & theOutputDir
+    End If
+    
+    If objFS.FolderExists(theOutputDir) Then
+        getOutputDir = theOutputDir
+    Else
+        getOutputDir = ""
+    End If
+    
+    Set objFS = Nothing
+End Function
+
+Function getTemplateFilename(templateName, fileOnTargetDrive) As String
+    
+    Dim objFS As FileSystemObject
+    Set objFS = CreateObject("Scripting.FileSystemObject")
+    
+    If templateName = "" Then
+        getTemplateFilename = ""
+    Else
+        If Right(Left(templateName, 2), 1) <> ":" Then
+            Dim theDrive As String
+            theDrive = objFS.GetDriveName(fileOnTargetDrive)
+            getTemplateFilename = theDrive & templateName
+        End If
+        
+        If Not objFS.FileExists(getTemplateFilename) Then
+            getTemplateFilename = ""
+        End If
+    End If
+    
+    Set objFS = Nothing
+    
+End Function
+

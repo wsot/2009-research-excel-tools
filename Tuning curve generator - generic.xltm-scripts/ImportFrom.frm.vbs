@@ -1,11 +1,13 @@
 Attribute VB_Name = "ImportFrom"
-Attribute VB_Base = "0{0CCC0C1F-B0AD-4CFD-B638-8887DE3E6CFA}{1A1EF077-779C-4337-8189-98B60CE36330}"
+Attribute VB_Base = "0{667A387F-0EA7-463D-B3D0-6CCFB86047B7}{AF07C9C4-B723-485A-A149-A0663FBD84A8}"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 Attribute VB_TemplateDerived = False
 Attribute VB_Customizable = False
+Option Explicit
+
 Dim objTTX As Object
 Const ConnectSuccess = 1
 Const ServerConnectFail = 1
@@ -34,6 +36,9 @@ Private Sub ImportButton_Click()
         Dim dictOtherEp As Dictionary
         Set dictOtherEp = New Dictionary
         
+        Dim dBlocks As Dictionary
+        Set dBlocks = New Dictionary
+        
         Dim i As Integer
         Dim j As Integer
         
@@ -51,6 +56,24 @@ Private Sub ImportButton_Click()
                 j = j + 1
             End If
         Next
+        Worksheets("Variables (do not edit)").Range("B" & CStr(9 + j)).Value = ""
+
+        j = 0
+    
+        For i = 0 To (BlockList.ListCount - 1)
+            If BlockList.Selected(i) Then
+                Call dBlocks.Add(BlockList.List(i), 1)
+                Worksheets("Variables (do not edit)").Range("N" & CStr(2 + j)).Value = BlockList.List(i)
+                j = j + 1
+            End If
+        Next
+        If Not dBlocks.Exists(BlockSelect1.ActiveBlock) Then
+            Call dBlocks.Add(BlockSelect1.ActiveBlock, 1)
+            Worksheets("Variables (do not edit)").Range("N" & CStr(2 + j)).Value = BlockSelect1.ActiveBlock
+            j = j + 1
+        End If
+        
+        Worksheets("Variables (do not edit)").Range("N" & CStr(2 + j)).Value = ""
     
         xAxisEp = XAxis.Value
         Worksheets("Variables (do not edit)").Range("B5").Value = xAxisEp
@@ -82,10 +105,26 @@ End Sub
 
 
 Private Sub TankSelect1_TankChanged(ActTank As String, ActServer As String)
-    'When a different tank is selected, update the list of available blocks for the tank
-    BlockSelect1.UseServer = ActServer
-    BlockSelect1.UseTank = ActTank
-    Call BlockSelect1.Refresh
+    'When a different tank is selected, test if a connection can be made
+    Select Case testSettings(ActServer, ActTank, "")
+        Case ConnectSuccess:
+            'if so update the list of available blocks for the tank
+            BlockSelect1.UseServer = ActServer
+            BlockSelect1.UseTank = ActTank
+            Call BlockSelect1.Refresh
+            Call buildBlockList(TankSelect1.ActiveTank)
+        Case BlockConnectFail:
+            'if so update the list of available blocks for the tank
+            BlockSelect1.UseServer = ActServer
+            BlockSelect1.UseTank = ActTank
+            Call BlockSelect1.Refresh
+            Call buildBlockList(TankSelect1.ActiveTank)
+    End Select
+
+'    BlockSelect1.UseServer = ActServer
+'    BlockSelect1.UseTank = ActTank
+'    Call BlockSelect1.Refresh
+'    Call buildBlockList(TankSelect1.ActiveTank)
 End Sub
 
 Private Sub UserForm_Activate()
@@ -267,8 +306,18 @@ Sub buildOptionLists(ActBlock, ActTank, ActServer, usePrevValues)
     
     'add the channel option, as it is not actually an epoch
     Call XAxis.AddItem("Channel", i)
+    If CStr(sOrigXAxis) = "Channel" Then
+        XAxis.Value = "Channel"
+    End If
     Call YAxis.AddItem("Channel", i)
+    If CStr(sOrigYAxis) = "Channel" Then
+        YAxis.Value = "Channel"
+    End If
+
     Call OtherGroupings.AddItem("Channel", i)
+    If vOrigOtherGroupings.Exists("Channel") Then
+        OtherGroupings.Selected(i) = True
+    End If
 
     'if the defaults were not available, and nothing was selected, choose the first items by default
     If bMatchXAxis = False Then
@@ -284,3 +333,41 @@ Sub buildOptionLists(ActBlock, ActTank, ActServer, usePrevValues)
     Set vOrigOtherGroupings = Nothing
     
 End Sub
+Sub buildBlockList(tankPath)
+
+    Dim dBlocks As Dictionary
+    Set dBlocks = New Dictionary
+    Dim vBlocks
+
+    Dim objFS As FileSystemObject
+    Dim objFolder As Folder
+    Set objFS = CreateObject("Scripting.FileSystemObject")
+'   fso.GetParentFolderName(docFullName)
+    Set objFolder = objFS.GetFolder(tankPath)
+
+    Dim Subfolders As Folders
+    Dim objSubfolder As Folder
+
+    Set Subfolders = objFolder.Subfolders
+    For Each objSubfolder In Subfolders
+        If objSubfolder.Name <> "TempBlk" Then
+            If Not dBlocks.Exists(objSubfolder.Name) Then
+                 Call dBlocks.Add(objSubfolder.Name, 0)
+            End If
+        End If
+    Next
+
+    Set objFolder = Nothing
+    Set objSubfolder = Nothing
+    Set objFS = Nothing
+    
+    vBlocks = dBlocks.Keys
+
+    BlockList.Clear
+    
+    Dim i As Integer
+    For i = 0 To UBound(vBlocks)
+        Call BlockList.AddItem(vBlocks(i), i)
+    Next
+End Sub
+
