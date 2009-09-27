@@ -32,7 +32,6 @@ Sub aggregrate_results()
 
     Dim templateFilename As String
 
-
     Dim trialTypes As Dictionary
     Dim validTrialCount As Integer
     
@@ -68,6 +67,8 @@ Sub aggregrate_results()
     Dim blnCurrFolderIsTrial As Boolean
        
     Dim thisAnimalWorksheet As Worksheet
+    Dim thisAnimalSummarySheet As Worksheet
+    Dim thisAnimalSummarySheetRow As Long
     Dim outputWorkbook As Workbook
     Dim workbookToProcess As Workbook
         
@@ -134,7 +135,9 @@ Sub aggregrate_results()
                 Call trialTypes.Add("Acoustic", New Dictionary)
                 Call trialTypes.Add("Electrical", New Dictionary)
                 validTrialCount = 0
+                thisAnimalSummarySheetRow = 2
                 Set thisAnimalWorksheet = Nothing
+                Set thisAnimalSummarySheet = Nothing
                 animalID = objAnimalFolder.Name
                             
                 Set experimentFolders = objAnimalFolder.Subfolders
@@ -173,23 +176,46 @@ Sub aggregrate_results()
                     End If
                 Next
                 If validTrialCount > 0 Then
+                    Call outputWorkbook.Worksheets("Summary template").Copy(, outputWorkbook.Worksheets("Output template"))
+                    Set thisAnimalSummarySheet = outputWorkbook.Worksheets("Summary template (2)")
+                    thisAnimalSummarySheet.Name = animalID & " summary"
+                    
+                    thisAnimalSummarySheet.Cells(1, 1).Value = "Cluster"
+                    thisAnimalSummarySheet.Cells(1, 2).Value = "HR Included trials"
+                    thisAnimalSummarySheet.Cells(1, 3).Value = "HR Excluded trials"
+                    thisAnimalSummarySheet.Cells(1, 4).Value = "% trials decrease HR"
+                    thisAnimalSummarySheet.Cells(1, 5).Value = "Mean HR change"
+                    thisAnimalSummarySheet.Cells(1, 6).Value = "HR StdDev"
+                    thisAnimalSummarySheet.Cells(1, 7).Value = "T score"
+                    thisAnimalSummarySheet.Cells(1, 8).Value = "p value"
+                    thisAnimalSummarySheet.Cells(1, 10).Value = "-84s to -4s HR N"
+                    thisAnimalSummarySheet.Cells(1, 11).Value = "-84s to -4s HR StdDev"
+                    thisAnimalSummarySheet.Cells(1, 12).Value = "-84s to -4s HR StdDev StdDev"
+                    thisAnimalSummarySheet.Cells(1, 13).Value = "-4s to 0s HR N"
+                    thisAnimalSummarySheet.Cells(1, 14).Value = "-4s to 0s HR StdDev"
+                    thisAnimalSummarySheet.Cells(1, 15).Value = "-4s to 0s HR StdDev StdDev"
+                    thisAnimalSummarySheet.Cells(1, 16).Value = "5s to 9s HR N"
+                    thisAnimalSummarySheet.Cells(1, 17).Value = "5s to 9s HR StdDev"
+                    thisAnimalSummarySheet.Cells(1, 18).Value = "5s to 9s HR StdDev StdDev"
+                    thisAnimalSummarySheet.Range("A1:Z1").Font.Bold = True
+
                     If oneAnimalOneSheet Then
-                        Call outputWorkbook.Worksheets("Output template").Copy(, thisWorkbook.Worksheets("Output template"))
+                        Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
                         Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
                         thisAnimalWorksheet.Name = animalID
-                        Call outputTrials(trialTypes, "", thisAnimalWorksheet)
+                        Call outputTrials(trialTypes, "", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow)
                     Else
                         If trialTypes("Acoustic").Count > 0 Then
                             Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
                             Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
                             thisAnimalWorksheet.Name = animalID & " Acoustic"
-                            Call outputTrials(trialTypes, "Acoustic", thisAnimalWorksheet)
+                            Call outputTrials(trialTypes, "Acoustic", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow)
                         End If
                         If trialTypes("Electrical").Count > 0 Then
                             Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
                             Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
                             thisAnimalWorksheet.Name = animalID & " Electrical"
-                            Call outputTrials(trialTypes, "Electrical", thisAnimalWorksheet)
+                            Call outputTrials(trialTypes, "Electrical", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow)
                         End If
                     End If
                 End If
@@ -495,7 +521,7 @@ Function checkForHRExclusions(workbookToProcess As Workbook, i As Integer, horiz
             End If
 End Function
 
-Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksheet As Worksheet)
+Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksheet As Worksheet, thisAnimalSummarySheet As Worksheet, ByRef thisAnimalSummarySheetRow)
     Dim arrTrialTypes
     arrTrialTypes = trialTypes.Keys
     
@@ -513,17 +539,76 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
     
     Dim iExcelOffset As Long
     iExcelOffset = 1
+    Dim iPrevExcelOffset As Long
+    Dim iMaxExcelOffset As Long
     
     Dim meanHRChange As Double
     Dim HRChangeVar As Double
     Dim nInMeanSoFar As Integer
+    Dim nExcluded As Integer
     Dim diff As Double
     Dim tStat As Double
+    
+    Dim nInMeanStdDevSoFar(2) As Integer
+    Dim StdDevVar(2) As Double
+    Dim meanStdDev(2) As Double
+    Dim iVarCycling As Integer
+    Dim iSummaryCol As Integer
+
+    Dim currPooledHRChMean As Double
+    Dim currPooledHRChCum As Double
+    Dim currPooledHRChN As Long
+    Dim currPooledHRChNExcl As Long
+    Dim currPooledHRChNDec As Long
+        
+    Dim noStimPooledHRChMean As Double
+    Dim noStimPooledHRChCum As Double
+    Dim noStimPooledHRChN As Long
+    Dim noStimPooledHRChNExcl As Long
+    Dim noStimPooledHRChNDec As Long
+        
+    Dim noStimPooledVarMean(2) As Long
+    Dim noStimPooledVarCum(2) As Double
+    Dim noStimPooledVarN(2) As Double
+        
+    Dim currPooledVarMean As Variant
+    Dim currPooledVarCum As Variant
+    Dim currPooledVarN As Variant
+        
+    Dim AcoPooledHRChMean As Double
+    Dim AcoPooledHRChCum As Double
+    Dim AcoPooledHRChN As Long
+    Dim AcoPooledHRChNExcl As Long
+    Dim AcoPooledHRChNDec As Long
+    
+    Dim AcoPooledVarMean As Variant
+    Dim AcoPooledVarCum As Variant
+    Dim AcoPooledVarN As Variant
+    
+    Dim ElPooledHRChMean As Double
+    Dim ElPooledHRChCum As Double
+    Dim ElPooledHRChN As Long
+    Dim ElPooledHRChNExcl As Long
+    Dim ElPooledHRChNDec As Long
+    
+    Dim ElPooledVarMean As Variant
+    Dim ElPooledVarCum As Variant
+    Dim ElPooledVarN As Variant
     
     Dim HRIncTrials As Integer
     Dim HRDecTrials As Integer
     
     For iTrialTypeNum = 0 To UBound(arrTrialTypes)
+        currPooledHRChN = 0
+        currPooledHRChMean = 0
+        currPooledHRChCum = 0
+        currPooledHRChNExcl = 0
+        currPooledHRChNDec = 0
+        
+        currPooledVarMean = Array(0#, 0#, 0#)
+        currPooledVarCum = Array(0#, 0#, 0#)
+        currPooledVarN = Array(0#, 0#, 0#)
+    
         If arrTrialTypes(iTrialTypeNum) = trialType Or trialType = "" Then
             thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = arrTrialTypes(iTrialTypeNum) & " Trials"
             'thisAnimalWorksheet.Cells(iExcelOffset, 1).Style = "Heading"
@@ -532,6 +617,9 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
             Set dictParamSets = trialTypes(arrTrialTypes(iTrialTypeNum))
             arrParamSets = dictParamSets.Keys
             For iParamSetNum = 0 To UBound(arrParamSets)
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1) = arrTrialTypes(iTrialTypeNum) & ": " & arrParamSets(iParamSetNum)
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1).Font.Bold = True
+                
                 thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = arrParamSets(iParamSetNum)
                 thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Bold = True
                 iExcelOffset = iExcelOffset + 1
@@ -550,10 +638,20 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                 iExcelOffset = iExcelOffset + 1
                 arrTrials = dictParamSets(arrParamSets(iParamSetNum))
                 nInMeanSoFar = 0
+                nExcluded = 0
                 meanHRChange = 0
                 HRChangeVar = 0
                 HRIncTrials = 0
                 HRDecTrials = 0
+                nInMeanStdDevSoFar(0) = 0
+                nInMeanStdDevSoFar(1) = 0
+                nInMeanStdDevSoFar(2) = 0
+                StdDevVar(0) = 0#
+                StdDevVar(1) = 0#
+                StdDevVar(2) = 0#
+                meanStdDev(0) = 0#
+                meanStdDev(1) = 0#
+                meanStdDev(2) = 0#
                 For iTrialNum = 0 To UBound(arrTrials)
                     arrTrial = arrTrials(iTrialNum)
                     thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = arrTrial(0)
@@ -581,37 +679,169 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                     If arrTrial(4) = "" And arrTrial(6) = "" And arrTrial(7) = "" Then
                         'contribute to the mean
                         nInMeanSoFar = nInMeanSoFar + 1
-                        diff = arrTrial(3) - arrTrial(5)
+                        diff = arrTrial(5) - arrTrial(3)
                         meanHRChange = meanHRChange + ((diff - meanHRChange) / CDbl(nInMeanSoFar))
                         
+                        If Not arrParamSets(iParamSetNum) = "No stimulation, No stimulation" Then
+                            currPooledHRChN = currPooledHRChN + 1
+                            currPooledHRChMean = currPooledHRChMean + ((diff - currPooledHRChMean) / CDbl(currPooledHRChN))
+                            currPooledHRChCum = currPooledHRChCum + (diff ^ 2)
+                        Else
+                            noStimPooledHRChN = noStimPooledHRChN + 1
+                            noStimPooledHRChMean = noStimPooledHRChMean + ((diff - noStimPooledHRChMean) / CDbl(noStimPooledHRChN))
+                            noStimPooledHRChCum = noStimPooledHRChCum + (diff ^ 2)
+                        End If
+                        
                         'check if HR rose or fell
-                        If diff > 0 Then
+                        If diff < 0 Then
                             HRDecTrials = HRDecTrials + 1
                         Else
                             HRIncTrials = HRIncTrials + 1
                         End If
+                    Else
+                        nExcluded = nExcluded + 1
                     End If
                     
+                    If arrTrial(2) = "" And arrTrial(7) = "" Then
+                        nInMeanStdDevSoFar(0) = nInMeanStdDevSoFar(0) + 1
+                        meanStdDev(0) = meanStdDev(0) + ((arrTrial(8) - meanStdDev(0)) / CDbl(nInMeanStdDevSoFar(0)))
+                        
+                        If Not arrParamSets(iParamSetNum) = "No stimulation, No stimulation" Then
+                            currPooledVarN(0) = currPooledVarN(0) + 1
+                            currPooledVarMean(0) = currPooledVarMean(0) + CDbl(((arrTrial(8) - currPooledVarMean(0)) / CDbl(currPooledVarN(0))))
+                            currPooledVarCum(0) = currPooledVarCum(0) + CDbl((arrTrial(8)) ^ 2)
+                        Else
+                            noStimPooledVarN(0) = noStimPooledVarN(0) + 1
+                            noStimPooledVarMean(0) = noStimPooledVarMean(0) + CDbl(((arrTrial(8) - noStimPooledVarMean(0)) / CDbl(noStimPooledVarN(0))))
+                            noStimPooledVarCum(0) = noStimPooledVarCum(0) + CDbl((arrTrial(8)) ^ 2)
+                        End If
+                    End If
+                    
+                    If arrTrial(4) = "" And arrTrial(7) = "" Then
+                        nInMeanStdDevSoFar(1) = nInMeanStdDevSoFar(1) + 1
+                        meanStdDev(1) = meanStdDev(1) + ((arrTrial(9) - meanStdDev(1)) / CDbl(nInMeanStdDevSoFar(1)))
+                        
+                        If Not arrParamSets(iParamSetNum) = "No stimulation, No stimulation" Then
+                            currPooledVarN(1) = currPooledVarN(1) + 1
+                            currPooledVarMean(1) = currPooledVarMean(1) + CDbl(((arrTrial(9) - currPooledVarMean(1)) / CDbl(currPooledVarN(1))))
+                            currPooledVarCum(1) = currPooledVarCum(1) + CDbl((arrTrial(9)) ^ 2)
+                        Else
+                            noStimPooledVarN(1) = noStimPooledVarN(1) + 1
+                            noStimPooledVarMean(1) = noStimPooledVarMean(1) + CDbl(((arrTrial(9) - noStimPooledVarMean(1)) / CDbl(noStimPooledVarN(1))))
+                            noStimPooledVarCum(1) = noStimPooledVarCum(1) + CDbl((arrTrial(9)) ^ 2)
+                        End If
+                    End If
+                    
+                    If arrTrial(6) = "" And arrTrial(7) = "" Then
+                        nInMeanStdDevSoFar(2) = nInMeanStdDevSoFar(2) + 1
+                        meanStdDev(2) = meanStdDev(2) + ((arrTrial(9) - meanStdDev(2)) / CDbl(nInMeanStdDevSoFar(2)))
+                        
+                        If Not arrParamSets(iParamSetNum) = "No stimulation, No stimulation" Then
+                            currPooledVarN(2) = currPooledVarN(2) + 1
+                            currPooledVarMean(2) = currPooledVarMean(2) + CDbl(((arrTrial(10) - currPooledVarMean(2)) / CDbl(currPooledVarN(2))))
+                            currPooledVarCum(2) = currPooledVarCum(2) + CDbl((arrTrial(10)) ^ 2)
+                        Else
+                            noStimPooledVarN(2) = noStimPooledVarN(2) + 1
+                            noStimPooledVarMean(2) = noStimPooledVarMean(2) + CDbl(((arrTrial(10) - noStimPooledVarMean(2)) / CDbl(noStimPooledVarN(2))))
+                            noStimPooledVarCum(2) = noStimPooledVarCum(2) + CDbl((arrTrial(10)) ^ 2)
+                        End If
+                    End If
                 Next
                 
                 'calculate variance
                 For iTrialNum = 0 To UBound(arrTrials)
                     arrTrial = arrTrials(iTrialNum)
                     If arrTrial(4) = "" And arrTrial(6) = "" And arrTrial(7) = "" Then
-                        diff = arrTrial(3) - arrTrial(5)
+                        diff = arrTrial(5) - arrTrial(3)
                         HRChangeVar = HRChangeVar + (meanHRChange - diff) ^ 2
+'                        StdDevVar = StdDevVar + (meanStdDev - arrTrial(8)) ^ 2
+                    End If
+                    
+                    If arrTrial(2) = "" And arrTrial(7) = "" Then
+                        StdDevVar(0) = StdDevVar(0) + (meanStdDev(0) - arrTrial(8)) ^ 2
+                    End If
+                    
+                    If arrTrial(4) = "" And arrTrial(7) = "" Then
+                        StdDevVar(1) = StdDevVar(1) + (meanStdDev(1) - arrTrial(9)) ^ 2
+                    End If
+                    
+                    If arrTrial(6) = "" And arrTrial(7) = "" Then
+                        StdDevVar(2) = StdDevVar(2) + (meanStdDev(2) - arrTrial(10)) ^ 2
                     End If
                 Next
+                
+                For iVarCycling = 0 To 2
+                    If nInMeanStdDevSoFar(iVarCycling) > 1 Then
+                        StdDevVar(iVarCycling) = StdDevVar(iVarCycling) / (nInMeanStdDevSoFar(iVarCycling) - 1)
+                    End If
+                Next
+                
                 If nInMeanSoFar > 1 Then
                     HRChangeVar = HRChangeVar / (nInMeanSoFar - 1)
                     tStat = meanHRChange / ((HRChangeVar / nInMeanSoFar) ^ 0.5)
                 End If
                 
                 iExcelOffset = iExcelOffset + 1
+                iPrevExcelOffset = iExcelOffset
+                
+                For iVarCycling = 0 To 2
+                    If nInMeanStdDevSoFar(iVarCycling) > 0 Then
+                            Select Case iVarCycling
+                                Case 0:
+                                    iSummaryCol = 10
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 4).Value = "-84s to -4s"
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 4).Font.Bold = True
+                                Case 1:
+                                    iSummaryCol = 13
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 4).Value = "-4s to 0s"
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 4).Font.Bold = True
+                                Case 2:
+                                    iSummaryCol = 16
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 4).Value = "5s to 9s"
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 4).Font.Bold = True
+                            End Select
+                            iExcelOffset = iExcelOffset + 1
+                            thisAnimalWorksheet.Cells(iExcelOffset, 4).Value = "N:"
+                            thisAnimalWorksheet.Cells(iExcelOffset, 4).Font.Italic = True
+                            thisAnimalWorksheet.Cells(iExcelOffset, 5).Value = nInMeanStdDevSoFar(iVarCycling)
+                            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol) = nInMeanStdDevSoFar(iVarCycling)
+                            iExcelOffset = iExcelOffset + 1
+                            thisAnimalWorksheet.Cells(iExcelOffset, 4).Value = "Mean StdDev:"
+                            thisAnimalWorksheet.Cells(iExcelOffset, 4).Font.Italic = True
+                            thisAnimalWorksheet.Cells(iExcelOffset, 5).Value = meanStdDev(iVarCycling)
+                            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol + 1) = meanStdDev(iVarCycling)
+                        If nInMeanStdDevSoFar(iVarCycling) > 1 Then
+                            iExcelOffset = iExcelOffset + 1
+                            thisAnimalWorksheet.Cells(iExcelOffset, 4).Value = "StdDev of StdDev:"
+                            thisAnimalWorksheet.Cells(iExcelOffset, 4).Font.Italic = True
+                            thisAnimalWorksheet.Cells(iExcelOffset, 5).Value = StdDevVar(iVarCycling) ^ 0.5
+                            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol + 2) = StdDevVar(iVarCycling) ^ 0.5
+                        Else
+                            iExcelOffset = iExcelOffset + 1
+                            thisAnimalWorksheet.Cells(iExcelOffset, 4).Value = "StdDev of StdDev:"
+                            thisAnimalWorksheet.Cells(iExcelOffset, 4).Font.Italic = True
+                            thisAnimalWorksheet.Cells(iExcelOffset, 5).Value = "Could not be computed; N=1"
+                            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol + 2) = "=NA()"
+                        End If
+                        iExcelOffset = iExcelOffset + 2
+                    End If
+                Next
+
+                iMaxExcelOffset = iExcelOffset
+                iExcelOffset = iPrevExcelOffset
+                
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 2) = nInMeanSoFar
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 3) = nExcluded
+                
                 thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "N included:"
                 thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
                 thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = nInMeanSoFar
                 iExcelOffset = iExcelOffset + 1
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "N excluded:"
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
+                thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = nExcluded
+                iExcelOffset = iExcelOffset + 1
+
                 If nInMeanSoFar > 0 Then
                     thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "HR decrease trials:"
                     thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
@@ -623,23 +853,40 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                     iExcelOffset = iExcelOffset + 1
                     thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "% decrease trials:"
                     thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = (HRDecTrials / nInMeanSoFar) * 100
-                    thisAnimalWorksheet.Cells(iExcelOffset, 1).Style = "Percent"
+                    thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = (HRDecTrials / nInMeanSoFar)
+                    thisAnimalWorksheet.Cells(iExcelOffset, 2).Style = "Percent"
                     Call thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions.Delete
-                    Call thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions.Add(xlCellValue, xlNotBetween, "15", "85")
+                    Call thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions.Add(xlCellValue, xlNotBetween, ".15", ".85")
                     thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(1).Font.Color = percOutside1585FC.Font.Color
                     thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(1).Font.ColorIndex = percOutside1585FC.Font.ColorIndex
                     thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(1).Interior.Color = percOutside1585FC.Interior.Color
                     thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(1).Interior.ColorIndex = percOutside1585FC.Interior.ColorIndex
-                    Call thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions.Add(xlCellValue, xlNotBetween, "25", "75")
+                    Call thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions.Add(xlCellValue, xlNotBetween, ".25", ".75")
                     thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Font.Color = percOutside2575FC.Font.Color
                     thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Font.ColorIndex = percOutside2575FC.Font.ColorIndex
                     thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Interior.Color = percOutside2575FC.Interior.Color
                     thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Interior.ColorIndex = percOutside2575FC.Interior.ColorIndex
+                    
+                    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4) = (HRDecTrials / nInMeanSoFar)
+                    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).Style = "Percent"
+                    Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions.Delete
+                    Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions.Add(xlCellValue, xlNotBetween, ".15", ".85")
+                    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Font.Color = percOutside1585FC.Font.Color
+                    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Font.ColorIndex = percOutside1585FC.Font.ColorIndex
+                    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Interior.Color = percOutside1585FC.Interior.Color
+                    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Interior.ColorIndex = percOutside1585FC.Interior.ColorIndex
+                    Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions.Add(xlCellValue, xlNotBetween, ".25", ".75")
+                    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Font.Color = percOutside2575FC.Font.Color
+                    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Font.ColorIndex = percOutside2575FC.Font.ColorIndex
+                    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Interior.Color = percOutside2575FC.Interior.Color
+                    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Interior.ColorIndex = percOutside2575FC.Interior.ColorIndex
+
+                    
                     iExcelOffset = iExcelOffset + 2
                     thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Mean change:"
                     thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
                     thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = meanHRChange
+                    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 5) = meanHRChange
                     iExcelOffset = iExcelOffset + 1
                     If nInMeanSoFar > 1 Then
                         thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Variance:"
@@ -647,12 +894,16 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                         iExcelOffset = iExcelOffset + 1
                         thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Standard Deviation:"
                         thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = HRChangeVar ^ 0.5
+                        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value = HRChangeVar ^ 0.5
                         iExcelOffset = iExcelOffset + 1
                         thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Std. Error of Mean:"
                         thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = ((HRChangeVar / nInMeanSoFar) ^ 0.5)
                         iExcelOffset = iExcelOffset + 1
                         thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "T-statistic:"
                         thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = tStat
+                        thisAnimalWorksheet.Cells(iExcelOffset, 2).NumberFormat = "0.000"
+                        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Value = tStat
+                        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).NumberFormat = "0.000"
                         iExcelOffset = iExcelOffset + 1
                         thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "P-value:"
                         thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
@@ -668,16 +919,177 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                         thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Font.ColorIndex = pLess10FC.Font.ColorIndex
                         thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Interior.Color = pLess10FC.Interior.Color
                         thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Interior.ColorIndex = pLess10FC.Interior.ColorIndex
+                        thisAnimalWorksheet.Cells(iExcelOffset, 2).NumberFormat = "0.000"
+                        
+                        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).Value = "=TDIST(ABS(" & thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Address & ")," & CStr(nInMeanSoFar - 1) & ",1)"
+                        Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions.Delete
+                        Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions.Add(xlCellValue, xlLessEqual, ".05")
+                        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions(1).Font.Color = pLess05FC.Font.Color
+                        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions(1).Font.ColorIndex = pLess05FC.Font.ColorIndex
+                        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions(1).Interior.Color = pLess05FC.Interior.Color
+                        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions(1).Interior.ColorIndex = pLess05FC.Interior.ColorIndex
+                        Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions.Add(xlCellValue, xlLessEqual, ".1")
+                        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions(2).Font.Color = pLess10FC.Font.Color
+                        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions(2).Font.ColorIndex = pLess10FC.Font.ColorIndex
+                        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions(2).Interior.Color = pLess10FC.Interior.Color
+                        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions(2).Interior.ColorIndex = pLess10FC.Interior.ColorIndex
+                        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).NumberFormat = "0.000"
                     Else
                         thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Additional stats could not be calculated (N=1)"
+                        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6) = "=NA()"
+                        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7) = "=NA()"
+                        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8) = "=NA()"
                     End If
                 End If
                 
-                iExcelOffset = iExcelOffset + 2
+                If Not arrParamSets(iParamSetNum) = "No stimulation, No stimulation" Then
+                    currPooledHRChNExcl = currPooledHRChNExcl + nExcluded
+                    currPooledHRChNDec = currPooledHRChNDec + HRDecTrials
+                Else
+                    noStimPooledHRChNExcl = noStimPooledHRChNExcl + nExcluded
+                    noStimPooledHRChNDec = noStimPooledHRChNDec + HRDecTrials
+                End If
+                                
+                If iMaxExcelOffset > iExcelOffset Then
+                    iExcelOffset = iMaxExcelOffset + 2
+                Else
+                    iExcelOffset = iExcelOffset + 2
+                End If
+                thisAnimalSummarySheetRow = thisAnimalSummarySheetRow + 1
             Next
             iExcelOffset = iExcelOffset + 1
         End If
+               
+        Select Case arrTrialTypes(iTrialTypeNum)
+            Case "Acoustic":
+                AcoPooledHRChN = currPooledHRChN
+                AcoPooledHRChMean = currPooledHRChMean
+                AcoPooledHRChCum = currPooledHRChCum
+                AcoPooledHRChNExcl = currPooledHRChNExcl
+                AcoPooledHRChNDec = currPooledHRChNDec
+            
+                AcoPooledVarMean = currPooledVarMean
+                AcoPooledVarCum = currPooledVarCum
+                AcoPooledVarN = currPooledVarN
+            Case "Electrical":
+                ElPooledHRChN = currPooledHRChN
+                ElPooledHRChMean = currPooledHRChMean
+                ElPooledHRChCum = currPooledHRChCum
+                ElPooledHRChNExcl = currPooledHRChNExcl
+                ElPooledHRChNDec = currPooledHRChNDec
+                
+                ElPooledVarMean = currPooledVarMean
+                ElPooledVarCum = currPooledVarCum
+                ElPooledVarN = currPooledVarN
+        End Select
     Next
+    
+    If trialType = "Acoustic" Or trialType = "" Then
+        thisAnimalSummarySheetRow = thisAnimalSummarySheetRow + 2
+            
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1).Value = "Acoustic"
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1).Font.Bold = True
+        
+        For iVarCycling = 0 To 2
+            Select Case iVarCycling
+                Case 0:
+                    iSummaryCol = 10
+                Case 1:
+                    iSummaryCol = 13
+                Case 2:
+                    iSummaryCol = 16
+            End Select
+    
+            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol) = AcoPooledVarN(iVarCycling)
+            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol + 1) = AcoPooledVarMean(iVarCycling)
+            If AcoPooledVarN(iVarCycling) > 1 Then
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol + 2) = ((AcoPooledVarCum(iVarCycling) - ((AcoPooledVarMean(iVarCycling) * CDbl(AcoPooledVarN(iVarCycling)) ^ 2) / CDbl(AcoPooledVarN(iVarCycling)))) / CDbl(AcoPooledVarN(iVarCycling) - 1)) ^ 0.5
+            End If
+        Next
+    
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 2).Value = AcoPooledHRChN
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 3).Value = AcoPooledHRChNExcl
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).Value = AcoPooledHRChNDec
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 5).Value = AcoPooledHRChMean
+        If AcoPooledHRChN > 1 Then
+            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value = ((AcoPooledHRChCum - ((AcoPooledHRChMean * CDbl(AcoPooledHRChN) ^ 2) / CDbl(AcoPooledHRChN))) / CDbl(AcoPooledHRChN - 1)) ^ 0.5
+            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Value = AcoPooledHRChMean / ((thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value / AcoPooledHRChN) ^ 0.5)
+            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).Value = "=TDIST(ABS(" & thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Address & ")," & CStr(AcoPooledHRChN - 1) & ",1)"
+        End If
+    End If
+   
+    If trialType = "Electrical" Or trialType = "" Then
+        thisAnimalSummarySheetRow = thisAnimalSummarySheetRow + 2
+            
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1).Value = "Electrical"
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1).Font.Bold = True
+        
+        For iVarCycling = 0 To 2
+            Select Case iVarCycling
+                Case 0:
+                    iSummaryCol = 10
+                Case 1:
+                    iSummaryCol = 13
+                Case 2:
+                    iSummaryCol = 16
+            End Select
+    
+            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol) = ElPooledVarN(iVarCycling)
+            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol + 1) = ElPooledVarMean(iVarCycling)
+            If ElPooledVarN(iVarCycling) > 1 Then
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol + 2) = ((ElPooledVarCum(iVarCycling) - ((ElPooledVarMean(iVarCycling) * CDbl(ElPooledVarN(iVarCycling)) ^ 2) / CDbl(ElPooledVarN(iVarCycling)))) / CDbl(ElPooledVarN(iVarCycling) - 1)) ^ 0.5
+            End If
+        Next
+    
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 2).Value = ElPooledHRChN
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 3).Value = ElPooledHRChNExcl
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).Value = ElPooledHRChNDec
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 5).Value = ElPooledHRChMean
+        If ElPooledHRChN > 1 Then
+            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value = ((ElPooledHRChCum - ((ElPooledHRChMean * CDbl(ElPooledHRChN) ^ 2) / CDbl(ElPooledHRChN))) / CDbl(ElPooledHRChN - 1)) ^ 0.5
+            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Value = ElPooledHRChMean / ((thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value / ElPooledHRChN) ^ 0.5)
+            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).Value = "=TDIST(ABS(" & thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Address & ")," & CStr(ElPooledHRChN - 1) & ",1)"
+        End If
+    End If
+    
+    If trialType = "Electrical" Or trialType = "" Then 'no stimulation trials
+        If noStimPooledHRChN > 0 Then
+            thisAnimalSummarySheetRow = thisAnimalSummarySheetRow + 2
+                
+            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1).Value = "No Stimulation"
+            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1).Font.Bold = True
+            
+            For iVarCycling = 0 To 2
+                Select Case iVarCycling
+                    Case 0:
+                        iSummaryCol = 10
+                    Case 1:
+                        iSummaryCol = 13
+                    Case 2:
+                        iSummaryCol = 16
+                End Select
+        
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol) = noStimPooledVarN(iVarCycling)
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol + 1) = noStimPooledVarMean(iVarCycling)
+                If noStimPooledVarN(iVarCycling) > 1 Then
+                    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol + 2) = ((noStimPooledVarCum(iVarCycling) - ((noStimPooledVarMean(iVarCycling) * CDbl(noStimPooledVarN(iVarCycling)) ^ 2) / CDbl(noStimPooledVarN(iVarCycling)))) / CDbl(noStimPooledVarN(iVarCycling) - 1)) ^ 0.5
+                End If
+            Next
+        
+            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 2).Value = noStimPooledHRChN
+            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 3).Value = noStimPooledHRChNExcl
+            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).Value = noStimPooledHRChNDec
+            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 5).Value = noStimPooledHRChMean
+            If noStimPooledHRChN > 1 Then
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value = ((noStimPooledHRChCum - ((noStimPooledHRChMean * CDbl(noStimPooledHRChN) ^ 2) / CDbl(noStimPooledHRChN))) / CDbl(noStimPooledHRChN - 1)) ^ 0.5
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Value = noStimPooledHRChMean / ((thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value / noStimPooledHRChN) ^ 0.5)
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).Value = "=TDIST(ABS(" & thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Address & ")," & CStr(noStimPooledHRChN - 1) & ",1)"
+            End If
+        End If
+    End If
+    
+    thisAnimalSummarySheetRow = thisAnimalSummarySheetRow + 2
+
 End Sub
 
 
