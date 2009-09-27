@@ -73,6 +73,9 @@ Sub bulkBuildTuningCurves()
         Dim blnAutoPlot As Boolean
         blnAutoPlot = thisWorkbook.Worksheets("Settings").Range("B5").Value
        
+        Dim blnPlotOnlyCandidates As Boolean
+        blnPlotOnlyCandidates = thisWorkbook.Worksheets("Settings").Range("B6").Value
+       
         Dim dBlocks As Dictionary
         Set dBlocks = New Dictionary
         Dim i As Integer
@@ -127,7 +130,11 @@ Sub bulkBuildTuningCurves()
                 Call outputWorkbook.SaveAs(outputFilename, 52)
                 If blnAutoPlot Then
                     Set plotWorkbook = outputWorkbook
-                    Call transferAllToSigmaplot
+                    If blnPlotOnlyCandidates Then
+                        Call transferCandidatesToSigmaplot
+                    Else
+                        Call transferAllToSigmaplot
+                    End If
                 End If
                 If blnAutoclose Then
                     Call outputWorkbook.Close
@@ -962,7 +969,7 @@ Sub detectTunedSegments()
     Dim iOutputOffset As Integer
     iOutputOffset = 2
     
-    outputWorkbook.Worksheets("Likely Tuned Channels").UsedRange.Clear
+    outputWorkbook.Worksheets("Likely Tuned Channels").Range("A2:D200").Clear
 
     Dim zOffsetSize As Long
     Dim iColOffset As Integer
@@ -991,21 +998,42 @@ Sub detectTunedSegments()
     Dim iCol As Integer
     Dim blnLooksGood As Boolean
     
+    Dim dblMean() As Double
+    ReDim dblMean(yCount - 1)
+    Dim dblVar() As Double
+    ReDim dblVar(yCount - 1)
+    Dim iOffset As Integer
+
     Do
         dRowTotal = 0#
         dFirstRowTotal = 0#
+        For iOffset = 0 To (yCount - 1)
+            dblVar(iOffset) = 0#
+            dblMean(iOffset) = 0#
+        Next
+        iOffset = 0
+        
         If outputWorkbook.Worksheets("Means").Cells(yPos, xPos).Value <> "" Then
             blnLooksGood = True
-            For iRow = (yPos + 2) To (yPos + yCount + 2) 'only want to look at the first 2 rows - after than there is no real guarantees
-                For iCol = (xPos + 1) To (xPos + xCount + 1)
+            For iRow = (yPos + 2) To (yPos + yCount + 1) 'only want to look at the first 2 rows - after than there is no real guarantees
+                For iCol = (xPos + 1) To (xPos + xCount)
                     dRowTotal = dRowTotal + outputWorkbook.Worksheets("Means").Cells(iRow, iCol).Value
+                    dblVar(iOffset) = dblVar(iOffset) + ((outputWorkbook.Worksheets("Means").Cells(iRow, iCol).Value) ^ 2)
                 Next
+                
+                dblVar(iOffset) = ((dblVar(iOffset) - ((dRowTotal ^ 2) / xCount)) / xCount)
+                dblMean(iOffset) = dRowTotal / xCount
+                iOffset = iOffset + 1
                 If iRow > (yPos + 2) Then 'can only compare to previous row if not first row
                     If (dRowTotal * marginForGoodTuning) > dFirstRowTotal Then
                         blnLooksGood = False
                         Exit For
                     End If
                 Else
+                    If dblVar(0) < 0.1 Then 'if the variance is less than 0.1 it is probably a dead or noise channel - insufficient variability for even a moderate tuning curve?
+                        blnLooksGood = False
+                        Exit For
+                    End If
                     dFirstRowTotal = dRowTotal
                 End If
                 dRowTotal = 0
@@ -1013,6 +1041,10 @@ Sub detectTunedSegments()
             If blnLooksGood Then
                 outputWorkbook.Worksheets("Likely Tuned Channels").Cells(iOutputOffset, 1).Value = outputWorkbook.Worksheets("Means").Cells(yPos, xPos).Value
                 outputWorkbook.Worksheets("Likely Tuned Channels").Cells(iOutputOffset, 2).Value = yPos
+                For iOffset = 0 To (yCount - 1)
+                    outputWorkbook.Worksheets("Likely Tuned Channels").Cells(iOutputOffset, 4 + (3 * iOffset)).Value = dblVar(iOffset)
+                    outputWorkbook.Worksheets("Likely Tuned Channels").Cells(iOutputOffset, 5 + (3 * iOffset)).Value = dblMean(iOffset)
+                Next
                 iOutputOffset = iOutputOffset + 1
             End If
             

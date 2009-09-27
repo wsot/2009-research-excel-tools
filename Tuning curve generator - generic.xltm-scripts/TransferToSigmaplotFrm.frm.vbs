@@ -1,5 +1,5 @@
 Attribute VB_Name = "TransferToSigmaplotFrm"
-Attribute VB_Base = "0{5C4318C5-A6AB-4CE9-BFDD-7EF488EC8519}{D3E91EF7-CC5A-4108-958E-D83173360D87}"
+Attribute VB_Base = "0{48F33DE5-5F67-4FB1-883F-C183FED19146}{CB4C92A8-26B5-4A28-B541-D3C408413EBD}"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
