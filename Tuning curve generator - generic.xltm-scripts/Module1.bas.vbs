@@ -19,8 +19,124 @@ Global plotWorkbook As Workbook
 
 Global plotWhichSheet As String
 
+Global bulkImportRootDir As String
+
+Const marginForGoodTuning = 1#
+
 Dim vXAxisKeys As Variant
 Dim vYAxisKeys As Variant
+
+Sub bulkBuildTuningCurves()
+'        Dim thisWorkbook As Workbook
+    Set thisWorkbook = Application.ActiveWorkbook
+
+'    If IsEmpty(theTank) Then
+    theServer = thisWorkbook.Worksheets("Variables (do not edit)").Range("B1").Value
+'        theTank = thisWorkbook.Worksheets("Variables (do not edit)").Range("B2").Value
+'        theBlock = thisWorkbook.Worksheets("Variables (do not edit)").Range("B3").Value
+'    End If
+
+    bulkImportRootDir = thisWorkbook.Worksheets("Settings").Range("B21").Value
+    If bulkImportRootDir = "" Then
+        MsgBox "If bulk importing, a root data folder must be specified"
+        Exit Sub
+    ElseIf Not checkPathExists(bulkImportRootDir) Then
+        MsgBox "The bulk import path does not exist: " & bulkImportRootDir
+        Exit Sub
+    End If
+
+    BulkImportFrom.Show
+    
+    If doImport Then
+        Dim specifiedOutputDir As String
+        Dim outputDir As String
+        Dim outputFilename As String
+        specifiedOutputDir = thisWorkbook.Worksheets("Settings").Range("B12").Value
+        'outputDir = getOutputDir(specifiedOutputDir, theTank)
+                        
+        Dim templatePath As String
+        templatePath = thisWorkbook.Worksheets("Settings").Range("B16").Value
+        
+        Dim outputFilePrefix As String
+        outputFilePrefix = thisWorkbook.Worksheets("Settings").Range("B11").Value
+        
+        Dim blnAutoclose As Boolean
+        blnAutoclose = thisWorkbook.Worksheets("Settings").Range("B10").Value
+        
+        Dim blnAutosave As Boolean
+        If blnAutoclose Then
+            blnAutosave = True
+        Else
+            blnAutosave = thisWorkbook.Worksheets("Settings").Range("B9").Value
+        End If
+        
+        Dim blnAutoPlot As Boolean
+        blnAutoPlot = thisWorkbook.Worksheets("Settings").Range("B5").Value
+       
+        Dim dBlocks As Dictionary
+        Set dBlocks = New Dictionary
+        Dim i As Integer
+        i = 2
+        
+        While thisWorkbook.Worksheets("Variables (do not edit)").Range("N" & i).Value <> ""
+            If Not dBlocks.Exists(thisWorkbook.Worksheets("Variables (do not edit)").Range("N" & i).Value) Then
+                Call dBlocks.Add(thisWorkbook.Worksheets("Variables (do not edit)").Range("N" & i).Value, 0)
+            End If
+            i = i + 1
+        Wend
+    
+        Dim theBlocks As Variant
+        theBlocks = dBlocks.Keys
+        
+        Application.DisplayAlerts = False
+        
+'        Dim outputWorkbook As Workbook
+        
+        For i = LBound(theBlocks) To UBound(theBlocks)
+            'Call Worksheets("Totals").UsedRange.ClearContents
+            'Call Worksheets("StdDev").UsedRange.ClearContents
+            'Call Worksheets("Means").UsedRange.ClearContents
+            'Call Worksheets("N").UsedRange.ClearContents
+            theTank = Left(theBlocks(i), InStr(theBlocks(i), ":") - 1)
+            theBlock = Right(theBlocks(i), Len(theBlocks(i)) - Len(theTank) - 1)
+            theTank = bulkImportRootDir & "\" & theTank
+            
+            If i = 0 Then
+                templatePath = getTemplateFilename(templatePath, theTank)
+            End If
+            Set outputWorkbook = Workbooks.Open(templatePath)
+            
+            If specifiedOutputDir = "" Then
+                outputDir = getOutputDir("", theTank)
+                outputFilename = outputDir & "\" & outputFilePrefix & theBlock
+            Else
+                outputDir = getOutputDir(specifiedOutputDir, theTank)
+                If outputDir = "" Then
+                    MsgBox ("Output directory " & outputDir & " could not be found." & vbCrLf & "Please update the path and try again")
+                    Exit Sub
+                End If
+                outputFilename = outputDir & "\" & Replace(theTank, "\", ".") & "_" & outputFilePrefix & theBlock
+            End If
+            
+            outputWorkbook.Worksheets("Variables (do not edit)").Range("B2").Value = theTank 'update the block on the worksheet
+            outputWorkbook.Worksheets("Variables (do not edit)").Range("B3").Value = theBlock 'update the block on the worksheet
+            outputWorkbook.Worksheets("Settings").Range("B18").Value = thisWorkbook.Worksheets("Settings").Range("B18").Value
+            Call processImport(False)
+            Call detectTunedSegments
+            If blnAutosave Then
+                Call outputWorkbook.SaveAs(outputFilename, 52)
+                If blnAutoPlot Then
+                    Set plotWorkbook = outputWorkbook
+                    Call transferAllToSigmaplot
+                End If
+                If blnAutoclose Then
+                    Call outputWorkbook.Close
+                End If
+            End If
+        Next
+        Application.DisplayAlerts = True
+    End If
+End Sub
 
 Sub buildTuningCurves()
 '        Dim thisWorkbook As Workbook
@@ -177,8 +293,8 @@ Sub processImport(importIntoSigmaplot As Boolean)
 '    Dim vXAxisKeys As Variant
 '    Dim vYAxisKeys As Variant
     
-    vXAxisKeys = buildEpocList(objTTX, xAxisEp, bReverseX)
-    vYAxisKeys = buildEpocList(objTTX, yAxisEp, bReverseY)
+    vXAxisKeys = BuildEpocList(objTTX, xAxisEp, bReverseX)
+    vYAxisKeys = BuildEpocList(objTTX, yAxisEp, bReverseY)
         
     Dim i As Long
     Dim j As Long
@@ -190,7 +306,7 @@ Sub processImport(importIntoSigmaplot As Boolean)
         ReDim arrOtherEpocKeys(UBound(arrOtherEp))
         
         For i = 0 To UBound(arrOtherEp)
-            arrOtherEpocKeys(i) = buildEpocList(objTTX, arrOtherEp(i), False)
+            arrOtherEpocKeys(i) = BuildEpocList(objTTX, arrOtherEp(i), False)
         Next
     End If
     
@@ -470,7 +586,7 @@ Sub TransferToSigmaplot()
 End Sub
 
 
-Function buildEpocList(objTTX, AxisEp, bReverseOrder)
+Function BuildEpocList(objTTX, AxisEp, bReverseOrder)
     'build list of epocs for the given axis epoc name
     
     Dim AxisList As Dictionary
@@ -518,9 +634,9 @@ Function buildEpocList(objTTX, AxisEp, bReverseOrder)
         For i = 0 To UBound(tempArr)
             returnArr(i) = tempArr(UBound(tempArr) - i)
         Next
-        buildEpocList = returnArr
+        BuildEpocList = returnArr
     Else
-        buildEpocList = AxisList.Keys
+        BuildEpocList = AxisList.Keys
     End If
 
 End Function
@@ -738,6 +854,43 @@ Sub transferAllToSigmaplot()
     End If
 End Sub
 
+Sub transferCandidatesToSigmaplot()
+    plotWhichSheet = plotWorkbook.Worksheets("Settings").Range("B18").Value
+
+'    Dim zOffsetSize As Long
+'    Dim iColOffset As Integer
+'    Dim iRowOffset As Integer
+
+'    zOffsetSize = plotWorkbook.Worksheets("Variables (do not edit)").Range("H3").Value
+'    iColOffset = plotWorkbook.Worksheets("Variables (do not edit)").Range("H5").Value
+'    iRowOffset = plotWorkbook.Worksheets("Variables (do not edit)").Range("H6").Value
+
+'    Dim xPos As Long
+'    Dim yPos As Long
+   
+'    xPos = iColOffset + 1
+'    yPos = iRowOffset
+    
+    Dim iRow As Integer
+    iRow = 2
+    
+    Set dHeadingsSelected = New Dictionary
+    
+    Do
+        If plotWorkbook.Worksheets("Likely tuned channels").Cells(iRow, 1).Value <> "" Then
+            If Not dHeadingsSelected.Exists(plotWorkbook.Worksheets("Likely tuned channels").Cells(iRow, 1).Value) Then
+                Call dHeadingsSelected.Add(plotWorkbook.Worksheets("Likely tuned channels").Cells(iRow, 1).Value, 0)
+            End If
+            iRow = iRow + 1
+        Else
+            Exit Do
+        End If
+    Loop
+    
+    If doImport Then
+        Call TransferToSigmaplot
+    End If
+End Sub
 Function getOutputDir(theOutputDir, fileOnTargetDrive) As String
     
     Dim objFS As FileSystemObject
@@ -783,3 +936,90 @@ Function getTemplateFilename(templateName, fileOnTargetDrive) As String
     
 End Function
 
+Function checkPathExists(thePath As String) As Boolean
+    
+    
+    If thePath = "" Then
+        checkPathExists = False
+    Else
+        Dim objFS As FileSystemObject
+        Set objFS = CreateObject("Scripting.FileSystemObject")
+        If Not objFS.FolderExists(thePath) Then
+            checkPathExists = False
+        Else
+            checkPathExists = True
+        End If
+        Set objFS = Nothing
+    End If
+
+End Function
+
+
+Sub detectTunedSegments()
+    If outputWorkbook Is Nothing Then
+        Set outputWorkbook = Application.ActiveWorkbook
+    End If
+    Dim iOutputOffset As Integer
+    iOutputOffset = 2
+    
+    outputWorkbook.Worksheets("Likely Tuned Channels").UsedRange.Clear
+
+    Dim zOffsetSize As Long
+    Dim iColOffset As Integer
+    Dim iRowOffset As Integer
+
+    Dim xCount As Integer
+    Dim yCount As Integer
+
+    zOffsetSize = outputWorkbook.Worksheets("Variables (do not edit)").Range("H3").Value
+    iColOffset = outputWorkbook.Worksheets("Variables (do not edit)").Range("H5").Value
+    iRowOffset = outputWorkbook.Worksheets("Variables (do not edit)").Range("H6").Value
+
+    xCount = outputWorkbook.Worksheets("Variables (do not edit)").Range("H1").Value
+    yCount = outputWorkbook.Worksheets("Variables (do not edit)").Range("H2").Value
+
+    Dim xPos As Long
+    Dim yPos As Long
+   
+    xPos = iColOffset + 1
+    yPos = iRowOffset
+
+    Dim dRowTotal As Double
+    Dim dFirstRowTotal As Double
+    
+    Dim iRow As Integer
+    Dim iCol As Integer
+    Dim blnLooksGood As Boolean
+    
+    Do
+        dRowTotal = 0#
+        dFirstRowTotal = 0#
+        If outputWorkbook.Worksheets("Means").Cells(yPos, xPos).Value <> "" Then
+            blnLooksGood = True
+            For iRow = (yPos + 2) To (yPos + yCount + 2) 'only want to look at the first 2 rows - after than there is no real guarantees
+                For iCol = (xPos + 1) To (xPos + xCount + 1)
+                    dRowTotal = dRowTotal + outputWorkbook.Worksheets("Means").Cells(iRow, iCol).Value
+                Next
+                If iRow > (yPos + 2) Then 'can only compare to previous row if not first row
+                    If (dRowTotal * marginForGoodTuning) > dFirstRowTotal Then
+                        blnLooksGood = False
+                        Exit For
+                    End If
+                Else
+                    dFirstRowTotal = dRowTotal
+                End If
+                dRowTotal = 0
+            Next
+            If blnLooksGood Then
+                outputWorkbook.Worksheets("Likely Tuned Channels").Cells(iOutputOffset, 1).Value = outputWorkbook.Worksheets("Means").Cells(yPos, xPos).Value
+                outputWorkbook.Worksheets("Likely Tuned Channels").Cells(iOutputOffset, 2).Value = yPos
+                iOutputOffset = iOutputOffset + 1
+            End If
+            
+            yPos = yPos + zOffsetSize
+        Else
+            Exit Do
+        End If
+    Loop
+    
+End Sub
