@@ -17,6 +17,8 @@ Global thisWorkbook As Workbook
 Global outputWorkbook As Workbook
 Global plotWorkbook As Workbook
 
+Global plotWhichSheet As String
+
 Dim vXAxisKeys As Variant
 Dim vYAxisKeys As Variant
 
@@ -41,7 +43,7 @@ Sub buildTuningCurves()
             MsgBox ("Output directory " & outputDir & " could not be found." & vbCrLf & "Please update the path and try again")
             Exit Sub
         End If
-        
+                
         Dim templatePath As String
         templatePath = thisWorkbook.Worksheets("Settings").Range("B16").Value
         templatePath = getTemplateFilename(templatePath, theTank)
@@ -90,6 +92,7 @@ Sub buildTuningCurves()
             'Call Worksheets("N").UsedRange.ClearContents
             theBlock = theBlocks(i)
             outputWorkbook.Worksheets("Variables (do not edit)").Range("B3").Value = theBlock 'update the block on the worksheet
+            outputWorkbook.Worksheets("Settings").Range("B18").Value = thisWorkbook.Worksheets("Settings").Range("B18").Value
             Call processImport(False)
             If blnAutosave Then
                 Call outputWorkbook.SaveAs(outputDir & "\" & outputFilePrefix & theBlock, 52)
@@ -324,28 +327,28 @@ Sub TransferToSigmaplot()
     yPos = iRowOffset
     
     Do
-        If plotWorkbook.Worksheets("Totals").Cells(yPos, xPos).Value <> "" Then
-            If dHeadingsSelected.Exists(plotWorkbook.Worksheets("Totals").Cells(yPos, xPos).Value) Then
-                strTitle = plotWorkbook.Worksheets("Totals").Cells(yPos, xPos).Value
+        If plotWorkbook.Worksheets(plotWhichSheet).Cells(yPos, xPos).Value <> "" Then
+            If dHeadingsSelected.Exists(plotWorkbook.Worksheets(plotWhichSheet).Cells(yPos, xPos).Value) Then
+                strTitle = plotWorkbook.Worksheets(plotWhichSheet).Cells(yPos, xPos).Value
                 Set spNB = SPApp.Notebooks.Item(SPApp.Notebooks.Count - 1)
                 Set spWS = spNB.NotebookItems.Item(spNB.NotebookItems.Count - 1)
-                spWS.Name = plotWorkbook.Worksheets("Totals").Cells(yPos, xPos).Value
+                spWS.Name = plotWorkbook.Worksheets(plotWhichSheet).Cells(yPos, xPos).Value
                 Set spDT = spWS.DataTable
                 
                 yPos = yPos
                             
                 For j = 0 To (xCount - 1)
-                    spDT.Cell(0, j) = plotWorkbook.Worksheets("Totals").Cells(yPos + 1, xPos + j + 1).Value
+                    spDT.Cell(0, j) = plotWorkbook.Worksheets(plotWhichSheet).Cells(yPos + 1, xPos + j + 1).Value
                 Next
                 
                 For j = 0 To (yCount - 1)
-                    spDT.Cell(1, j) = plotWorkbook.Worksheets("Totals").Cells(yPos + j + 2, xPos).Value
+                    spDT.Cell(1, j) = plotWorkbook.Worksheets(plotWhichSheet).Cells(yPos + j + 2, xPos).Value
                 Next
                 
                 
                 For j = 0 To (xCount - 1)
                     For k = 0 To (yCount - 1)
-                        spDT.Cell(3 + k, j) = plotWorkbook.Worksheets("Totals").Cells(yPos + k + 2, xPos + j + 1).Value
+                        spDT.Cell(3 + k, j) = plotWorkbook.Worksheets(plotWhichSheet).Cells(yPos + k + 2, xPos + j + 1).Value
                     Next
                 Next
                 
@@ -654,6 +657,7 @@ Sub buildTuningCurvesIntoSigmaplot()
     Call TransferToSigmaplot
 End Sub
 Sub transferToSigmaplotButton()
+    plotWhichSheet = plotWorkbook.Worksheets("Settings").Range("B18").Value
     Set plotWorkbook = Application.ActiveWorkbook
 
     Dim zOffsetSize As Long
@@ -673,9 +677,9 @@ Sub transferToSigmaplotButton()
     Set dHeadingList = New Dictionary
     
     Do
-        If plotWorkbook.Worksheets("Totals").Cells(yPos, xPos).Value <> "" Then
-            If Not dHeadingList.Exists(plotWorkbook.Worksheets("Totals").Cells(yPos, xPos).Value) Then
-                Call dHeadingList.Add(plotWorkbook.Worksheets("Totals").Cells(yPos, xPos).Value, 0)
+        If plotWorkbook.Worksheets(plotWhichSheet).Cells(yPos, xPos).Value <> "" Then
+            If Not dHeadingList.Exists(plotWorkbook.Worksheets(plotWhichSheet).Cells(yPos, xPos).Value) Then
+                Call dHeadingList.Add(plotWorkbook.Worksheets(plotWhichSheet).Cells(yPos, xPos).Value, 0)
             End If
             yPos = yPos + zOffsetSize
         Else
@@ -691,6 +695,7 @@ Sub transferToSigmaplotButton()
 End Sub
 
 Sub transferAllToSigmaplot()
+    plotWhichSheet = plotWorkbook.Worksheets("Settings").Range("B18").Value
 
     Dim zOffsetSize As Long
     Dim iColOffset As Integer
@@ -709,9 +714,9 @@ Sub transferAllToSigmaplot()
     Set dHeadingsSelected = New Dictionary
     
     Do
-        If plotWorkbook.Worksheets("Totals").Cells(yPos, xPos).Value <> "" Then
-            If Not dHeadingsSelected.Exists(plotWorkbook.Worksheets("Totals").Cells(yPos, xPos).Value) Then
-                Call dHeadingsSelected.Add(plotWorkbook.Worksheets("Totals").Cells(yPos, xPos).Value, 0)
+        If plotWorkbook.Worksheets(plotWhichSheet).Cells(yPos, xPos).Value <> "" Then
+            If Not dHeadingsSelected.Exists(plotWorkbook.Worksheets(plotWhichSheet).Cells(yPos, xPos).Value) Then
+                Call dHeadingsSelected.Add(plotWorkbook.Worksheets(plotWhichSheet).Cells(yPos, xPos).Value, 0)
             End If
             yPos = yPos + zOffsetSize
         Else
