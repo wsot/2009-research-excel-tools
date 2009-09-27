@@ -126,6 +126,8 @@ Sub processImport(importIntoSigmaplot As Boolean)
     'used to store the maximum histogram peak for normalisation
     Dim lMaxHistHeight As Double
     lMaxHistHeight = 0
+    Dim lMaxHistMeanHeight As Double
+    lMaxHistMeanHeight = 0
     
     Dim theWorksheets As Variant 'stores the created worksheets to write to
     Dim arrHistTmp() As Long 'used to store the histogram data for each channel as it is generated
@@ -231,7 +233,7 @@ Sub processImport(importIntoSigmaplot As Boolean)
                 Else
                     yAxisSearchString = yAxisEp & " = " & CStr(vYAxisKeys(j)) & " and "
                 End If
-                Call processSearch(objTTX, arrOtherEp, arrOtherEpocKeys, 0, xAxisSearchString & yAxisSearchString, i + 1, j + 1, UBound(vYAxisKeys) + 3, iChanNum, "", xCount, yCount, zOffsetSize, lMaxHistHeight)
+                Call processSearch(objTTX, arrOtherEp, arrOtherEpocKeys, 0, xAxisSearchString & yAxisSearchString, i + 1, j + 1, UBound(vYAxisKeys) + 3, iChanNum, "", xCount, yCount, zOffsetSize, lMaxHistHeight, lMaxHistMeanHeight)
             Next
         Next
     End If
@@ -247,6 +249,7 @@ Sub processImport(importIntoSigmaplot As Boolean)
     outputWorkbook.Worksheets("Variables (do not edit)").Range("H4").Value = lMaxHistHeight
     outputWorkbook.Worksheets("Variables (do not edit)").Range("H5").Value = iColOffset
     outputWorkbook.Worksheets("Variables (do not edit)").Range("H6").Value = iRowOffset
+    outputWorkbook.Worksheets("Variables (do not edit)").Range("H7").Value = lMaxHistMeanHeight
     
     'If importIntoSigmaplot Then
         'Call transferToSigmaplot(xCount, yCount, zOffsetSize, iColOffset, iRowOffset, lMaxHistHeight)
@@ -285,7 +288,11 @@ Sub TransferToSigmaplot()
     xCount = plotWorkbook.Worksheets("Variables (do not edit)").Range("H1").Value
     yCount = plotWorkbook.Worksheets("Variables (do not edit)").Range("H2").Value
     zOffsetSize = plotWorkbook.Worksheets("Variables (do not edit)").Range("H3").Value
-    lMaxHistHeight = plotWorkbook.Worksheets("Variables (do not edit)").Range("H4").Value
+    If plotWhichSheet = "Means" Then
+        lMaxHistHeight = plotWorkbook.Worksheets("Variables (do not edit)").Range("H7").Value
+    Else
+        lMaxHistHeight = plotWorkbook.Worksheets("Variables (do not edit)").Range("H4").Value
+    End If
     iColOffset = plotWorkbook.Worksheets("Variables (do not edit)").Range("H5").Value
     iRowOffset = plotWorkbook.Worksheets("Variables (do not edit)").Range("H6").Value
     
@@ -519,7 +526,7 @@ Function buildEpocList(objTTX, AxisEp, bReverseOrder)
 End Function
 
 
-Function processSearch(ByRef objTTX, ByRef arrOtherEp, ByRef arrOtherEpocKeys, iOtherEpocNum, strSearchString As String, xOffset, yOffset, zOffset, iChanNum, strTitle, ByRef xCount, ByRef yCount, ByRef zOffsetSize, ByRef lMaxHistHeight)
+Function processSearch(ByRef objTTX, ByRef arrOtherEp, ByRef arrOtherEpocKeys, iOtherEpocNum, strSearchString As String, xOffset, yOffset, zOffset, iChanNum, strTitle, ByRef xCount, ByRef yCount, ByRef zOffsetSize, ByRef lMaxHistHeight, ByRef lMaxHistMeanHeight)
     Dim i As Integer
     Dim j As Integer
     Dim strAddedSearchString As String
@@ -538,7 +545,7 @@ Function processSearch(ByRef objTTX, ByRef arrOtherEp, ByRef arrOtherEpocKeys, i
         End If
         If iOtherEpocNum < UBound(arrOtherEp) Then
             'there are still more epocs to add to the search
-            Call processSearch(objTTX, arrOtherEp, arrOtherEpocKeys, iOtherEpocNum + 1, strAddedSearchString, xOffset, yOffset, (zOffset * UBound(arrOtherEpocKeys(iOtherEpocNum))) + i, iChanNum, strAddedTitle, xCount, yCount, zOffsetSize, lMaxHistHeight)
+            Call processSearch(objTTX, arrOtherEp, arrOtherEpocKeys, iOtherEpocNum + 1, strAddedSearchString, xOffset, yOffset, (zOffset * UBound(arrOtherEpocKeys(iOtherEpocNum))) + i, iChanNum, strAddedTitle, xCount, yCount, zOffsetSize, lMaxHistHeight, lMaxHistMeanHeight)
         Else
             'we have reached the end of the list of epocs - can actually do a search now
             If Right(strAddedSearchString, 5) = " and " Then 'this should always be the case - should be a trailing 'and' to remove
@@ -556,7 +563,7 @@ Function processSearch(ByRef objTTX, ByRef arrOtherEp, ByRef arrOtherEpocKeys, i
                 Call writeAxes(vXAxisKeys, vYAxisKeys, iColOffset, iRowOffset, (i * zOffset))
             End If
 
-            Call writeResults(objTTX, xOffset, yOffset, i * zOffset, iChanNum, lMaxHistHeight)
+            Call writeResults(objTTX, xOffset, yOffset, i * zOffset, iChanNum, lMaxHistHeight, lMaxHistMeanHeight)
             If xOffset > xCount Then
                 xCount = xOffset
             End If
@@ -569,7 +576,7 @@ Function processSearch(ByRef objTTX, ByRef arrOtherEp, ByRef arrOtherEpocKeys, i
 
 End Function
 
-Sub writeResults(ByRef objTTX, xOffset, yOffset, zOffset, iChanNum, ByRef lMaxHistHeight)
+Sub writeResults(ByRef objTTX, xOffset, yOffset, zOffset, iChanNum, ByRef lMaxHistHeight, ByRef lMaxHistMeanHeight)
     Dim varReturn As Variant
     Dim varChanData As Variant
     
@@ -641,10 +648,12 @@ Sub writeResults(ByRef objTTX, xOffset, yOffset, zOffset, iChanNum, ByRef lMaxHi
             outputWorkbook.Worksheets("StdDev").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value = histStddev
             outputWorkbook.Worksheets("N").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value = nSweps
         End If
+        If histMean > lMaxHistMeanHeight Then
+            lMaxHistMeanHeight = histMean
+        End If
         If histTmp > lMaxHistHeight Then
             lMaxHistHeight = histTmp
         End If
-        histTmp = 0
     End If
     
 End Sub
