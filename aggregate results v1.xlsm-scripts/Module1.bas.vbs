@@ -1,8 +1,12 @@
 Attribute VB_Name = "Module1"
 Option Explicit
 
-Const HRDetCols = 16
+Const HRDetCols = 18
 Const HRDetHROffset = 5
+Const HRDetInterpProp = 10
+Const HRDetLongIntSamp = 12
+Const HRDetLongIntBeat = 14
+Const HRDetStdDev = 7
 
 Global maxPercOfBeatsInt As Double
 Global maxSingleIntSamples As Double
@@ -251,20 +255,28 @@ Function parseTrials(outputDict As Dictionary, workbookToProcess As Workbook, ex
 '        End If
        
         trialArr = Array()
-        ReDim trialArr(8)
+        ReDim trialArr(10)
         'result array contains eight elements
         '1: date/label
-        '2:HR -84-4s from start
-        '3:reason for -84-4s exclusion (if excluded)
-        '4:HR at -4s
-        '5:reason for -4s exclusion (if excluded)
-        '6:HR at 5-9s
-        '7:reason for 5-9s exclusion (if excluded)
+        '2:HR -84 to -4s from start
+        '3:reason for -84 to -4s exclusion (if excluded)
+        '4:HR at -4s to 0s
+        '5:reason for -4s to 0s exclusion (if excluded)
+        '6:HR at 5 to 9s
+        '7:reason for 5 to 9s exclusion (if excluded)
         '8:reason for overall exclusion (from exclusion text file)
+        '9:StdDev -84 to -4s from start
+        '10:StdDev -4s to 0s from start
+        '11: StdDev 5 to 9s
 
 'Const HRDetCols = 16
 'Const HRDetHROffset = 5
 
+'Const HRDetHROffset = 5
+'Const HRDetInterpProp = 10
+'Const HRDetLongIntSamp = 12
+'Const HRDetLongIntBeat = 14
+'Const HRDetStdDev = 7
 
         If i = 2 Then
             trialArr(1) = "=NA()"
@@ -276,6 +288,7 @@ Function parseTrials(outputDict As Dictionary, workbookToProcess As Workbook, ex
                 trialArr(2) = exclusionReason
             Else
                 trialArr(1) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 1 + HRDetHROffset).Value
+                trialArr(8) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 1 + HRDetStdDev).Value
             End If
         End If
         exclusionReason = checkForHRExclusions(workbookToProcess, i, 1 + HRDetCols)
@@ -284,6 +297,7 @@ Function parseTrials(outputDict As Dictionary, workbookToProcess As Workbook, ex
             trialArr(4) = exclusionReason
         Else
             trialArr(3) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 1 + HRDetCols + HRDetHROffset).Value
+            trialArr(9) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 1 + HRDetCols + HRDetStdDev).Value
         End If
         exclusionReason = checkForHRExclusions(workbookToProcess, i, 1 + (2 * HRDetCols))
         If exclusionReason <> "" Then
@@ -291,6 +305,7 @@ Function parseTrials(outputDict As Dictionary, workbookToProcess As Workbook, ex
             trialArr(6) = exclusionReason
         Else
             trialArr(5) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 1 + (HRDetCols * 2) + HRDetHROffset).Value
+            trialArr(10) = workbookToProcess.Worksheets("HR detection").Cells(i + 1, 1 + (HRDetCols * 2) + HRDetStdDev).Value
         End If
         
         If workbookToProcess.Worksheets("Output").Cells(i, 5).Value = "Acoustic" Then
@@ -469,18 +484,14 @@ End Function
 Function checkForHRExclusions(workbookToProcess As Workbook, i As Integer, horizOffset As Integer) As String
             checkForHRExclusions = ""
             
-            'maxPercOfBeatsInt
-            'maxSingleIntSamples
-            'maxSingleIntBeats
-
-            If workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 5).Value = -1 Then
-                checkForHRExclusions = "HR not detectable (" & workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 5).Value & ")"
-            ElseIf workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 8).Value > maxPercOfBeatsInt And maxPercOfBeatsInt <> -1 Then
-                checkForHRExclusions = "Too large % interpolated (" & workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 8).Value & ">" & maxPercOfBeatsInt & ")"
-            ElseIf workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 10).Value > maxSingleIntSamples And maxSingleIntSamples <> -1 Then
-                checkForHRExclusions = "Longest interpolation too long (" & workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 10).Value & ">" & maxSingleIntSamples & ")"
-            ElseIf workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 12).Value > maxSingleIntBeats And maxSingleIntBeats <> -1 Then
-                checkForHRExclusions = "Longest interpolation too many beats (" & workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + 12).Value & ">" & maxSingleIntBeats & ")"
+            If workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + HRDetHROffset).Value = -1 Then
+                checkForHRExclusions = "HR not detectable (" & workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + HRDetHROffset).Value & ")"
+            ElseIf workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + HRDetInterpProp).Value > maxPercOfBeatsInt And maxPercOfBeatsInt <> -1 Then
+                checkForHRExclusions = "Too large % interpolated (" & workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + HRDetInterpProp).Value & ">" & maxPercOfBeatsInt & ")"
+            ElseIf workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + HRDetLongIntSamp).Value > maxSingleIntSamples And maxSingleIntSamples <> -1 Then
+                checkForHRExclusions = "Longest interpolation too long (" & workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + HRDetLongIntSamp).Value & ">" & maxSingleIntSamples & ")"
+            ElseIf workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + HRDetLongIntBeat).Value > maxSingleIntBeats And maxSingleIntBeats <> -1 Then
+                checkForHRExclusions = "Longest interpolation too many beats (" & workbookToProcess.Worksheets("HR detection").Cells(i + 1, horizOffset + HRDetLongIntBeat).Value & ">" & maxSingleIntBeats & ")"
             End If
 End Function
 
@@ -526,13 +537,16 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                 iExcelOffset = iExcelOffset + 1
                 thisAnimalWorksheet.Range("A" & iExcelOffset, "H" & iExcelOffset).Font.Italic = True
                 thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Date"
-                thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = "HR -84-4s"
-                thisAnimalWorksheet.Cells(iExcelOffset, 3).Value = "HR -4s-0s"
-                thisAnimalWorksheet.Cells(iExcelOffset, 4).Value = "HR 5s-9s"
-                thisAnimalWorksheet.Cells(iExcelOffset, 5).Value = "HR -84-4s exclusion reason"
-                thisAnimalWorksheet.Cells(iExcelOffset, 6).Value = "HR -4s-0s exclusion reason"
-                thisAnimalWorksheet.Cells(iExcelOffset, 7).Value = "HR 5s-9s exclusion reason"
-                thisAnimalWorksheet.Cells(iExcelOffset, 8).Value = "Overall trial exclusion reason"
+                thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = "HR -84s to -4s"
+                thisAnimalWorksheet.Cells(iExcelOffset, 3).Value = "HR -4s to 0s"
+                thisAnimalWorksheet.Cells(iExcelOffset, 4).Value = "HR 5s to 9s"
+                thisAnimalWorksheet.Cells(iExcelOffset, 5).Value = "StdDev -84s to -4s"
+                thisAnimalWorksheet.Cells(iExcelOffset, 6).Value = "StdDev -4s to 0s"
+                thisAnimalWorksheet.Cells(iExcelOffset, 7).Value = "StdDev 5s to 9s"
+                thisAnimalWorksheet.Cells(iExcelOffset, 8).Value = "HR -84s to -4s exclusion reason"
+                thisAnimalWorksheet.Cells(iExcelOffset, 9).Value = "HR -4s to 0s exclusion reason"
+                thisAnimalWorksheet.Cells(iExcelOffset, 10).Value = "HR 5s to 9s exclusion reason"
+                thisAnimalWorksheet.Cells(iExcelOffset, 11).Value = "Overall trial exclusion reason"
                 iExcelOffset = iExcelOffset + 1
                 arrTrials = dictParamSets(arrParamSets(iParamSetNum))
                 nInMeanSoFar = 0
@@ -546,11 +560,17 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                     thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = arrTrial(1)
                     thisAnimalWorksheet.Cells(iExcelOffset, 3).Value = arrTrial(3)
                     thisAnimalWorksheet.Cells(iExcelOffset, 4).Value = arrTrial(5)
-                    thisAnimalWorksheet.Cells(iExcelOffset, 5).Value = arrTrial(2)
-                    thisAnimalWorksheet.Cells(iExcelOffset, 6).Value = arrTrial(4)
-                    thisAnimalWorksheet.Cells(iExcelOffset, 7).Value = arrTrial(6)
+                    thisAnimalWorksheet.Cells(iExcelOffset, 5).Value = arrTrial(8)
+                    thisAnimalWorksheet.Cells(iExcelOffset, 6).Value = arrTrial(9)
+                    thisAnimalWorksheet.Cells(iExcelOffset, 7).Value = arrTrial(10)
+                    
+                    
+                    thisAnimalWorksheet.Cells(iExcelOffset, 8).Value = arrTrial(2)
+                    thisAnimalWorksheet.Cells(iExcelOffset, 9).Value = arrTrial(4)
+                    thisAnimalWorksheet.Cells(iExcelOffset, 10).Value = arrTrial(6)
+
                     If arrTrial(4) <> "" Or arrTrial(6) <> "" Or arrTrial(7) <> "" Then
-                        thisAnimalWorksheet.Cells(iExcelOffset, 8).Value = arrTrial(7)
+                        thisAnimalWorksheet.Cells(iExcelOffset, 11).Value = arrTrial(7)
                         thisAnimalWorksheet.Range("A" & iExcelOffset, "H" & iExcelOffset).Interior.Color = excludedTrialCell.Interior.Color
                         thisAnimalWorksheet.Range("A" & iExcelOffset, "H" & iExcelOffset).Interior.ColorIndex = excludedTrialCell.Interior.ColorIndex
                         thisAnimalWorksheet.Range("A" & iExcelOffset, "H" & iExcelOffset).Font.Color = excludedTrialCell.Font.Color
