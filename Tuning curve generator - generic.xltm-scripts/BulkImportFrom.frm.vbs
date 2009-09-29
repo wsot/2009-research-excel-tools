@@ -1,5 +1,5 @@
 Attribute VB_Name = "BulkImportFrom"
-Attribute VB_Base = "0{F8788D04-28D7-4742-B65F-C9D2F259D0EB}{3B5BA4A0-5260-41A3-8138-D02D8D085012}"
+Attribute VB_Base = "0{6BB100F5-EC0C-471C-8142-AC766A3787F5}{771345A0-F06E-4880-802D-7403EEA4E736}"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
@@ -162,12 +162,27 @@ Private Sub TankSelect1_TankChanged(ActTank As String, ActServer As String)
 '    Call buildBlockList(TankSelect1.ActiveTank)
 End Sub
 
+Private Sub SelectAll_Click()
+    Dim i As Integer
+    For i = 0 To (BlockList.ListCount - 1)
+        BlockList.Selected(i) = True
+    Next
+End Sub
+
+Private Sub DeselectAll_Click()
+    Dim i As Integer
+    For i = 0 To (BlockList.ListCount - 1)
+        BlockList.Selected(i) = False
+    Next
+End Sub
+
 Private Sub UserForm_Activate()
     
     Set objTTX = CreateObject("TTank.X") 'establish connection to TDT Tank engine
-
     
     If objTTX.ConnectServer(theServer, "Me") = CLng(1) Then
+        
+        Set objTTX = Nothing
         
         Dim objFS As FileSystemObject
         Set objFS = CreateObject("Scripting.FileSystemObject")
@@ -192,22 +207,31 @@ Private Sub UserForm_Activate()
             Dim i As Integer
             For i = 0 To UBound(vBlocks)
                 Call BlockList.AddItem(Right(vBlocks(i), Len(vBlocks(i)) - Len(bulkImportRootDir) - 1), i)
+                If InStr(1, LCase(Right(vBlocks(i), Len(vBlocks(i)) - Len(bulkImportRootDir) - 1)), "map") > 0 Then
+                    BlockList.Selected(BlockList.ListCount - 1) = True
+                End If
             Next
         End If
-    End If
-    
-    If bReverseX = True Or Worksheets("Variables (do not edit)").Range("E1").Value = 1 Then
-        ReverseX.Value = True
+        
+        Set objTTX = CreateObject("TTank.X") 'establish connection to TDT Tank engine
+        Call objTTX.ConnectServer(theServer, "Me")
+        
+        If bReverseX = True Or Worksheets("Variables (do not edit)").Range("E1").Value = 1 Then
+            ReverseX.Value = True
+        Else
+            ReverseX.Value = False
+        End If
+        
+        If bReverseY = True Or Worksheets("Variables (do not edit)").Range("E2").Value = 1 Then
+            ReverseY.Value = True
+        Else
+            ReverseY.Value = False
+        End If
     Else
-        ReverseX.Value = False
+        MsgBox "Could not connect to server"
+        doImport = False
+        Unload Me
     End If
-    
-    If bReverseY = True Or Worksheets("Variables (do not edit)").Range("E2").Value = 1 Then
-        ReverseY.Value = True
-    Else
-        ReverseY.Value = False
-    End If
-    
 End Sub
 
 Private Sub BlockSelect1_BlockChanged(ActBlock As String, ActTank As String, ActServer As String)
@@ -364,28 +388,61 @@ End Sub
 Sub findAllBlocks(ByRef objFS As FileSystemObject, ByRef objFolder As Folder, ByRef dBlockList As Dictionary)
     Dim folderList As Folders
     Dim subFolder As Folder
+       
+    Dim ts As TextStream
+    Dim theText As String
+    Dim instrRes As Integer
+    Dim blnIsTank As Boolean
     
     Dim i As Integer
     Dim strBlockName As String
     
     Set folderList = objFolder.Subfolders
     For Each subFolder In folderList
-        Call objTTX.OpenTank(subFolder.Path, "R")
-        'If objTTX.OpenTank(subFolder.Path, "R") = CLng(1) Then
-            i = 0
-            Do
-                strBlockName = objTTX.QueryBlockName(i)
-                If strBlockName <> "" Then
-                    If Not dBlockList.Exists(subFolder.Path & ":" & strBlockName) Then
-                        Call dBlockList.Add(subFolder.Path & ":" & strBlockName, 0)
-                    End If
-                Else
-                    Exit Do
+        blnIsTank = False
+        If objFS.FileExists(subFolder & "\desktop.ini") Then
+            Set ts = objFS.OpenTextFile(subFolder & "\desktop.ini", 1, False)
+            theText = ts.ReadLine
+            instrRes = InStr(1, theText, "TDT data tank folder", vbTextCompare)
+            If instrRes = 0 Or IsNull(instrRes) Then
+                theText = ts.ReadLine
+                theText = ts.ReadLine
+                theText = ts.ReadLine
+                theText = ts.ReadLine
+                instrRes = InStr(1, theText, "TDT data tank folder", vbTextCompare)
+                If instrRes <> 0 And Not IsNull(instrRes) Then
+                    blnIsTank = True
                 End If
-                i = i + 1
-            Loop
+            Else
+                blnIsTank = True
+            End If
+            Call ts.Close
+            
+            If blnIsTank Then
+                Set objTTX = CreateObject("TTank.X") 'establish connection to TDT Tank engine
+                Call objTTX.ConnectServer(theServer, "Me")
+                Call objTTX.OpenTank(subFolder.Path, "R")
+                'If objTTX.OpenTank(subFolder.Path, "R") = CLng(1) Then
+                    i = 0
+                    Do
+                        strBlockName = objTTX.QueryBlockName(i)
+                        If strBlockName <> "" Then
+                            If Not dBlockList.Exists(subFolder.Path & ":" & strBlockName) Then
+                                Call dBlockList.Add(subFolder.Path & ":" & strBlockName, 0)
+                            End If
+                        Else
+                            Exit Do
+                        End If
+                        i = i + 1
+                    Loop
+        '        End If
+                Set objTTX = Nothing
+            Else
+                Call findAllBlocks(objFS, subFolder, dBlockList)
+            End If
+        Else
             Call findAllBlocks(objFS, subFolder, dBlockList)
-'        End If
+        End If
     Next
     
     Set subFolder = Nothing

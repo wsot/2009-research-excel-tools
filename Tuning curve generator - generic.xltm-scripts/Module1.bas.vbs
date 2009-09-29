@@ -1,5 +1,8 @@
 Attribute VB_Name = "Module1"
 Option Explicit
+
+Const useSendKeys = False
+
 Global doImport
 Global theServer, theTank, theBlock
 Global xAxisEp, yAxisEp, arrOtherEp
@@ -21,12 +24,18 @@ Global plotWhichSheet As String
 
 Global bulkImportRootDir As String
 
+Global isFirstChart As Boolean
+
+Global SigmaPlotHandle
+
 Const marginForGoodTuning = 1#
 
+Dim successfullyProcessedOffset As Integer
 Dim vXAxisKeys As Variant
 Dim vYAxisKeys As Variant
 
 Sub bulkBuildTuningCurves()
+    isFirstChart = True
 '        Dim thisWorkbook As Workbook
     Set thisWorkbook = Application.ActiveWorkbook
 
@@ -48,6 +57,9 @@ Sub bulkBuildTuningCurves()
     BulkImportFrom.Show
     
     If doImport Then
+    
+        successfullyProcessedOffset = 25
+        
         Dim specifiedOutputDir As String
         Dim outputDir As String
         Dim outputFilename As String
@@ -104,6 +116,8 @@ Sub bulkBuildTuningCurves()
             theBlock = Right(theBlocks(i), Len(theBlocks(i)) - Len(theTank) - 1)
             theTank = bulkImportRootDir & "\" & theTank
             
+            thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 1).Value = theBlocks(i) & " processing"
+            
             If i = 0 Then
                 templatePath = getTemplateFilename(templatePath, theTank)
             End If
@@ -129,23 +143,31 @@ Sub bulkBuildTuningCurves()
             If blnAutosave Then
                 Call outputWorkbook.SaveAs(outputFilename, 52)
                 If blnAutoPlot Then
+                    If Not useSendKeys Then
+                        If IsNull(SigmaPlotHandle) Or SigmaPlotHandle = 0 Then
+                            Call findSigmplotWindow
+                        End If
+                    End If
                     Set plotWorkbook = outputWorkbook
                     If blnPlotOnlyCandidates Then
-                        Call transferCandidatesToSigmaplot
+                        Call transferCandidatesToSigmaplot(outputFilename & ".JNB")
                     Else
-                        Call transferAllToSigmaplot
+                        Call transferAllToSigmaplot(outputFilename & ".JNB")
                     End If
                 End If
                 If blnAutoclose Then
                     Call outputWorkbook.Close
                 End If
             End If
+            thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 2).Value = "Processed"
+            successfullyProcessedOffset = successfullyProcessedOffset + 1
         Next
         Application.DisplayAlerts = True
     End If
 End Sub
 
 Sub buildTuningCurves()
+    isFirstChart = True
 '        Dim thisWorkbook As Workbook
     Set thisWorkbook = Application.ActiveWorkbook
 
@@ -221,8 +243,13 @@ Sub buildTuningCurves()
                 Call outputWorkbook.SaveAs(outputDir & "\" & outputFilePrefix & theBlock, 52)
                 If blnAutoPlot Then
                     Set plotWorkbook = outputWorkbook
-                    Call transferAllToSigmaplot
+                    If blnPlotOnlyCandidates Then
+                        Call transferCandidatesToSigmaplot(outputFilename & ".JNB")
+                    Else
+                        Call transferAllToSigmaplot(outputFilename & ".JNB")
+                    End If
                 End If
+
                 If blnAutoclose Then
                     Call outputWorkbook.Close
                 End If
@@ -399,7 +426,7 @@ Sub writeAxes(colLabels As Variant, rowLabels As Variant, iColOffset, iRowOffset
 End Sub
 
 
-Sub TransferToSigmaplot()
+Sub TransferToSigmaplot(saveFilename As String)
 
     Dim xCount As Long
     Dim yCount As Long
@@ -590,6 +617,9 @@ Sub TransferToSigmaplot()
             Exit Do
         End If
     Loop
+
+    Call trySigmaplotSave(saveFilename, SPApp)
+    
 End Sub
 
 
@@ -821,12 +851,12 @@ Sub transferToSigmaplotButton()
     
     TransferToSigmaplotFrm.Show
     If doImport Then
-        Call TransferToSigmaplot
+        Call TransferToSigmaplot("")
     End If
 
 End Sub
 
-Sub transferAllToSigmaplot()
+Sub transferAllToSigmaplot(saveFilename As String)
     plotWhichSheet = plotWorkbook.Worksheets("Settings").Range("B18").Value
 
     Dim zOffsetSize As Long
@@ -857,11 +887,11 @@ Sub transferAllToSigmaplot()
     Loop
     
     If doImport Then
-        Call TransferToSigmaplot
+        Call TransferToSigmaplot(saveFilename)
     End If
 End Sub
 
-Sub transferCandidatesToSigmaplot()
+Sub transferCandidatesToSigmaplot(saveFilename As String)
     plotWhichSheet = plotWorkbook.Worksheets("Settings").Range("B18").Value
 
 '    Dim zOffsetSize As Long
@@ -895,7 +925,7 @@ Sub transferCandidatesToSigmaplot()
     Loop
     
     If doImport Then
-        Call TransferToSigmaplot
+        Call TransferToSigmaplot(saveFilename)
     End If
 End Sub
 Function getOutputDir(theOutputDir, fileOnTargetDrive) As String
@@ -1030,7 +1060,7 @@ Sub detectTunedSegments()
                         Exit For
                     End If
                 Else
-                    If dblVar(0) < 0.1 Then 'if the variance is less than 0.1 it is probably a dead or noise channel - insufficient variability for even a moderate tuning curve?
+                    If dblVar(0) < 0.05 Then 'if the variance is less than 0.1 it is probably a dead or noise channel - insufficient variability for even a moderate tuning curve?
                         blnLooksGood = False
                         Exit For
                     End If
@@ -1055,3 +1085,223 @@ Sub detectTunedSegments()
     Loop
     
 End Sub
+
+Sub Broadcast_It()
+        Dim iRet
+        Dim lWindHandle
+        Dim lDialogHandle
+        Dim lButtonHandle
+        Const WM_LBUTTONDOWN = &H201
+        Const WM_LBUTTONUP = &H201
+        Const WM_KEYDOWN = &H100
+        Const WM_KEYUP = &H101
+        
+        Const WM_COMMAND = &H111
+        
+        Const WM_USER = &H400
+        Const WMTRAY_TOGGLEQL = (WM_USER + 237)
+        Const BM_CLICK = &HF5
+            
+        Const VK_ENTER = &HD
+        Dim oDynWrap As Variant
+        
+        Set oDynWrap = CreateObject("DynamicWrapper")
+        iRet = oDynWrap.Register("user32.dll", "FindWindowA", "i=ss", "f=s", "r=l")
+        iRet = oDynWrap.Register("USER32.DLL", "PostMessageA", "i=hlll", "f=s", "r=l")
+        iRet = oDynWrap.Register("USER32.DLL", "SendMessageA", "i=hlll", "f=s", "r=l")
+        iRet = oDynWrap.Register("USER32.DLL", "SetForegroundWindow", "i=h", "f=s", "r=l")
+        iRet = oDynWrap.Register("USER32.DLL", "FindWindowEx", "i=hhss", "f=s", "r=l")
+               
+        'iRet = oDynWrap.FindWindowA("Afx:00400000:8:00010003:00000000:03F50C6B", vbNullString)
+        'lWindHandle = oDynWrap.FindWindowA("Afx:00400000:8:00010017:00000000:0002066D", vbNullString) 'find the SigmaPlot window
+        lWindHandle = oDynWrap.FindWindowA(vbNullString, "SigmaPlot") 'find the SigmaPlot window
+        iRet = oDynWrap.PostMessageA(lWindHandle, WM_COMMAND, MAKELPARAM(57604, 1), 0&) 'send the 'save as' command
+        lDialogHandle = oDynWrap.FindWindowA("#32770", "Save As") 'get the dialog box
+        lButtonHandle = oDynWrap.FindWindowEx(lDialogHandle, 0&, vbNullString, "&Save") 'get the save button
+        iRet = oDynWrap.SendMessageA(lButtonHandle, BM_CLICK, 0&, 0&)
+        iRet = oDynWrap.SendMessageA(lWindHandle, WM_COMMAND, MAKELPARAM(780, 0), 0&) 'send the 'close all notebooks' command
+    Set oDynWrap = Nothing
+End Sub
+
+Sub delayMe(secs As Long)
+    Dim newHour As Integer
+    Dim newMinute As Integer
+    Dim newSecond As Integer
+    Dim waitTime As String
+    newHour = Hour(Now())
+    newMinute = Minute(Now())
+    newSecond = Second(Now()) + secs
+    waitTime = TimeSerial(newHour, newMinute, newSecond)
+    Call Application.Wait(waitTime)
+End Sub
+
+Sub findSigmplotWindow()
+        Dim iRet As Long
+        Dim lWindHandle As Long
+        Dim oDynWrap As Variant
+        Set oDynWrap = CreateObject("DynamicWrapper")
+        iRet = oDynWrap.Register("user32.dll", "FindWindowA", "i=ss", "f=s", "r=l")
+        lWindHandle = oDynWrap.FindWindowA(vbNullString, "SigmaPlot") 'find the SigmaPlot window
+        SigmaPlotHandle = lWindHandle
+        Set oDynWrap = Nothing
+End Sub
+
+Sub trySigmaplotSave(saveFilename As String, SPApp)
+    plotWorkbook.ActiveSheet.Range("A25").Value = "'Interacting with SigmaPlot"
+    Dim iRetries As Integer
+    Dim z As Integer
+    Dim filenameParts
+    Dim wrongFilename As String
+    wrongFilename = ""
+    
+    Dim objFS As FileSystemObject
+    Set objFS = CreateObject("Scripting.FileSystemObject")
+
+    If saveFilename <> "" Then
+        If useSendKeys Then
+            filenameParts = Split(saveFilename, "\")
+    
+            For iRetries = 0 To 3
+                'SPApp.ActiveDocument.SaveAs (saveFilename)
+                'Call SPApp.ActiveDocument.Close(True, saveFilename)
+                'Call SPApp.ActiveDocument.Close(False)
+                'Call spNB.Close(True, saveFilename)
+    
+                If objFS.FileExists(saveFilename) Then
+                    Call objFS.DeleteFile(saveFilename, True)
+                End If
+        
+                If isFirstChart Then
+                    isFirstChart = False
+                    Call AppActivate("SigmaPlot", 1)
+                Else
+                    On Error Resume Next
+                    Call AppActivate("SigmaPlot", 0)
+                    On Error GoTo 0
+                End If
+                delayMe (5)
+                Call SendKeys("{F12}", 1)
+                delayMe (5)
+                For z = 0 To UBound(filenameParts)
+                    If z < UBound(filenameParts) Then
+                        Call SendKeys(filenameParts(z) & "\", 1)
+                    Else
+                        Call SendKeys(filenameParts(z), 1)
+                    End If
+                    delayMe (1)
+                    Call SendKeys("{RIGHT}", 1)
+                    delayMe (1)
+                    Call SendKeys("{ENTER}", 1)
+                    delayMe (1)
+                Next
+                
+                'check it saved with the correct filename
+                If LCase(SPApp.ActiveDocument.FullName) <> LCase(saveFilename) Then
+                    If LCase(SPApp.ActiveDocument.FullName) <> "" And Left(LCase(SPApp.ActiveDocument.FullName), 8) <> "notebook" Then
+                        If wrongFilename <> "" And wrongFilename <> LCase(SPApp.ActiveDocument.FullName) Then 'still not the right filename, but a different one - delete the old one
+                            Call objFS.DeleteFile(wrongFilename, True)
+                        End If
+                        wrongFilename = LCase(SPApp.ActiveDocument.FullName)
+                    End If
+                    delayMe (5)
+                    Call SendKeys("{ESC}", 1)
+                Else
+                    If wrongFilename <> "" Then 'wrote a wrong filename first - delete it
+                        Call objFS.DeleteFile(wrongFilename, True)
+                    End If
+                    delayMe (2)
+                    Call SendKeys("^+{F4}", 1)
+                    delayMe (2)
+                    Call SendKeys("^+{F4}", 1)
+                    delayMe (2)
+                    Call SendKeys("^+{F4}", 1)
+                    Exit For
+                End If
+            Next
+        Else
+        
+            If objFS.FileExists(saveFilename) Then
+                Call objFS.DeleteFile(saveFilename, True)
+            End If
+            
+            Dim iRet
+            Dim lWindHandle
+            Dim lDialogHandle
+            Dim lButtonHandle
+            Const WM_LBUTTONDOWN = &H201
+            Const WM_LBUTTONUP = &H201
+            Const WM_KEYDOWN = &H100
+            Const WM_KEYUP = &H101
+            
+            Const WM_COMMAND = &H111
+            
+            Const WM_USER = &H400
+            Const WMTRAY_TOGGLEQL = (WM_USER + 237)
+            Const BM_CLICK = &HF5
+                
+            Const VK_ENTER = &HD
+            Dim oDynWrap As Variant
+            
+            Set oDynWrap = CreateObject("DynamicWrapper")
+            iRet = oDynWrap.Register("user32.dll", "FindWindowA", "i=ss", "f=s", "r=l")
+            iRet = oDynWrap.Register("USER32.DLL", "PostMessageA", "i=hlll", "f=s", "r=l")
+            iRet = oDynWrap.Register("USER32.DLL", "SendMessageA", "i=hlll", "f=s", "r=l")
+            iRet = oDynWrap.Register("USER32.DLL", "SetForegroundWindow", "i=h", "f=s", "r=l")
+            iRet = oDynWrap.Register("USER32.DLL", "FindWindowEx", "i=hhss", "f=s", "r=l")
+                   
+            'iRet = oDynWrap.FindWindowA("Afx:00400000:8:00010003:00000000:03F50C6B", vbNullString)
+            'lWindHandle = oDynWrap.FindWindowA("Afx:00400000:8:00010017:00000000:00010460", vbNullString) 'find the SigmaPlot window
+            If IsNull(SigmaPlotHandle) Then
+                lWindHandle = oDynWrap.FindWindowA(vbNullString, "SigmaPlot") 'find the SigmaPlot window
+            Else
+                lWindHandle = SigmaPlotHandle
+            End If
+            '    lWindHandle = oDynWrap.FindWindowA("#32770", vbNullString)
+            If IsNull(lWindHandle) Then
+                MsgBox ("Trying to attach to the SigmaPlot window failed: " & lWindHandle)
+            Else
+                iRet = oDynWrap.PostMessageA(lWindHandle, WM_COMMAND, MAKELPARAM(57604, 1), 0&) 'send the 'save as' command
+                'iRet = oDynWrap.SendMessageA(lWindHandle, WM_COMMAND, MAKELPARAM(57604, 1), 0&)
+                delayMe (2)
+                lDialogHandle = oDynWrap.FindWindowA("#32770", "Save As") 'get the dialog box
+                If IsNull(lDialogHandle) Then
+                   MsgBox ("Trying to attach to the Save dialog failed: " & lDialogHandle)
+                Else
+                    lButtonHandle = oDynWrap.FindWindowEx(lDialogHandle, 0&, vbNullString, "&Save") 'get the save button
+                    delayMe (2)
+                    If IsNull(lButtonHandle) Then
+                        MsgBox ("Trying to attach to the Save button failed: " & lDialogHandle)
+                    Else
+                        iRet = oDynWrap.SendMessageA(lButtonHandle, BM_CLICK, 0&, 0&)
+                        delayMe (2)
+                        
+                        wrongFilename = SPApp.ActiveDocument.FullName
+                        
+                        iRet = oDynWrap.SendMessageA(lWindHandle, WM_COMMAND, MAKELPARAM(780, 0), 0&) 'send the 'close all notebooks' command
+                        delayMe (2)
+                        
+                        Call objFS.MoveFile(wrongFilename, saveFilename)
+                        
+                    End If
+                End If
+            End If
+            Set oDynWrap = Nothing
+        End If
+    End If
+    plotWorkbook.ActiveSheet.Range("A25").Value = ""
+    Set objFS = Nothing
+End Sub
+
+
+Function LoWord(wInt)
+  LoWord = wInt And &HFFFF&
+End Function
+
+Function HiWord(wInt)
+  HiWord = wInt \ &H10000 And &HFFFF&
+End Function
+Function MAKELPARAM(wLow, wHigh)
+  MAKELPARAM = LoWord(wLow) Or (&H10000 * LoWord(wHigh))
+End Function
+
+
