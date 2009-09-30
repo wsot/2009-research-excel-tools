@@ -192,7 +192,7 @@ Sub processHeartRate()
 
         
         thisStartPoint = lTrialSampStart - 8000
-        thisEndPoint = lTrialSampStart
+        thisEndPoint = lTrialSampStart + 18000
 
         Call detectHROnSelection(thisStartPoint, thisEndPoint, proportionInterpolated, detectedHR, beatCount, theStdDev, overlyCloseBeats, interpolations, abberantBeats, longestInterpolation, shortestInterpolation, interpolationDuration, interpolatedBeatsMax, interpolatedBeatsMin, interpolatedBeats, iTrialNum, "-4-0s", cumulativeInterpolations, iOverlyCloseBeatsOffset, iAbberOffset)
         
@@ -318,6 +318,10 @@ Sub processHeartRate()
             Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 17)), "Clear")
         End If
 
+        thisStartPoint = lTrialSampStart + 10000
+        thisEndPoint = lTrialSampStart + 18000
+        
+        Call detectHROnSelection(thisStartPoint, thisEndPoint, proportionInterpolated, detectedHR, beatCount, theStdDev, overlyCloseBeats, interpolations, abberantBeats, longestInterpolation, shortestInterpolation, interpolationDuration, interpolatedBeatsMax, interpolatedBeatsMin, interpolatedBeats, iTrialNum, "-4-9s", cumulativeInterpolations, iOverlyCloseBeatsOffset, iAbberOffset)
         
         iTrialNum = iTrialNum + 1
     Loop
