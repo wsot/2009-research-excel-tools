@@ -24,8 +24,16 @@ Global percOutside1585FC As FormatCondition
 Global percOutside2575FC As FormatCondition
 Global excludedTrialCell As Range
 
-Global clusterByDate As Boolean
-Global clusterByStimParams As Boolean
+Dim allTrials() As Variant
+
+Dim trialTypesByDate As Dictionary
+Dim trialTypesByStimParamsFull As Dictionary
+Dim trialTypesByDateStimParamsFull As Dictionary
+Dim trialTypesByStimParamsNoAmp As Dictionary
+
+
+'Global clusterByDate As Boolean
+'Global clusterByStimParams As Boolean
 
 Sub aggregrate_results()
     Dim exclusionInfo As Variant
@@ -161,8 +169,6 @@ Sub processTrials()
     Dim oneAnimalOneSheet As Boolean
 
     Dim templateFilename As String
-
-    Dim trialTypes As Dictionary
     Dim validTrialCount As Integer
     
     Dim animalID As String
@@ -195,7 +201,8 @@ Sub processTrials()
 '    Dim strExcelPathname As String
     
 '    Dim blnCurrFolderIsTrial As Boolean
-       
+    Dim trialTypes As Dictionary
+    
     Dim thisAnimalWorksheet As Worksheet
     Dim thisAnimalSummarySheet As Worksheet
     Dim thisAnimalSummarySheetRow As Long
@@ -237,23 +244,22 @@ Sub processTrials()
     
     Dim iPass As Integer
     
-    For iPass = 0 To 2
-        Select Case iPass
-            Case 0:
-                clusterByStimParams = True
-                clusterByDate = False
-                outputFilename = pathToData & "\aggregate by stim params.xlsx"
-            Case 1:
-                clusterByStimParams = False
-                clusterByDate = True
-                outputFilename = pathToData & "\aggregate by date.xlsx"
-            Case 2:
-                clusterByStimParams = True
-                clusterByDate = True
-                outputFilename = pathToData & "\aggregate by stim params and date.xlsx"
-            End Select
+'    For iPass = 0 To 2
+'        Select Case iPass
+'            Case 0:
+'                clusterByStimParams = True
+'                clusterByDate = False
+'                outputFilename = pathToData & "\aggregate by stim params.xlsx"
+'            Case 1:
+'                clusterByStimParams = False
+'                clusterByDate = True
+'                outputFilename = pathToData & "\aggregate by date.xlsx"
+'            Case 2:
+'                clusterByStimParams = True
+'                clusterByDate = True
+'                outputFilename = pathToData & "\aggregate by stim params and date.xlsx"
+'            End Select
 '        blnCurrFolderIsTrial = False
-        Set outputWorkbook = Workbooks.Open(templateFilename)
     
 '        clusterByStimParams = thisWorkbook.Worksheets("Controller").Cells(20, 2).Value
 '        clusterByDate = thisWorkbook.Worksheets("Controller").Cells(21, 2).Value
@@ -265,68 +271,154 @@ Sub processTrials()
 '            exclusionInfo = checkForExclusion(objAnimalFolder)
 '            If Not exclusionInfo(0) = "folder" Then
         
+    Dim outputByStimParamsNoAmp As Workbook
+    Dim outputByDateStimParamsFull As Workbook
+    Dim outputByDate As Workbook
+    Dim outputByStimParamsFull As Workbook
+        
         For iSourceWorksheetOffset = 1 To (thisWorkbook.Worksheets.Count)
             If thisWorkbook.Worksheets(iSourceWorksheetOffset).Name <> "Controller" And thisWorkbook.Worksheets(iSourceWorksheetOffset).Name <> "Trials" Then 'check if this is actually a data sheet
                 Set sourceWorksheet = thisWorkbook.Worksheets(iSourceWorksheetOffset)
                 
-                Set trialTypes = New Dictionary
-                Call trialTypes.Add("Acoustic", New Dictionary)
-                Call trialTypes.Add("Electrical", New Dictionary)
+                
+                'Dim trialTypesByDate As Dictionary
+                'Dim trialTypesByStimParamsFull As Dictionary
+                'Dim trialTypesByDateStimParamsFull As Dictionary
+                'Dim trialTypesByStimParamsNoAmp As Dictionary
+    
+                
+                Set trialTypesByDate = New Dictionary
+                Call trialTypesByDate.Add("Acoustic", New Dictionary)
+                Call trialTypesByDate.Add("Electrical", New Dictionary)
+                
+                Set trialTypesByStimParamsFull = New Dictionary
+                Call trialTypesByStimParamsFull.Add("Acoustic", New Dictionary)
+                Call trialTypesByStimParamsFull.Add("Electrical", New Dictionary)
+
+                Set trialTypesByDateStimParamsFull = New Dictionary
+                Call trialTypesByDateStimParamsFull.Add("Acoustic", New Dictionary)
+                Call trialTypesByDateStimParamsFull.Add("Electrical", New Dictionary)
+
+                Set trialTypesByStimParamsNoAmp = New Dictionary
+                Call trialTypesByStimParamsNoAmp.Add("Acoustic", New Dictionary)
+                Call trialTypesByStimParamsNoAmp.Add("Electrical", New Dictionary)
+                
+                
                 validTrialCount = 0
-                thisAnimalSummarySheetRow = 2
                 Set thisAnimalWorksheet = Nothing
                 Set thisAnimalSummarySheet = Nothing
                 animalID = sourceWorksheet.Name
                 
-                Call parseTrials(trialTypes, sourceWorksheet)
-                
-                Call outputWorkbook.Worksheets("Summary template").Copy(, outputWorkbook.Worksheets("Output template"))
-                Set thisAnimalSummarySheet = outputWorkbook.Worksheets("Summary template (2)")
-                thisAnimalSummarySheet.Name = animalID & " summary"
-                
-                thisAnimalSummarySheet.Cells(1, 1).Value = "Cluster"
-                thisAnimalSummarySheet.Cells(1, 2).Value = "HR Included trials"
-                thisAnimalSummarySheet.Cells(1, 3).Value = "HR Excluded trials"
-                thisAnimalSummarySheet.Cells(1, 4).Value = "% trials decrease HR"
-                thisAnimalSummarySheet.Cells(1, 5).Value = "Mean HR change"
-                thisAnimalSummarySheet.Cells(1, 6).Value = "HR StdDev"
-                thisAnimalSummarySheet.Cells(1, 7).Value = "T score"
-                thisAnimalSummarySheet.Cells(1, 8).Value = "p value"
-                thisAnimalSummarySheet.Cells(1, 10).Value = "-84s to -4s HR N"
-                thisAnimalSummarySheet.Cells(1, 11).Value = "-84s to -4s HR StdDev"
-                thisAnimalSummarySheet.Cells(1, 12).Value = "-84s to -4s HR StdDev StdDev"
-                thisAnimalSummarySheet.Cells(1, 13).Value = "-4s to 0s HR N"
-                thisAnimalSummarySheet.Cells(1, 14).Value = "-4s to 0s HR StdDev"
-                thisAnimalSummarySheet.Cells(1, 15).Value = "-4s to 0s HR StdDev StdDev"
-                thisAnimalSummarySheet.Cells(1, 16).Value = "5s to 9s HR N"
-                thisAnimalSummarySheet.Cells(1, 17).Value = "5s to 9s HR StdDev"
-                thisAnimalSummarySheet.Cells(1, 18).Value = "5s to 9s HR StdDev StdDev"
-                thisAnimalSummarySheet.Range("A1:Z1").Font.Bold = True
+'                Call parseTrials(trialTypes, sourceWorksheet)
+                Call parseTrials(sourceWorksheet)
+                For iPass = 0 To 3
+                    thisAnimalSummarySheetRow = 2
+                    Select Case iPass
+                        Case 0:
+                            'clusterByStimParams = True
+                            'clusterByDate = False
+                            If outputByStimParamsFull Is Nothing Then
+                                Set outputByStimParamsFull = Workbooks.Open(templateFilename)
+                            End If
+                            Set outputWorkbook = outputByStimParamsFull
+                            Set trialTypes = trialTypesByStimParamsFull
+                        Case 1:
+                            'clusterByStimParams = False
+                            'clusterByDate = True
+                            If outputByDate Is Nothing Then
+                                Set outputByDate = Workbooks.Open(templateFilename)
+                            End If
+                            Set outputWorkbook = outputByDate
+                            Set trialTypes = trialTypesByDate
+                        Case 2:
+                            'clusterByStimParams = True
+                            'clusterByDate = True
+                            If outputByDateStimParamsFull Is Nothing Then
+                                Set outputByDateStimParamsFull = Workbooks.Open(templateFilename)
+                            End If
+                            Set outputWorkbook = outputByDateStimParamsFull
+                            Set trialTypes = trialTypesByDateStimParamsFull
+                        Case 3:
+                            'clusterByStimParams = True
+                            'clusterByDate = True
+                            If outputByStimParamsNoAmp Is Nothing Then
+                                Set outputByStimParamsNoAmp = Workbooks.Open(templateFilename)
+                            End If
+                            Set outputWorkbook = outputByStimParamsNoAmp
+                            Set trialTypes = trialTypesByStimParamsNoAmp
+                    End Select
 
-                If oneAnimalOneSheet Then
-                    Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
-                    Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
-                    thisAnimalWorksheet.Name = animalID
-                    Call outputTrials(trialTypes, "", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow)
-                Else
-                    If trialTypes("Acoustic").Count > 0 Then
+'                    Set outputWorkbook = Workbooks.Open(templateFilename)
+                
+                    Call outputWorkbook.Worksheets("Summary template").Copy(, outputWorkbook.Worksheets("Output template"))
+                    Set thisAnimalSummarySheet = outputWorkbook.Worksheets("Summary template (2)")
+                    thisAnimalSummarySheet.Name = animalID & " summary"
+                    
+                    thisAnimalSummarySheet.Cells(1, 1).Value = "Cluster"
+                    thisAnimalSummarySheet.Cells(1, 2).Value = "HR Included trials"
+                    thisAnimalSummarySheet.Cells(1, 3).Value = "HR Excluded trials"
+                    thisAnimalSummarySheet.Cells(1, 4).Value = "% trials decrease HR"
+                    thisAnimalSummarySheet.Cells(1, 5).Value = "Mean HR change"
+                    thisAnimalSummarySheet.Cells(1, 6).Value = "HR StdDev"
+                    thisAnimalSummarySheet.Cells(1, 7).Value = "T score"
+                    thisAnimalSummarySheet.Cells(1, 8).Value = "p value"
+                    thisAnimalSummarySheet.Cells(1, 10).Value = "-84s to -4s HR N"
+                    thisAnimalSummarySheet.Cells(1, 11).Value = "-84s to -4s HR StdDev"
+                    thisAnimalSummarySheet.Cells(1, 12).Value = "-84s to -4s HR StdDev StdDev"
+                    thisAnimalSummarySheet.Cells(1, 13).Value = "-4s to 0s HR N"
+                    thisAnimalSummarySheet.Cells(1, 14).Value = "-4s to 0s HR StdDev"
+                    thisAnimalSummarySheet.Cells(1, 15).Value = "-4s to 0s HR StdDev StdDev"
+                    thisAnimalSummarySheet.Cells(1, 16).Value = "5s to 9s HR N"
+                    thisAnimalSummarySheet.Cells(1, 17).Value = "5s to 9s HR StdDev"
+                    thisAnimalSummarySheet.Cells(1, 18).Value = "5s to 9s HR StdDev StdDev"
+                    thisAnimalSummarySheet.Range("A1:Z1").Font.Bold = True
+    
+                    If oneAnimalOneSheet Then
                         Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
                         Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
-                        thisAnimalWorksheet.Name = animalID & " Acoustic"
-                        Call outputTrials(trialTypes, "Acoustic", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow)
+                        thisAnimalWorksheet.Name = animalID
+                        Call outputTrials(trialTypes, "", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow)
+                    Else
+                        If trialTypes("Acoustic").Count > 0 Then
+                            Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
+                            Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
+                            thisAnimalWorksheet.Name = animalID & " Acoustic"
+                            Call outputTrials(trialTypes, "Acoustic", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow)
+                        End If
+                        If trialTypes("Electrical").Count > 0 Then
+                            Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
+                            Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
+                            thisAnimalWorksheet.Name = animalID & " Electrical"
+                            Call outputTrials(trialTypes, "Electrical", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow)
+                        End If
                     End If
-                    If trialTypes("Electrical").Count > 0 Then
-                        Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
-                        Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
-                        thisAnimalWorksheet.Name = animalID & " Electrical"
-                        Call outputTrials(trialTypes, "Electrical", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow)
-                    End If
-                End If
+'                    Call outputWorkbook.SaveAs(outputFilename)
+'                    Call outputWorkbook.Close
+                Next
             End If
         Next
-        Call outputWorkbook.SaveAs(outputFilename)
-        Call outputWorkbook.Close
-    Next
+        If Not outputByStimParamsFull Is Nothing Then
+            outputFilename = pathToData & "\aggregate by stim params.xlsx"
+            Call outputByStimParamsFull.SaveAs(outputFilename)
+            Call outputByStimParamsFull.Close
+        End If
+        If Not outputByDate Is Nothing Then
+            outputFilename = pathToData & "\aggregate by date.xlsx"
+            Call outputByDate.SaveAs(outputFilename)
+            Call outputByDate.Close
+        End If
+        If Not outputByDateStimParamsFull Is Nothing Then
+            outputFilename = pathToData & "\aggregate by stim params and date.xlsx"
+            Call outputByDateStimParamsFull.SaveAs(outputFilename)
+            Call outputByDateStimParamsFull.Close
+        End If
+        If Not outputByStimParamsNoAmp Is Nothing Then
+            outputFilename = pathToData & "\aggregate by stim params without amp.xlsx"
+            Call outputByStimParamsNoAmp.SaveAs(outputFilename)
+            Call outputByStimParamsNoAmp.Close
+        End If
+
+'    Next
             
 '    Set objFile = Nothing
 '    Set Files = Nothing
@@ -346,10 +438,16 @@ Sub processTrials()
 End Sub
 
 'Function parseTrials(outputDict As Dictionary, sourceWorksheet As Workbook, experimentDate As String, experimentTag As String, exclusionInfo As Variant)
-Function parseTrials(outputDict As Dictionary, sourceWorksheet As Worksheet)
+Function parseTrials(sourceWorksheet As Worksheet)
+    ReDim allTrials(0)
     Dim experimentDate As String
     Dim experimentTag As String
     Dim exclusionInfo As Variant
+    
+    Dim trialInfoByDate As String
+    Dim trialInfoByStimParamsFull As String
+    Dim trialInfoByDateStimParamsFull As String
+    Dim trialInfoByStimParamsNoAmp As String
 
     Dim i As Integer
     i = 3
@@ -363,6 +461,11 @@ Function parseTrials(outputDict As Dictionary, sourceWorksheet As Worksheet)
     Dim param2composite As String
     Dim acoAmps(3) As String 'param 1 lower, param 1 upper, param 2 lower, param 2 upper
     Dim elAmps(3) As String 'param 1 lower, param 1 upper, param 2 lower, param 2 upper
+    
+'    Dim trialInfoByDate As String
+'    Dim trialInfoByStimParamsFull As String
+'    Dim trialInfoByDateStimParamsFull As String
+'    Dim trialInfoByStimParamsNoAmp As String
     
     Dim param1arr As Variant
     Dim param2arr As Variant
@@ -395,9 +498,9 @@ Function parseTrials(outputDict As Dictionary, sourceWorksheet As Worksheet)
     '        End If
            
             trialArr = Array()
-            ReDim trialArr(10)
+            ReDim trialArr(13)
             'result array contains 11 elements
-            '1: date/label
+            '1:date
             '2:HR -84 to -4s from start
             '3:reason for -84 to -4s exclusion (if excluded)
             '4:HR at -4s to 0s
@@ -407,7 +510,10 @@ Function parseTrials(outputDict As Dictionary, sourceWorksheet As Worksheet)
             '8:reason for overall exclusion (from exclusion text file)
             '9:StdDev -84 to -4s from start
             '10:StdDev -4s to 0s from start
-            '11: StdDev 5 to 9s
+            '11:StdDev 5s to 9s from start
+            '12: label
+            '13: Trial number
+            '14: Stim params
     
     'Const HRDetCols = 16
     'Const HRDetHROffset = 5
@@ -417,6 +523,10 @@ Function parseTrials(outputDict As Dictionary, sourceWorksheet As Worksheet)
     'Const HRDetLongIntSamp = 12
     'Const HRDetLongIntBeat = 14
     'Const HRDetStdDev = 7
+    
+            trialArr(0) = experimentDate
+            trialArr(11) = experimentTag
+            trialArr(12) = sourceWorksheet.Range("J" & i).Value
     
             exclusionReason = checkForHRExclusions(sourceWorksheet, i, HRDetOffset)
             If exclusionReason <> "" Then
@@ -470,39 +580,30 @@ Function parseTrials(outputDict As Dictionary, sourceWorksheet As Worksheet)
                      param2str = CStr(param2) & " (" & acoAmps(2) & "dB to " & acoAmps(3) & "dB)"
                      
                      'organise the clustering info to generate the grouping value (trialInfo)
-                     If clusterByStimParams And clusterByDate Then
-                        trialArr(0) = experimentTag & " Trial " & sourceWorksheet.Range("J" & i).Value
-                        If CDbl(param1composite) > CDbl(param2composite) Then
-                            trialInfo = experimentDate & ": " & param1str & ", " & param2str
-                        Else
-                            trialInfo = experimentDate & ": " & param2str & ", " & param1str
-                        End If
-                     ElseIf clusterByStimParams Then
-                        trialArr(0) = experimentTag & " Trial " & sourceWorksheet.Range("J" & i).Value
-                        If CDbl(param1composite) > CDbl(param2composite) Then
-                            trialInfo = param1str & ", " & param2str
-                        Else
-                            trialInfo = param2str & ", " & param1str
-                        End If
-                     ElseIf clusterByDate Then
-                        If CDbl(param1composite) > CDbl(param2composite) Then
-                            trialArr(0) = "Trial " & sourceWorksheet.Range("J" & i).Value & ": " & param1str & ", " & param2str
-                        Else
-                            trialArr(0) = "Trial " & sourceWorksheet.Range("J" & i).Cells(i, 2).Value & ": " & param2str & ", " & param1str
-                        End If
-                        trialInfo = experimentDate
-                     End If
+                    If CDbl(param1composite) > CDbl(param2composite) Then
+                        trialInfoByDateStimParamsFull = experimentDate & ": " & param1str & ", " & param2str
+                        trialInfoByStimParamsFull = param1str & ", " & param2str
+                        trialInfoByStimParamsNoAmp = CStr(param1) & ", " & CStr(param2)
+                        trialArr(13) = param1str & ", " & param2str
+                    Else
+                        trialInfoByDateStimParamsFull = experimentDate & ": " & param2str & ", " & param1str
+                        trialInfoByStimParamsFull = param2str & ", " & param1str
+                        trialInfoByStimParamsNoAmp = CStr(param2) & ", " & CStr(param1)
+                        trialArr(13) = param2str & ", " & param1str
+                    End If
+                    trialInfoByDate = experimentDate
                      
-                     If Not outputDict("Acoustic").Exists(trialInfo) Then
-                         Call outputDict("Acoustic").Add(trialInfo, Array())
-                     End If
-                     paramArr = outputDict("Acoustic")(trialInfo)
-                     
-                     ReDim Preserve paramArr(UBound(paramArr) + 1)
-                     iParamOffset = UBound(paramArr)
-                     paramArr(iParamOffset) = trialArr
-                     
-                     outputDict("Acoustic")(trialInfo) = paramArr
+'                    If UBound(allTrials) Then
+                    ReDim Preserve allTrials(UBound(allTrials) + 1)
+'                    Else
+'                        ReDim allTrials(0)
+'                    End If
+                    allTrials(UBound(allTrials)) = trialArr
+                    
+                    Call addToDict(trialTypesByDate, trialInfoByDate, "Acoustic", UBound(allTrials))
+                    Call addToDict(trialTypesByStimParamsFull, trialInfoByStimParamsFull, "Acoustic", UBound(allTrials))
+                    Call addToDict(trialTypesByDateStimParamsFull, trialInfoByDateStimParamsFull, "Acoustic", UBound(allTrials))
+                    Call addToDict(trialTypesByStimParamsNoAmp, trialInfoByStimParamsNoAmp, "Acoustic", UBound(allTrials))
                 End If
             Else 'electrical trial
                 If Not ((exclusionInfo(0) = "Electrical" Or exclusionInfo(0) = "all") And exclusionInfo(1) = "") Then
@@ -565,52 +666,28 @@ Function parseTrials(outputDict As Dictionary, sourceWorksheet As Worksheet)
                         param2str = "No stimulation"
                     End If
     
-                     'organise the clustering info to generate the grouping value (trialInfo)
-                     If clusterByStimParams And clusterByDate Then
-                        trialArr(0) = experimentTag & " Trial " & sourceWorksheet.Range("J" & i).Value
-                        If CDbl(param1composite) > CDbl(param2composite) Then
-                            trialInfo = experimentDate & ": " & param1str & ", " & param2str
-                        Else
-                            trialInfo = experimentDate & ": " & param2str & ", " & param1str
-                        End If
-                     ElseIf clusterByStimParams Then
-                        trialArr(0) = experimentTag & " Trial " & sourceWorksheet.Range("J" & i).Value
-                        If CDbl(param1composite) > CDbl(param2composite) Then
-                            trialInfo = param1str & ", " & param2str
-                        Else
-                            trialInfo = param2str & ", " & param1str
-                        End If
-                     ElseIf clusterByDate Then
-                        If CDbl(param1composite) > CDbl(param2composite) Then
-                            trialArr(0) = "Trial " & sourceWorksheet.Range("J" & i).Value & ": " & param1str & ", " & param2str
-                        Else
-                            trialArr(0) = "Trial " & sourceWorksheet.Range("J" & i).Value & ": " & param2str & ", " & param1str
-                        End If
-                        trialInfo = experimentDate
-                     End If
     
-    '                If CDbl(param1composite) > CDbl(param2composite) Then
-                        'trialInfo = param1str & ", " & param2str
-                    'Else
-                        'trialInfo = param2str & ", " & param1str
-                    'End If
-                    
-    '                If CDbl(param1composite) > CDbl(param2composite) Then
-    '                    trialInfo = CStr(param1) & " (" & elAmps(0) & "uA to " & elAmps(1) & "uA), " & CStr(param2) & " (" & elAmps(2) & "uA to " & elAmps(3) & "uA)"
-    '                Else
-    '                    trialInfo = CStr(param2) & " (" & elAmps(2) & "uA to " & elAmps(3) & "uA), " & CStr(param1) & " (" & elAmps(0) & "uA to " & elAmps(1) & "uA)"
-    '                End If
-                    
-                    If Not outputDict("Electrical").Exists(trialInfo) Then
-                        Call outputDict("Electrical").Add(trialInfo, Array())
+                    If CDbl(param1composite) > CDbl(param2composite) Then
+                        trialInfoByDateStimParamsFull = experimentDate & ": " & param1str & ", " & param2str
+                        trialInfoByStimParamsFull = param1str & ", " & param2str
+                        trialInfoByStimParamsNoAmp = CStr(param1) & ", " & CStr(param2)
+                        trialArr(13) = param1str & ", " & param2str
+                    Else
+                        trialInfoByDateStimParamsFull = experimentDate & ": " & param2str & ", " & param1str
+                        trialInfoByStimParamsFull = param2str & ", " & param1str
+                        trialInfoByStimParamsNoAmp = CStr(param2) & ", " & CStr(param1)
+                        trialArr(13) = param2str & ", " & param1str
                     End If
-                    paramArr = outputDict("Electrical")(trialInfo)
+                    trialInfoByDate = experimentDate
+
+
+                    ReDim Preserve allTrials(UBound(allTrials) + 1)
+                    allTrials(UBound(allTrials)) = trialArr
                     
-                    ReDim Preserve paramArr(UBound(paramArr) + 1)
-                    iParamOffset = UBound(paramArr)
-                    paramArr(iParamOffset) = trialArr
-                    
-                    outputDict("Electrical")(trialInfo) = paramArr
+                    Call addToDict(trialTypesByDate, trialInfoByDate, "Electrical", UBound(allTrials))
+                    Call addToDict(trialTypesByStimParamsFull, trialInfoByStimParamsFull, "Electrical", UBound(allTrials))
+                    Call addToDict(trialTypesByDateStimParamsFull, trialInfoByDateStimParamsFull, "Electrical", UBound(allTrials))
+                    Call addToDict(trialTypesByStimParamsNoAmp, trialInfoByStimParamsNoAmp, "Electrical", UBound(allTrials))
                 End If
             End If
         End If
@@ -735,17 +812,20 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                 thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Bold = True
                 iExcelOffset = iExcelOffset + 1
                 thisAnimalWorksheet.Range("A" & iExcelOffset, "H" & iExcelOffset).Font.Italic = True
-                thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Date"
-                thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = "HR -84s to -4s"
-                thisAnimalWorksheet.Cells(iExcelOffset, 3).Value = "HR -4s to 0s"
-                thisAnimalWorksheet.Cells(iExcelOffset, 4).Value = "HR 5s to 9s"
-                thisAnimalWorksheet.Cells(iExcelOffset, 5).Value = "StdDev -84s to -4s"
-                thisAnimalWorksheet.Cells(iExcelOffset, 6).Value = "StdDev -4s to 0s"
-                thisAnimalWorksheet.Cells(iExcelOffset, 7).Value = "StdDev 5s to 9s"
-                thisAnimalWorksheet.Cells(iExcelOffset, 8).Value = "HR -84s to -4s exclusion reason"
-                thisAnimalWorksheet.Cells(iExcelOffset, 9).Value = "HR -4s to 0s exclusion reason"
-                thisAnimalWorksheet.Cells(iExcelOffset, 10).Value = "HR 5s to 9s exclusion reason"
-                thisAnimalWorksheet.Cells(iExcelOffset, 11).Value = "Overall trial exclusion reason"
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Tag"
+                thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = "Trial Number"
+                thisAnimalWorksheet.Cells(iExcelOffset, 3).Value = "Stim params"
+                thisAnimalWorksheet.Cells(iExcelOffset, 4).Value = "Date"
+                thisAnimalWorksheet.Cells(iExcelOffset, 5).Value = "HR -84s to -4s"
+                thisAnimalWorksheet.Cells(iExcelOffset, 6).Value = "HR -4s to 0s"
+                thisAnimalWorksheet.Cells(iExcelOffset, 7).Value = "HR 5s to 9s"
+                thisAnimalWorksheet.Cells(iExcelOffset, 8).Value = "StdDev -84s to -4s"
+                thisAnimalWorksheet.Cells(iExcelOffset, 9).Value = "StdDev -4s to 0s"
+                thisAnimalWorksheet.Cells(iExcelOffset, 10).Value = "StdDev 5s to 9s"
+                thisAnimalWorksheet.Cells(iExcelOffset, 11).Value = "HR -84s to -4s exclusion reason"
+                thisAnimalWorksheet.Cells(iExcelOffset, 12).Value = "HR -4s to 0s exclusion reason"
+                thisAnimalWorksheet.Cells(iExcelOffset, 13).Value = "HR 5s to 9s exclusion reason"
+                thisAnimalWorksheet.Cells(iExcelOffset, 14).Value = "Overall trial exclusion reason"
                 iExcelOffset = iExcelOffset + 1
                 arrTrials = dictParamSets(arrParamSets(iParamSetNum))
                 nInMeanSoFar = 0
@@ -764,26 +844,30 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                 meanStdDev(1) = 0#
                 meanStdDev(2) = 0#
                 For iTrialNum = 0 To UBound(arrTrials)
-                    arrTrial = arrTrials(iTrialNum)
-                    thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = arrTrial(0)
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = arrTrial(1)
-                    thisAnimalWorksheet.Cells(iExcelOffset, 3).Value = arrTrial(3)
-                    thisAnimalWorksheet.Cells(iExcelOffset, 4).Value = arrTrial(5)
-                    thisAnimalWorksheet.Cells(iExcelOffset, 5).Value = arrTrial(8)
-                    thisAnimalWorksheet.Cells(iExcelOffset, 6).Value = arrTrial(9)
-                    thisAnimalWorksheet.Cells(iExcelOffset, 7).Value = arrTrial(10)
+                    arrTrial = allTrials(arrTrials(iTrialNum))
+                    thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = arrTrial(11)
+                    thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = arrTrial(12)
+                    thisAnimalWorksheet.Cells(iExcelOffset, 3).Value = arrTrial(13)
+                    thisAnimalWorksheet.Cells(iExcelOffset, 4).Value = arrTrial(0)
+                    
+                    thisAnimalWorksheet.Cells(iExcelOffset, 5).Value = arrTrial(1)
+                    thisAnimalWorksheet.Cells(iExcelOffset, 6).Value = arrTrial(3)
+                    thisAnimalWorksheet.Cells(iExcelOffset, 7).Value = arrTrial(5)
+                    thisAnimalWorksheet.Cells(iExcelOffset, 8).Value = arrTrial(8)
+                    thisAnimalWorksheet.Cells(iExcelOffset, 9).Value = arrTrial(9)
+                    thisAnimalWorksheet.Cells(iExcelOffset, 10).Value = arrTrial(10)
                     
                     
-                    thisAnimalWorksheet.Cells(iExcelOffset, 8).Value = arrTrial(2)
-                    thisAnimalWorksheet.Cells(iExcelOffset, 9).Value = arrTrial(4)
-                    thisAnimalWorksheet.Cells(iExcelOffset, 10).Value = arrTrial(6)
+                    thisAnimalWorksheet.Cells(iExcelOffset, 11).Value = arrTrial(2)
+                    thisAnimalWorksheet.Cells(iExcelOffset, 12).Value = arrTrial(4)
+                    thisAnimalWorksheet.Cells(iExcelOffset, 13).Value = arrTrial(6)
 
                     If arrTrial(4) <> "" Or arrTrial(6) <> "" Or arrTrial(7) <> "" Then
-                        thisAnimalWorksheet.Cells(iExcelOffset, 11).Value = arrTrial(7)
-                        thisAnimalWorksheet.Range("A" & iExcelOffset, "H" & iExcelOffset).Interior.Color = excludedTrialCell.Interior.Color
-                        thisAnimalWorksheet.Range("A" & iExcelOffset, "H" & iExcelOffset).Interior.ColorIndex = excludedTrialCell.Interior.ColorIndex
-                        thisAnimalWorksheet.Range("A" & iExcelOffset, "H" & iExcelOffset).Font.Color = excludedTrialCell.Font.Color
-                        thisAnimalWorksheet.Range("A" & iExcelOffset, "H" & iExcelOffset).Font.ColorIndex = excludedTrialCell.Font.ColorIndex
+                        thisAnimalWorksheet.Cells(iExcelOffset, 14).Value = arrTrial(7)
+                        thisAnimalWorksheet.Range("A" & iExcelOffset, "AZ" & iExcelOffset).Interior.Color = excludedTrialCell.Interior.Color
+                        thisAnimalWorksheet.Range("A" & iExcelOffset, "AZ" & iExcelOffset).Interior.ColorIndex = excludedTrialCell.Interior.ColorIndex
+                        thisAnimalWorksheet.Range("A" & iExcelOffset, "AZ" & iExcelOffset).Font.Color = excludedTrialCell.Font.Color
+                        thisAnimalWorksheet.Range("A" & iExcelOffset, "AZ" & iExcelOffset).Font.ColorIndex = excludedTrialCell.Font.ColorIndex
                     End If
                     iExcelOffset = iExcelOffset + 1
                     
@@ -861,7 +945,7 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                 
                 'calculate variance
                 For iTrialNum = 0 To UBound(arrTrials)
-                    arrTrial = arrTrials(iTrialNum)
+                    arrTrial = allTrials(arrTrials(iTrialNum))
                     If arrTrial(4) = "" And arrTrial(6) = "" And arrTrial(7) = "" Then
                         diff = arrTrial(5) - arrTrial(3)
                         HRChangeVar = HRChangeVar + (meanHRChange - diff) ^ 2
@@ -1432,3 +1516,18 @@ Function readCommentFromFile(objFile As File) As String
     ts.Close
 End Function
 
+Function addToDict(ByRef objDict As Dictionary, trialInfo As String, trialType As String, iRow As Integer)
+    Dim paramArr As Variant
+    Dim iParamOffset As Integer
+    If Not objDict(trialType).Exists(trialInfo) Then
+        Call objDict(trialType).Add(trialInfo, Array())
+    End If
+                     
+    paramArr = objDict(trialType)(trialInfo)
+                     
+    ReDim Preserve paramArr(UBound(paramArr) + 1)
+    iParamOffset = UBound(paramArr)
+    paramArr(iParamOffset) = iRow
+                     
+    objDict(trialType)(trialInfo) = paramArr
+End Function
