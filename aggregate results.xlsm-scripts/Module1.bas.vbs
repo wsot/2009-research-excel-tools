@@ -53,7 +53,7 @@ Sub aggregrate_results()
     
     'get the root folder under which all data is housed
     Dim rootFolder As Folder
-    
+       
     Dim AnimalFolders As Folders
     Dim objAnimalFolder As Folder
     
@@ -73,6 +73,11 @@ Sub aggregrate_results()
     Dim workbookToProcess As Workbook
         
     Set thisWorkbook = ActiveWorkbook
+    
+    maxPercOfBeatsInt = thisWorkbook.Worksheets("Controller").Cells(3, 2).Value
+    maxSingleIntSamples = thisWorkbook.Worksheets("Controller").Cells(4, 2).Value
+    maxSingleIntBeats = thisWorkbook.Worksheets("Controller").Cells(5, 2).Value
+
     
     Set objFS = CreateObject("Scripting.FileSystemObject")
     
@@ -147,6 +152,7 @@ Sub aggregrate_results()
     Application.Calculation = xlCalculationAutomatic
 End Sub
 Function copyTrials(workbookToProcess As Workbook, experimentDate As String, experimentTag As String, exclusionInfo As Variant, thisAnimalWorksheet As Worksheet, ByRef thisAnimalTrialsRow As Long, strExcelPathname As String)
+    Dim exclusionReason As String
     Dim iSourceRow As Long
     iSourceRow = 2
     While workbookToProcess.Worksheets("Output").Cells(iSourceRow, 1) <> ""
@@ -158,9 +164,29 @@ Function copyTrials(workbookToProcess As Workbook, experimentDate As String, exp
         thisAnimalWorksheet.Cells(thisAnimalTrialsRow, 6).Value = exclusionInfo(0)
         thisAnimalWorksheet.Cells(thisAnimalTrialsRow, 7).Value = exclusionInfo(1)
         thisAnimalWorksheet.Range(thisAnimalWorksheet.Cells(thisAnimalTrialsRow, 9), thisAnimalWorksheet.Cells(thisAnimalTrialsRow, 22)).Value = workbookToProcess.Worksheets("Output").Range("A" & iSourceRow & ":N" & iSourceRow).Value
-        thisAnimalWorksheet.Range(thisAnimalWorksheet.Cells(thisAnimalTrialsRow, 24), thisAnimalWorksheet.Cells(thisAnimalTrialsRow, 77)).Value = workbookToProcess.Worksheets("HR detection").Range("A" & iSourceRow + 1 & ":BA" & iSourceRow + 1).Value
+        thisAnimalWorksheet.Range(thisAnimalWorksheet.Cells(thisAnimalTrialsRow, 24), thisAnimalWorksheet.Cells(thisAnimalTrialsRow, 94)).Value = workbookToProcess.Worksheets("HR detection").Range("A" & iSourceRow + 1 & ":BS" & iSourceRow + 1).Value
+        thisAnimalWorksheet.Range(thisAnimalWorksheet.Cells(thisAnimalTrialsRow, 102), thisAnimalWorksheet.Cells(thisAnimalTrialsRow, 232)).Value = workbookToProcess.Worksheets("HRLine").Range("B" & iSourceRow & ":EB" & iSourceRow).Value
+                
+        exclusionReason = checkForHRExclusions(thisAnimalWorksheet, CInt(thisAnimalTrialsRow), HRDetOffset)
+        If exclusionReason <> "" Then
+            thisAnimalWorksheet.Cells(thisAnimalTrialsRow, 96).Value = exclusionReason
+        End If
+        exclusionReason = checkForHRExclusions(thisAnimalWorksheet, CInt(thisAnimalTrialsRow), HRDetOffset + HRDetCols)
+        If exclusionReason <> "" Then
+            thisAnimalWorksheet.Cells(thisAnimalTrialsRow, 97).Value = exclusionReason
+        End If
+        exclusionReason = checkForHRExclusions(thisAnimalWorksheet, CInt(thisAnimalTrialsRow), HRDetOffset + (2 * HRDetCols))
+        If exclusionReason <> "" Then
+            thisAnimalWorksheet.Cells(thisAnimalTrialsRow, 98).Value = exclusionReason
+        End If
+        exclusionReason = checkForHRExclusions(thisAnimalWorksheet, CInt(thisAnimalTrialsRow), HRDetOffset + (3 * HRDetCols))
+        If exclusionReason <> "" Then
+            thisAnimalWorksheet.Cells(thisAnimalTrialsRow, 99).Value = exclusionReason
+        End If
+        
         iSourceRow = iSourceRow + 1
         thisAnimalTrialsRow = thisAnimalTrialsRow + 1
+        
     Wend
 End Function
 
@@ -377,19 +403,19 @@ Sub processTrials()
                         Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
                         Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
                         thisAnimalWorksheet.Name = animalID
-                        Call outputTrials(trialTypes, "", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow)
+                        Call outputTrials(trialTypes, "", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow, sourceWorksheet)
                     Else
                         If trialTypes("Acoustic").Count > 0 Then
                             Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
                             Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
                             thisAnimalWorksheet.Name = animalID & " Acoustic"
-                            Call outputTrials(trialTypes, "Acoustic", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow)
+                            Call outputTrials(trialTypes, "Acoustic", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow, sourceWorksheet)
                         End If
                         If trialTypes("Electrical").Count > 0 Then
                             Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
                             Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
                             thisAnimalWorksheet.Name = animalID & " Electrical"
-                            Call outputTrials(trialTypes, "Electrical", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow)
+                            Call outputTrials(trialTypes, "Electrical", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow, sourceWorksheet)
                         End If
                     End If
 '                    Call outputWorkbook.SaveAs(outputFilename)
@@ -498,7 +524,7 @@ Function parseTrials(sourceWorksheet As Worksheet)
     '        End If
            
             trialArr = Array()
-            ReDim trialArr(13)
+            ReDim trialArr(15)
             'result array contains 11 elements
             '1:date
             '2:HR -84 to -4s from start
@@ -514,6 +540,8 @@ Function parseTrials(sourceWorksheet As Worksheet)
             '12: label
             '13: Trial number
             '14: Stim params
+            '15: Row in worksheet
+            '16: reason for -4 to 9s exclusion (if excluded)
     
     'Const HRDetCols = 16
     'Const HRDetHROffset = 5
@@ -527,6 +555,7 @@ Function parseTrials(sourceWorksheet As Worksheet)
             trialArr(0) = experimentDate
             trialArr(11) = experimentTag
             trialArr(12) = sourceWorksheet.Range("J" & i).Value
+            trialArr(14) = i
     
             exclusionReason = checkForHRExclusions(sourceWorksheet, i, HRDetOffset)
             If exclusionReason <> "" Then
@@ -553,7 +582,9 @@ Function parseTrials(sourceWorksheet As Worksheet)
                 trialArr(5) = sourceWorksheet.Cells(i, HRDetOffset + (HRDetCols * 2) + HRDetHROffset).Value
                 trialArr(10) = sourceWorksheet.Cells(i, HRDetOffset + (HRDetCols * 2) + HRDetStdDev).Value
             End If
-            
+            exclusionReason = checkForHRExclusions(sourceWorksheet, i, HRDetOffset + (3 * HRDetCols))
+            trialArr(15) = exclusionReason
+             
             If sourceWorksheet.Range("M" & i).Value = "Acoustic" Then
                 If Not ((exclusionInfo(0) = "Acoustic" Or exclusionInfo(0) = "all") And exclusionInfo(1) = "") Then
                      If (exclusionInfo(0) = "Acoustic" Or exclusionInfo(0) = "all") And exclusionInfo(1) <> "" Then
@@ -709,7 +740,7 @@ Function checkForHRExclusions(sourceWorksheet As Worksheet, i As Integer, horizO
             End If
 End Function
 
-Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksheet As Worksheet, thisAnimalSummarySheet As Worksheet, ByRef thisAnimalSummarySheetRow)
+Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksheet As Worksheet, thisAnimalSummarySheet As Worksheet, ByRef thisAnimalSummarySheetRow, ByRef sourceWorksheet As Worksheet)
     Dim arrTrialTypes
     arrTrialTypes = trialTypes.Keys
     
@@ -720,6 +751,11 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
     Dim arrParamSets
     Dim arrTrials
     Dim arrTrial
+    
+    Dim HRPlot() As Double
+    Dim HRSD() As Double
+    Dim HRIterator As Integer
+    Dim nInHrSoFar As Integer
     
     Dim iTrialTypeNum As Integer
     Dim iParamSetNum As Integer
@@ -843,8 +879,18 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                 meanStdDev(0) = 0#
                 meanStdDev(1) = 0#
                 meanStdDev(2) = 0#
+                
+                nInHrSoFar = 0
+                ReDim HRPlot(130)
+                ReDim HRSD(130)
+'                For HRIterator = 0 To 130
+'                    HRPlot(HRIterator) = 0
+'                Next
+                
                 For iTrialNum = 0 To UBound(arrTrials)
                     arrTrial = allTrials(arrTrials(iTrialNum))
+                                        
+                                        
                     thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = arrTrial(11)
                     thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = arrTrial(12)
                     thisAnimalWorksheet.Cells(iExcelOffset, 3).Value = arrTrial(13)
@@ -857,10 +903,18 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                     thisAnimalWorksheet.Cells(iExcelOffset, 9).Value = arrTrial(9)
                     thisAnimalWorksheet.Cells(iExcelOffset, 10).Value = arrTrial(10)
                     
-                    
                     thisAnimalWorksheet.Cells(iExcelOffset, 11).Value = arrTrial(2)
                     thisAnimalWorksheet.Cells(iExcelOffset, 12).Value = arrTrial(4)
                     thisAnimalWorksheet.Cells(iExcelOffset, 13).Value = arrTrial(6)
+
+                    If arrTrial(15) = "" And arrTrial(7) = "" Then 'check if the data should be excluded
+                        nInHrSoFar = nInHrSoFar + 1
+                        For HRIterator = 0 To 130
+                            HRPlot(HRIterator) = HRPlot(HRIterator) + ((sourceWorksheet.Cells(arrTrial(14), HRIterator + 102).Value - HRPlot(HRIterator)) / nInHrSoFar)
+                            HRSD(HRIterator) = HRSD(HRIterator) + (sourceWorksheet.Cells(arrTrial(14), HRIterator + 102).Value ^ 2)
+                        Next
+                    End If
+
 
                     If arrTrial(4) <> "" Or arrTrial(6) <> "" Or arrTrial(7) <> "" Then
                         thisAnimalWorksheet.Cells(iExcelOffset, 14).Value = arrTrial(7)
@@ -1024,7 +1078,7 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
 
                 iMaxExcelOffset = iExcelOffset
                 iExcelOffset = iPrevExcelOffset
-                
+                                
                 thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 2) = nInMeanSoFar
                 thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 3) = nExcluded
                 
@@ -1137,12 +1191,24 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                     End If
                 End If
                 
-                If Not arrParamSets(iParamSetNum) = "No stimulation, No stimulation" Then
-                    currPooledHRChNExcl = currPooledHRChNExcl + nExcluded
-                    currPooledHRChNDec = currPooledHRChNDec + HRDecTrials
-                Else
-                    noStimPooledHRChNExcl = noStimPooledHRChNExcl + nExcluded
-                    noStimPooledHRChNDec = noStimPooledHRChNDec + HRDecTrials
+                If nInHrSoFar > 0 Then
+                    For HRIterator = 0 To 130
+                        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 21 + HRIterator) = HRPlot(HRIterator)
+                        If nInHrSoFar > 1 Then
+                            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 153 + HRIterator).Value = (((HRSD(HRIterator) - ((HRPlot(HRIterator) ^ 2) / nInHrSoFar)) / nInHrSoFar) ^ 0.5)
+                        End If
+                    Next
+                End If
+                
+                
+                If arrTrialTypes(iTrialTypeNum) = "Electrical" Then
+                    If Not arrParamSets(iParamSetNum) = "No stimulation, No stimulation" Then
+                        currPooledHRChNExcl = currPooledHRChNExcl + nExcluded
+                        currPooledHRChNDec = currPooledHRChNDec + HRDecTrials
+                    Else
+                        noStimPooledHRChNExcl = noStimPooledHRChNExcl + nExcluded
+                        noStimPooledHRChNDec = noStimPooledHRChNDec + HRDecTrials
+                    End If
                 End If
                                 
                 If iMaxExcelOffset > iExcelOffset Then

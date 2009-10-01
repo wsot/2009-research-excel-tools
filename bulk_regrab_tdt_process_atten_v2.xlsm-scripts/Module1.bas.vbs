@@ -175,6 +175,7 @@ Sub reprocess()
                             
                             If regenerateHRcalculations Then
                                 Application.Run ("'" & strExcelFilename & "'!processHeartRate")
+                                Application.Run ("'" & strExcelFilename & "'!generateHrAtTimePoints")
                             End If
                             If regenerateDropoutData Then
                                 Application.Run ("'" & strExcelFilename & "'!buildDeadzoneLists")
