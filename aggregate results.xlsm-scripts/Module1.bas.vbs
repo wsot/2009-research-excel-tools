@@ -301,6 +301,8 @@ Sub processTrials()
     Dim outputByDateStimParamsFull As Workbook
     Dim outputByDate As Workbook
     Dim outputByStimParamsFull As Workbook
+    
+    Dim iColHeadersForHRLine As Integer
         
         For iSourceWorksheetOffset = 1 To (thisWorkbook.Worksheets.Count)
             If thisWorkbook.Worksheets(iSourceWorksheetOffset).Name <> "Controller" And thisWorkbook.Worksheets(iSourceWorksheetOffset).Name <> "Trials" Then 'check if this is actually a data sheet
@@ -397,8 +399,12 @@ Sub processTrials()
                     thisAnimalSummarySheet.Cells(1, 16).Value = "5s to 9s HR N"
                     thisAnimalSummarySheet.Cells(1, 17).Value = "5s to 9s HR StdDev"
                     thisAnimalSummarySheet.Cells(1, 18).Value = "5s to 9s HR StdDev StdDev"
-                    thisAnimalSummarySheet.Range("A1:Z1").Font.Bold = True
-    
+                    thisAnimalSummarySheet.Range("A1:R1").Font.Bold = True
+                    
+                    For iColHeadersForHRLine = 0 To 130
+                        thisAnimalSummarySheet.Cells(1, 21 + iColHeadersForHRLine).Value = Round((iColHeadersForHRLine - 40) / 10, 2)
+                    Next
+                    
                     If oneAnimalOneSheet Then
                         Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
                         Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
@@ -752,6 +758,11 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
     Dim arrTrials
     Dim arrTrial
     
+    Dim TotalHRPlot() As Double
+    Dim TotalHRSD() As Double
+    Dim TotalHRIterator As Integer
+    Dim TotalnInHrSoFar As Integer
+
     Dim HRPlot() As Double
     Dim HRSD() As Double
     Dim HRIterator As Integer
@@ -765,6 +776,9 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
     iExcelOffset = 1
     Dim iPrevExcelOffset As Long
     Dim iMaxExcelOffset As Long
+    
+    Dim iThisAnimalSummarySheetStartingRow As Integer
+    iThisAnimalSummarySheetStartingRow = CInt(thisAnimalSummarySheetRow)
     
     Dim meanHRChange As Double
     Dim HRChangeVar As Double
@@ -834,6 +848,9 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
         currPooledVarN = Array(0#, 0#, 0#)
     
         If arrTrialTypes(iTrialTypeNum) = trialType Or trialType = "" Then
+            ReDim TotalHRPlot(130)
+            ReDim TotalHRSD(130)
+
             thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = arrTrialTypes(iTrialTypeNum) & " Trials"
             'thisAnimalWorksheet.Cells(iExcelOffset, 1).Style = "Heading"
             thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Bold = True
@@ -908,11 +925,13 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                     thisAnimalWorksheet.Cells(iExcelOffset, 13).Value = arrTrial(6)
 
                     If arrTrial(15) = "" And arrTrial(7) = "" Then 'check if the data should be excluded
-                        nInHrSoFar = nInHrSoFar + 1
-                        For HRIterator = 0 To 130
-                            HRPlot(HRIterator) = HRPlot(HRIterator) + ((sourceWorksheet.Cells(arrTrial(14), HRIterator + 102).Value - HRPlot(HRIterator)) / nInHrSoFar)
-                            HRSD(HRIterator) = HRSD(HRIterator) + (sourceWorksheet.Cells(arrTrial(14), HRIterator + 102).Value ^ 2)
-                        Next
+                        If Not arrParamSets(iParamSetNum) = "No stimulation, No stimulation" Then 'dont include if no stim - shouldn't be pooled with the rest
+                            nInHrSoFar = nInHrSoFar + 1
+                            For HRIterator = 0 To 130
+                                HRPlot(HRIterator) = HRPlot(HRIterator) + ((sourceWorksheet.Cells(arrTrial(14), HRIterator + 102).Value - HRPlot(HRIterator)) / nInHrSoFar)
+                                HRSD(HRIterator) = HRSD(HRIterator) + (sourceWorksheet.Cells(arrTrial(14), HRIterator + 102).Value ^ 2)
+                            Next
+                        End If
                     End If
 
 
@@ -1192,14 +1211,23 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                 End If
                 
                 If nInHrSoFar > 0 Then
+                    TotalnInHrSoFar = TotalnInHrSoFar + nInHrSoFar
                     For HRIterator = 0 To 130
+                        TotalHRPlot(HRIterator) = TotalHRPlot(HRIterator) + ((HRPlot(HRIterator) - TotalHRPlot(HRIterator)) / (TotalnInHrSoFar / nInHrSoFar))
+                        TotalHRSD(HRIterator) = TotalHRSD(HRIterator) + HRSD(HRIterator)
+
                         thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 21 + HRIterator) = HRPlot(HRIterator)
+
                         If nInHrSoFar > 1 Then
-                            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 153 + HRIterator).Value = (((HRSD(HRIterator) - ((HRPlot(HRIterator) ^ 2) / nInHrSoFar)) / nInHrSoFar) ^ 0.5)
+                            '1 SD
+                            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 153 + HRIterator).Value = (((HRSD(HRIterator) - (((HRPlot(HRIterator) * CDbl(nInHrSoFar)) ^ 2#) / CDbl(nInHrSoFar))) / CDbl(nInHrSoFar)) ^ 0.5)
+                            '2 SEM
+                            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 286 + HRIterator).Value = 2 * ((((HRSD(HRIterator) - (((HRPlot(HRIterator) * CDbl(nInHrSoFar)) ^ 2#) / CDbl(nInHrSoFar))) / CDbl(nInHrSoFar)) ^ 0.5) / (CDbl(nInHrSoFar) ^ 0.5))
+                            '1.96 SD (95% CI)
+                            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 419 + HRIterator).Value = (((HRSD(HRIterator) - (((HRPlot(HRIterator) * CDbl(nInHrSoFar)) ^ 2#) / CDbl(nInHrSoFar))) / CDbl(nInHrSoFar)) ^ 0.5) * 1.96
                         End If
                     Next
                 End If
-                
                 
                 If arrTrialTypes(iTrialTypeNum) = "Electrical" Then
                     If Not arrParamSets(iParamSetNum) = "No stimulation, No stimulation" Then
@@ -1216,11 +1244,50 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                 Else
                     iExcelOffset = iExcelOffset + 2
                 End If
+                
+                Dim myChart As ChartObject
+                Dim chartOffset As Integer
+                Dim chartHeight As Integer
+                If iThisAnimalSummarySheetStartingRow > 2 Then
+                    'chartOffset = (iThisAnimalSummarySheetStartingRow) * 15.5 + (UBound(arrParamSets) + 2) * 15.5
+                    chartOffset = thisAnimalSummarySheet.Range("A" & iThisAnimalSummarySheetStartingRow + UBound(arrParamSets) + 7 & ":A" & "A" & iThisAnimalSummarySheetStartingRow + UBound(arrParamSets) + 7 + 19).Top
+                    chartHeight = thisAnimalSummarySheet.Range("A" & iThisAnimalSummarySheetStartingRow + UBound(arrParamSets) + 7 & ":A" & "A" & iThisAnimalSummarySheetStartingRow + UBound(arrParamSets) + 7 + 19).Height
+                Else
+                    chartOffset = thisAnimalSummarySheet.Range("A" & UBound(arrParamSets) + 7 & ":A" & UBound(arrParamSets) + 7 + 19).Top
+                    chartHeight = thisAnimalSummarySheet.Range("A" & UBound(arrParamSets) + 7 & ":A" & UBound(arrParamSets) + 7 + 19).Height
+                    'chartOffset = (UBound(arrParamSets) + 5) * 15.5
+                End If
+
+                Set myChart = thisAnimalSummarySheet.ChartObjects.Add(((thisAnimalSummarySheetRow - iThisAnimalSummarySheetStartingRow) * 500) + 1, chartOffset, 500, chartHeight)
+                myChart.Chart.ChartType = xlLine
+                myChart.Chart.SeriesCollection.NewSeries
+                myChart.Chart.SeriesCollection(1).Name = thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1).Value & " (N=" & nInHrSoFar & ")"
+                myChart.Chart.SeriesCollection(1).Format.Line.Weight = 1#
+                myChart.Chart.SeriesCollection(1).XValues = thisAnimalSummarySheet.Range("=$U$1:$EU$1")
+                myChart.Chart.Legend.Delete
+                myChart.Chart.SeriesCollection(1).Values = thisAnimalSummarySheet.Range("$U$" & thisAnimalSummarySheetRow & ":$EU$" & thisAnimalSummarySheetRow)
+                myChart.Chart.SeriesCollection(1).HasErrorBars = True
+                '1.96 Standard deviation
+                'myChart.Chart.SeriesCollection(1).ErrorBar Direction:=xlY, Include:=xlBoth, _
+                '    Type:=xlErrorBarTypeCustom, Amount:=thisAnimalSummarySheet.Range("$PC$" & thisAnimalSummarySheetRow & ":$UC$" & thisAnimalSummarySheetRow), MinusValues:=thisAnimalSummarySheet.Range("$PC$" & thisAnimalSummarySheetRow & ":$UC$" & thisAnimalSummarySheetRow)
+
+                '1 Standard deviation
+'                myChart.Chart.SeriesCollection(1).ErrorBar Direction:=xlY, Include:=xlBoth, _
+'                    Type:=xlErrorBarTypeCustom, Amount:=thisAnimalSummarySheet.Range("$EW$" & thisAnimalSummarySheetRow & ":$JW$" & thisAnimalSummarySheetRow), MinusValues:=thisAnimalSummarySheet.Range("$EW$" & thisAnimalSummarySheetRow & ":$JW$" & thisAnimalSummarySheetRow)
+                '2 SEM
+                                myChart.Chart.SeriesCollection(1).ErrorBar Direction:=xlY, Include:=xlBoth, _
+                    Type:=xlErrorBarTypeCustom, Amount:=thisAnimalSummarySheet.Range("$JZ$" & thisAnimalSummarySheetRow & ":$OZ$" & thisAnimalSummarySheetRow), MinusValues:=thisAnimalSummarySheet.Range("$JZ$" & thisAnimalSummarySheetRow & ":$OZ$" & thisAnimalSummarySheetRow)
+
+
+                myChart.Chart.ChartTitle.Characters.Font.Size = 12
+                myChart.Chart.Axes(xlValue).MinimumScale = 0.85
+                myChart.Chart.Axes(xlValue).MaximumScale = 1.15
+                
                 thisAnimalSummarySheetRow = thisAnimalSummarySheetRow + 1
             Next
             iExcelOffset = iExcelOffset + 1
         End If
-               
+              
         Select Case arrTrialTypes(iTrialTypeNum)
             Case "Acoustic":
                 AcoPooledHRChN = currPooledHRChN
@@ -1336,7 +1403,6 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
         thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Interior.Color = percOutside2575FC.Interior.Color
         thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Interior.ColorIndex = percOutside2575FC.Interior.ColorIndex
 
-        
         thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 5).Value = ElPooledHRChMean
         If ElPooledHRChN > 1 Then
             thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value = ((ElPooledHRChCum - ((ElPooledHRChMean * CDbl(ElPooledHRChN) ^ 2) / CDbl(ElPooledHRChN))) / CDbl(ElPooledHRChN - 1)) ^ 0.5
@@ -1394,7 +1460,59 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
         End If
     End If
     
-    thisAnimalSummarySheetRow = thisAnimalSummarySheetRow + 2
+            
+    If TotalnInHrSoFar > 0 Then
+        For HRIterator = 0 To 130
+            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 21 + HRIterator) = TotalHRPlot(HRIterator)
+
+            If TotalnInHrSoFar > 1 Then
+                '1 SD
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 153 + HRIterator).Value = (((TotalHRSD(HRIterator) - (((TotalHRPlot(HRIterator) * CDbl(TotalnInHrSoFar)) ^ 2#) / CDbl(TotalnInHrSoFar))) / CDbl(TotalnInHrSoFar)) ^ 0.5)
+                '2 SEM
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 286 + HRIterator).Value = 2 * ((((TotalHRSD(HRIterator) - (((TotalHRPlot(HRIterator) * CDbl(TotalnInHrSoFar)) ^ 2#) / CDbl(TotalnInHrSoFar))) / CDbl(TotalnInHrSoFar)) ^ 0.5) / (CDbl(TotalnInHrSoFar) ^ 0.5))
+                '1.96 SD (95% CI)
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 419 + HRIterator).Value = (((TotalHRSD(HRIterator) - (((TotalHRPlot(HRIterator) * CDbl(TotalnInHrSoFar)) ^ 2#) / CDbl(TotalnInHrSoFar))) / CDbl(TotalnInHrSoFar)) ^ 0.5) * 1.96
+            End If
+        Next
+    End If
+
+
+    If iThisAnimalSummarySheetStartingRow > 2 Then
+        'chartOffset = (iThisAnimalSummarySheetStartingRow) * 15.5 + (UBound(arrParamSets) + 2) * 15.5
+        chartOffset = thisAnimalSummarySheet.Range("A" & (iThisAnimalSummarySheetStartingRow + UBound(arrParamSets) + 7) & ":A" & "A" & (iThisAnimalSummarySheetStartingRow + UBound(arrParamSets) + 7 + 19)).Top
+        chartHeight = thisAnimalSummarySheet.Range("A" & (iThisAnimalSummarySheetStartingRow + UBound(arrParamSets) + 7) & ":A" & "A" & (iThisAnimalSummarySheetStartingRow + UBound(arrParamSets) + 7 + 19)).Height
+    Else
+        chartOffset = thisAnimalSummarySheet.Range("A" & (UBound(arrParamSets) + 7) & ":A" & (UBound(arrParamSets) + 7 + 19)).Top
+        chartHeight = thisAnimalSummarySheet.Range("A" & (UBound(arrParamSets) + 7) & ":A" & (UBound(arrParamSets) + 7 + 19)).Height
+        'chartOffset = (UBound(arrParamSets) + 5) * 15.5
+    End If
+
+    Set myChart = thisAnimalSummarySheet.ChartObjects.Add(((thisAnimalSummarySheetRow - iThisAnimalSummarySheetStartingRow - 2) * 500) + 1, chartOffset, 500, chartHeight)
+    myChart.Chart.ChartType = xlLine
+    myChart.Chart.SeriesCollection.NewSeries
+    myChart.Chart.SeriesCollection(1).Name = thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1).Value & " (N=" & TotalnInHrSoFar & ")"
+    myChart.Chart.SeriesCollection(1).Format.Line.Weight = 1#
+    myChart.Chart.SeriesCollection(1).XValues = thisAnimalSummarySheet.Range("=$U$1:$EU$1")
+    myChart.Chart.Legend.Delete
+    myChart.Chart.SeriesCollection(1).Values = thisAnimalSummarySheet.Range("$U$" & thisAnimalSummarySheetRow & ":$EU$" & thisAnimalSummarySheetRow)
+    myChart.Chart.SeriesCollection(1).HasErrorBars = True
+    '1.96 Standard deviation
+'    myChart.Chart.SeriesCollection(1).ErrorBar Direction:=xlY, Include:=xlBoth, _
+ '       Type:=xlErrorBarTypeCustom, Amount:=thisAnimalSummarySheet.Range("$PC$" & thisAnimalSummarySheetRow & ":$UC$" & thisAnimalSummarySheetRow), MinusValues:=thisAnimalSummarySheet.Range("$PC$" & thisAnimalSummarySheetRow & ":$UC$" & thisAnimalSummarySheetRow)
+
+    '1 Standard deviation
+'    myChart.Chart.SeriesCollection(1).ErrorBar Direction:=xlY, Include:=xlBoth, _
+'        Type:=xlErrorBarTypeCustom, Amount:=thisAnimalSummarySheet.Range("$EW$" & thisAnimalSummarySheetRow & ":$JW$" & thisAnimalSummarySheetRow), MinusValues:=thisAnimalSummarySheet.Range("$EW$" & thisAnimalSummarySheetRow & ":$JW$" & thisAnimalSummarySheetRow)
+    '2 SEM
+   myChart.Chart.SeriesCollection(1).ErrorBar Direction:=xlY, Include:=xlBoth, _
+       Type:=xlErrorBarTypeCustom, Amount:=thisAnimalSummarySheet.Range("$JZ$" & thisAnimalSummarySheetRow & ":$OZ$" & thisAnimalSummarySheetRow), MinusValues:=thisAnimalSummarySheet.Range("$JZ$" & thisAnimalSummarySheetRow & ":$OZ$" & thisAnimalSummarySheetRow)
+
+    myChart.Chart.ChartTitle.Characters.Font.Size = 12
+    myChart.Chart.Axes(xlValue).MinimumScale = 0.85
+    myChart.Chart.Axes(xlValue).MaximumScale = 1.15
+
+    
+    thisAnimalSummarySheetRow = thisAnimalSummarySheetRow + 23
 
 End Sub
 
