@@ -18,6 +18,13 @@ Global hrClearHighlightCell As Range
 'Const maxInterBeatOverrun = 1.6
 'Const maxInterBeatUnderrun = 0.6
 
+Sub doAllHRProcessing()
+    Call buildDeadzoneLists
+    Call processHeartRate
+    Call generateHrAtTimePoints
+End Sub
+
+
 Sub processHeartRate()
   
     Dim maxAllowVariation As Double
