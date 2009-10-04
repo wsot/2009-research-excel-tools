@@ -190,6 +190,8 @@ Function readInTrialNeuralData(stimEpocs As Variant, neuroWS As Worksheet, trial
     histoN = 0
     histoBinCount = CInt(dblTotalWidthSecs / dblBinWidthSecs)
     Call setHistoArraySizes(histoSums, histoSquares, histoBinCount)
+    Call outputHeaders(neuroWS, intChartGap, histoBinCount, iTrialNum, lStim1Freq)
+    Dim lHistoBin As Long
     
     'ReDim histoSums(histoBinCount)
     'ReDim histoSquares(histoBinCount)
@@ -229,77 +231,16 @@ Function readInTrialNeuralData(stimEpocs As Variant, neuroWS As Worksheet, trial
             Next
             
             histoN = histoN + 1
-            Call buildHistogramForStimMethod1(stimEpocs(1, iStimNum), histoSums, histoSquares, False, Null, Null, histoBinCount)
+            Call buildHistogramForStimMethod1(stimEpocs(1, iStimNum), histoSums, histoSquares, histoBinCount)
         End If
     Next
     'once it has gotten to this point, it has the histogram data for all channels, and all bins in the histoSums and histoSquares arrays
     
-    
-    Dim iHistoBin As Integer
-    
-    'write out all the headings
-    neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 1, 1).Value = "Trial " & iTrialNum
-    neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 2, 1).Value = "Channel"
-    neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 1, 3).Value = "Freq:"
-    neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 2, 3).Value = lStim1Freq
-    neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 1, 5).Value = "Mean:"
-    neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 1, 7 + histoBinCount).Value = "StdDev:"
-    For iHistoBin = 0 To histoBinCount
-            'totals
-            neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 2, 5 + iHistoBin).Value = _
-                CStr(iHistoBin * dblBinWidthSecs) ' & "-" & CStr((iHistoBin + 1) * dblBinWidthSecs)
-            'mean
-            neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 2, 7 + histoBinCount + iHistoBin).Value = _
-                CStr(iHistoBin * dblBinWidthSecs) ' & "-" & CStr((iHistoBin + 1) * dblBinWidthSecs)
-            'stddev
-            neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 2, 9 + histoBinCount * 2 + iHistoBin).Value = _
-                CStr(iHistoBin * dblBinWidthSecs) ' & "-" & CStr((iHistoBin + 1) * dblBinWidthSecs)
-    Next
-    
-    Dim myChart As ChartObject
-    Dim chartOffset As Long
-    Dim chartHeight As Long
-    
-    If blnBuildCharts Then
-        chartOffset = neuroWS.Range(neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + dictOnlyIncludeChannels.Count * 2 + 4, 1), neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count + 5 + intChartGap) + dictOnlyIncludeChannels.Count * 2 + 3 + 21, 1)).Top
-        chartHeight = neuroWS.Range(neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + dictOnlyIncludeChannels.Count * 2 + 4, 1), neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count + 5 + intChartGap) + dictOnlyIncludeChannels.Count * 2 + 3 + 21, 1)).Height
-    End If
-
-    Dim vChanKey As Variant
-    'step through each channel
-    For Each vChanKey In dictOnlyIncludeChannels.Keys
-        neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + ((dictOnlyIncludeChannels(vChanKey) - 1) * 2) + 1 + 2, 1).Value = vChanKey
-        For iHistoBin = 0 To histoBinCount
-            'totals
-            neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + ((dictOnlyIncludeChannels(vChanKey) - 1) * 2) + 1 + 2, 5 + iHistoBin).Value = histoSums(dictOnlyIncludeChannels(vChanKey) - 1)(iHistoBin)
-            'mean
-            neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + ((dictOnlyIncludeChannels(vChanKey) - 1) * 2) + 1 + 2, 7 + histoBinCount * 2 + iHistoBin).Value = histoSums(dictOnlyIncludeChannels(vChanKey) - 1)(iHistoBin) / histoN
-            'stddev
-            neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + ((dictOnlyIncludeChannels(vChanKey) - 1) * 2) + 1 + 2, 9 + histoBinCount + iHistoBin).Value = (histoSquares(dictOnlyIncludeChannels(vChanKey) - 1)(iHistoBin) - ((histoSums(dictOnlyIncludeChannels(vChanKey) - 1)(iHistoBin) ^ 2) / histoN) / (histoN - 1)) ^ 0.5
-            'top of chart will be: (iTrialNum - 1) * (dictOnlyIncludeChannels.Count + 4) + dictOnlyIncludeChannels.Count + 3
-           Next
-            
-            If blnBuildCharts Then
-                Set myChart = neuroWS.ChartObjects.Add(((dictOnlyIncludeChannels(vChanKey) - 1) * 500) + 1, chartOffset, 500, chartHeight)
-                myChart.Chart.ChartType = xlColumnClustered
-                'myChart.Chart.SeriesCollection.NewSeries
-                Call myChart.Chart.SetSourceData(neuroWS.Range(neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + ((dictOnlyIncludeChannels(vChanKey) - 1) * 2) + 1 + 2, 5), neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + ((dictOnlyIncludeChannels(vChanKey) - 1) * 2) + 1 + 2, 5 + histoBinCount)))
-                myChart.Chart.ChartGroups(1).GapWidth = 0
-                'myChart.Chart.Border.Weight = 0.25
-                myChart.Chart.SeriesCollection(1).Name = "Channel " & vChanKey
-                myChart.Chart.SeriesCollection(1).XValues = neuroWS.Range(neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 2, 5), neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 2, 5 + histoBinCount))
-                myChart.Chart.SeriesCollection(1).Format.Line.Style = msoLineSingle
-                myChart.Chart.SeriesCollection(1).Format.Line.Weight = 0.25
-                myChart.Chart.SeriesCollection(1).Format.Line.Visible = msoTrue
-                myChart.Chart.Legend.Delete
-    
-                myChart.Chart.ChartTitle.Characters.Font.Size = 12
-            End If
-    Next
+    Call outputResults(neuroWS, intChartGap, histoBinCount, iTrialNum, lHistoBin, histoSums, histoSquares, histoN)
     
 End Function
 
-Function buildHistogramForStimMethod1(ByVal dblStartTime As Double, ByRef histoSums As Variant, ByRef histoSquares As Variant, useFromEpocList As Boolean, ByRef stimAmp As Variant, ByRef stimAmpCount As Variant, lHistoBinCount As Long)
+Function buildHistogramForStimMethod1(ByVal dblStartTime As Double, ByRef histoSums As Variant, ByRef histoSquares As Variant, lHistoBinCount As Long)
     Dim iChanNum As Integer
     Dim iEvtCount As Integer
     Dim iEvtNum As Integer
@@ -395,6 +336,73 @@ Function setHistoArraySizes(ByRef histoSums As Variant, ByRef histoSquares As Va
     For i = 0 To dictOnlyIncludeChannels.Count - 1
         histoSums(i) = arrDoubles
         histoSquares(i) = arrDoubles
+    Next
+End Function
+
+Function outputHeaders(neuroWS As Worksheet, intChartGap As Integer, histoBinCount As Long, iTrialNum As Integer, lStim1Freq As Long)
+    Dim lHistoBin As Long
+    
+    'write out all the headings
+    neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 1, 1).Value = "Trial " & iTrialNum
+    neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 2, 1).Value = "Channel"
+    neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 1, 3).Value = "Freq:"
+    neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 2, 3).Value = lStim1Freq
+    neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 1, 5).Value = "Mean:"
+    neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 1, 7 + histoBinCount).Value = "StdDev:"
+    For lHistoBin = 0 To histoBinCount
+            'totals
+            neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 2, 5 + lHistoBin).Value = _
+                CStr(lHistoBin * dblBinWidthSecs) ' & "-" & CStr((lHistoBin + 1) * dblBinWidthSecs)
+            'mean
+            neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 2, 7 + histoBinCount + lHistoBin).Value = _
+                CStr(lHistoBin * dblBinWidthSecs) ' & "-" & CStr((lHistoBin + 1) * dblBinWidthSecs)
+            'stddev
+            neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 2, 9 + histoBinCount * 2 + lHistoBin).Value = _
+                CStr(lHistoBin * dblBinWidthSecs) ' & "-" & CStr((lHistoBin + 1) * dblBinWidthSecs)
+    Next
+End Function
+
+Function outputResults(neuroWS As Worksheet, intChartGap As Integer, histoBinCount As Long, iTrialNum As Integer, lHistoBin As Long, histoSums As Variant, histoSquares As Variant, histoN As Long)
+    Dim myChart As ChartObject
+    Dim chartOffset As Long
+    Dim chartHeight As Long
+    
+    If blnBuildCharts Then
+        chartOffset = neuroWS.Range(neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + (dictOnlyIncludeChannels.Count * 2) + 4, 1), neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + (dictOnlyIncludeChannels.Count * 2) + 3 + 21, 1)).Top
+        chartHeight = neuroWS.Range(neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + (dictOnlyIncludeChannels.Count * 2) + 4, 1), neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + (dictOnlyIncludeChannels.Count * 2) + 3 + 21, 1)).Height
+        'neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + (dictOnlyIncludeChannels.Count * 2) + 4, 1)
+    End If
+
+    Dim vChanKey As Variant
+    'step through each channel
+    For Each vChanKey In dictOnlyIncludeChannels.Keys
+        neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + ((dictOnlyIncludeChannels(vChanKey) - 1) * 2) + 1 + 2, 1).Value = vChanKey
+        For lHistoBin = 0 To histoBinCount
+            'totals
+            neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + ((dictOnlyIncludeChannels(vChanKey) - 1) * 2) + 1 + 2, 5 + lHistoBin).Value = histoSums(dictOnlyIncludeChannels(vChanKey) - 1)(lHistoBin)
+            'mean
+            neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + ((dictOnlyIncludeChannels(vChanKey) - 1) * 2) + 1 + 2, 7 + histoBinCount * 2 + lHistoBin).Value = histoSums(dictOnlyIncludeChannels(vChanKey) - 1)(lHistoBin) / histoN
+            'stddev
+            neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + ((dictOnlyIncludeChannels(vChanKey) - 1) * 2) + 1 + 2, 9 + histoBinCount + lHistoBin).Value = (histoSquares(dictOnlyIncludeChannels(vChanKey) - 1)(lHistoBin) - ((histoSums(dictOnlyIncludeChannels(vChanKey) - 1)(lHistoBin) ^ 2) / histoN) / (histoN - 1)) ^ 0.5
+            'top of chart will be: (iTrialNum - 1) * (dictOnlyIncludeChannels.Count + 4) + dictOnlyIncludeChannels.Count + 3
+        Next
+        
+       If blnBuildCharts Then
+            Set myChart = neuroWS.ChartObjects.Add(((dictOnlyIncludeChannels(vChanKey) - 1) * 500) + 1, chartOffset, 500, chartHeight)
+            myChart.Chart.ChartType = xlColumnClustered
+            'myChart.Chart.SeriesCollection.NewSeries
+            Call myChart.Chart.SetSourceData(neuroWS.Range(neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + ((dictOnlyIncludeChannels(vChanKey) - 1) * 2) + 1 + 2, 5), neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + ((dictOnlyIncludeChannels(vChanKey) - 1) * 2) + 1 + 2, 5 + histoBinCount)))
+            myChart.Chart.ChartGroups(1).GapWidth = 0
+            'myChart.Chart.Border.Weight = 0.25
+            myChart.Chart.SeriesCollection(1).Name = "Channel " & vChanKey
+            myChart.Chart.SeriesCollection(1).XValues = neuroWS.Range(neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 2, 5), neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 2, 5 + histoBinCount))
+            myChart.Chart.SeriesCollection(1).Format.Line.Style = msoLineSingle
+            myChart.Chart.SeriesCollection(1).Format.Line.Weight = 0.25
+            myChart.Chart.SeriesCollection(1).Format.Line.Visible = msoTrue
+            myChart.Chart.Legend.Delete
+
+            myChart.Chart.ChartTitle.Characters.Font.Size = 12
+        End If
     Next
 End Function
 
