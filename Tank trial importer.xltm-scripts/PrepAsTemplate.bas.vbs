@@ -1,5 +1,6 @@
 Attribute VB_Name = "PrepAsTemplate"
 Sub PrepAsTemplate()
+    Application.Calculation = xlCalculationManual
     Worksheets("Beat points from LabChart").UsedRange.Clear
     Worksheets("Trial points from LabChart").Range("A2:D500").Clear
     Worksheets("Output").Range("A2:N173").Clear

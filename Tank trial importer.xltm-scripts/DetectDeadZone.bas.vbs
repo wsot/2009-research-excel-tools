@@ -4,6 +4,8 @@ Const samplesForDeadzone = 4000
 
 
 Sub buildDeadzoneLists()
+    Application.Calculation = xlCalculationManual
+
     Dim beatLists As Worksheet
     Dim deadZoneLists As Worksheet
     Dim iTrialNum As Integer

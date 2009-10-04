@@ -1,6 +1,7 @@
 Attribute VB_Name = "HRTimePlotGen"
 Option Explicit
 Sub generateHrAtTimePoints()
+    Application.Calculation = xlCalculationManual
     Dim iTrialNum As Integer
     Dim lStartSample As Long
     Dim lCurrSample As Long

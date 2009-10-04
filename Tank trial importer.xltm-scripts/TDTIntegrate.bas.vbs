@@ -21,6 +21,7 @@ Sub importTrialsFromLabchart()
 End Sub
 
 Sub processImport()
+    Application.Calculation = xlCalculationManual
     Dim dChannelMappings As Dictionary
     Set dChannelMappings = New Dictionary
 

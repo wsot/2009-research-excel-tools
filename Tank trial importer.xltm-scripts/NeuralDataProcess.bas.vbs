@@ -82,7 +82,7 @@ Sub ExtractNeuralData()
     
     Set objTTX = Nothing
     
-    Application.Calculation = xlCalculationAutomatic
+    'Application.Calculation = xlCalculationAutomatic
     
 End Sub
 
