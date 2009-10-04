@@ -2,7 +2,10 @@ Attribute VB_Name = "Module1"
 Option Explicit
 
 
-Sub reprocess()
+Sub reprocess(isTestRun As Boolean, onlyOne As Boolean)
+    
+    Application.Calculation = xlCalculationManual
+    
     Dim regenerateExcelFiles As Boolean
     Dim regenerateTDTdata As Boolean
     Dim regenerateDropoutData As Boolean
@@ -10,6 +13,12 @@ Sub reprocess()
     Dim regenerateNeuralData As Boolean
     Dim doNeuralPlots As Boolean
     Dim updateAttenData As Boolean
+
+    Dim dblTotalWidthSecs As Double
+    Dim dblBinWidthSecs As Double
+    Dim dblStartOffsetSecs As Double
+    Dim iNumOfChans As Integer
+    Dim sOnlyIncludeChannels As String
 
     Dim maxAllowVariation As Double
     Dim minAcceptableHR As Integer
@@ -29,6 +38,12 @@ Sub reprocess()
     maxPercOfBeatsInt = Worksheets("Configuration").Cells(16, 2).Value
     maxSingleIntSamples = Worksheets("Configuration").Cells(17, 2).Value
     maxSingleIntBeats = Worksheets("Configuration").Cells(18, 2).Value
+
+    dblTotalWidthSecs = CDbl(Worksheets("Configuration").Range("B25").Value)
+    dblBinWidthSecs = CDbl(Worksheets("Configuration").Range("B26").Value)
+    dblStartOffsetSecs = CDbl(Worksheets("Configuration").Range("B27").Value)
+    iNumOfChans = CInt(Worksheets("Configuration").Range("B28").Value)
+    sOnlyIncludeChannels = Worksheets("Configuration").Range("B30").Value
 
     Dim templateFilename As String
     templateFilename = "\Code current\Excel tools\Tank trial importer.xltm"
@@ -135,6 +150,26 @@ Sub reprocess()
                                     strUsedRange = workbookToProcess.Worksheets("HR detection").UsedRange.Address
                                     newWorkbook.Worksheets("HR detection").Range(strUsedRange).Value = workbookToProcess.Worksheets("HR detection").Range(strUsedRange).Value
                                     
+                                    strUsedRange = workbookToProcess.Worksheets("-84-4s HRs").UsedRange.Address
+                                    newWorkbook.Worksheets("-84-4s HRs").Range(strUsedRange).Value = workbookToProcess.Worksheets("-84-4s HRs").Range(strUsedRange).Value
+                                    newWorkbook.Worksheets("-84-4s HRs").Range(strUsedRange).Formula = workbookToProcess.Worksheets("-84-4s HRs").Range(strUsedRange).Formula
+                                    
+                                    strUsedRange = workbookToProcess.Worksheets("-4-0s HRs").UsedRange.Address
+                                    newWorkbook.Worksheets("-4-0s HRs").Range(strUsedRange).Value = workbookToProcess.Worksheets("-4-0s HRs").Range(strUsedRange).Value
+                                    newWorkbook.Worksheets("-4-0s HRs").Range(strUsedRange).Formula = workbookToProcess.Worksheets("-4-0s HRs").Range(strUsedRange).Formula
+                                    
+                                    strUsedRange = workbookToProcess.Worksheets("5-9s HRs").UsedRange.Address
+                                    newWorkbook.Worksheets("5-9s HRs").Range(strUsedRange).Value = workbookToProcess.Worksheets("5-9s HRs").Range(strUsedRange).Value
+                                    newWorkbook.Worksheets("5-9s HRs").Range(strUsedRange).Formula = workbookToProcess.Worksheets("5-9s HRs").Range(strUsedRange).Formula
+                                    
+                                    strUsedRange = workbookToProcess.Worksheets("-4.5-9.5s HRs").UsedRange.Address
+                                    newWorkbook.Worksheets("-4.5-9.5s HRs").Range(strUsedRange).Value = workbookToProcess.Worksheets("-4.5-9.5s HRs").Range(strUsedRange).Value
+                                    newWorkbook.Worksheets("-4.5-9.5s HRs").Range(strUsedRange).Formula = workbookToProcess.Worksheets("-4.5-9.5s HRs").Range(strUsedRange).Formula
+                                    
+                                    strUsedRange = workbookToProcess.Worksheets("HRLine").UsedRange.Address
+                                    newWorkbook.Worksheets("HRLine").Range(strUsedRange).Value = workbookToProcess.Worksheets("HRLine").Range(strUsedRange).Value
+                                    newWorkbook.Worksheets("HRLine").Range(strUsedRange).Formula = workbookToProcess.Worksheets("HRLine").Range(strUsedRange).Formula
+                                    
                                     newWorkbook.Worksheets("Output").Range("O2:Q173").Value = workbookToProcess.Worksheets("Output").Range("O2:Q173").Value
                                 End If
                                                                 
@@ -145,10 +180,14 @@ Sub reprocess()
                                 End If
                                 
                                 newFilename = objExpFolder.Path & "\xls backups\" & Left(strExcelFilename, Len(strExcelFilename) - 5) & Year(Now()) & "-" & Month(Now()) & "-" & Day(Now()) & "_" & Hour(Now()) & "-" & Minute(Now()) & "-" & Second(Now()) & ".XLSM"
-                                Call objFS.CopyFile(strExcelPathname, newFilename)
+                                If Not isTestRun Then
+                                    Call objFS.CopyFile(strExcelPathname, newFilename)
                                                                 
-                                Call newWorkbook.SaveAs(objExpFolder.Path & "\" & objExpFolder.Name & ".xlsm", 52)
-                                strExcelFilename = objExpFolder.Name & ".xlsm"
+                                    Call newWorkbook.SaveAs(objExpFolder.Path & "\" & objExpFolder.Name & ".xlsm", 52)
+                                    strExcelFilename = objExpFolder.Name & ".xlsm"
+                                Else
+                                    strExcelFilename = newWorkbook.Name
+                                End If
 
                                 Set workbookToProcess = newWorkbook
                             Else
@@ -163,6 +202,12 @@ Sub reprocess()
                             workbookToProcess.Worksheets("Settings").Cells(9, 2).Value = maxPercOfBeatsInt
                             workbookToProcess.Worksheets("Settings").Cells(10, 2).Value = maxSingleIntSamples
                             workbookToProcess.Worksheets("Settings").Cells(11, 2).Value = maxSingleIntBeats
+                            
+                            workbookToProcess.Worksheets("Settings").Range("B20").Value = dblTotalWidthSecs
+                            workbookToProcess.Worksheets("Settings").Range("B21").Value = dblBinWidthSecs
+                            workbookToProcess.Worksheets("Settings").Range("B22").Value = dblStartOffsetSecs
+                            workbookToProcess.Worksheets("Settings").Range("B23").Value = iNumOfChans
+                            workbookToProcess.Worksheets("Settings").Range("B25").Value = sOnlyIncludeChannels
                             
                             If updateAttenData Then
                                 workbookToProcess.Worksheets("Attenuations").Range("B2:B44301").Value = thisWorkbook.Worksheets("Attenuation").Range("B1:B44300").Value
@@ -191,16 +236,23 @@ Sub reprocess()
                                     Application.Run ("'" & strExcelFilename & "'!ExtractNeuralDataWithoutCharts")
                                 End If
                             End If
-
-                            Call workbookToProcess.Save
+                            
+                            If Not isTestRun Then
+                                Call workbookToProcess.Save
+                            End If
                             Call workbookToProcess.Close
+                            If onlyOne Then
+                                GoTo outsideTheLoop
+                            End If
                         End If
                     End If
                 End If
             Next
         End If
     Next
-            
+    
+outsideTheLoop:
+
     Set objFile = Nothing
     Set Files = Nothing
                     
