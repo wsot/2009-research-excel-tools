@@ -14,6 +14,7 @@ Dim theBlock As String
     
 'Const initialEpocName = "TriS"
 'Const stimEpocName = "SweS"
+Const snipEpocName = "CSPK"
 
 Dim blnBuildCharts As Boolean
 Global unmatchedStimCell As Range
@@ -48,6 +49,7 @@ Sub ExtractNeuralData()
         Exit Sub
     End If
     
+
 'Don't need any of the 'actual volume' calculations because we are not comparing between frequencies - only need to use raw values to check same number of stim with same property
 '    Set dAtten = New Dictionary
 '    Set dOldAtten = New Dictionary
@@ -67,8 +69,14 @@ Sub ExtractNeuralData()
     'Next
     Wend
     
-    Call parseNeuralData
+    If Not containsSnips Then
+        Set objTTX = Nothing
+        Worksheets("Variables (do not edit)").Range("B7").Value = False
+        Exit Sub
+    End If
     
+    Call parseNeuralData
+    Worksheets("Variables (do not edit)").Range("B7").Value = True
 '    Set dAtten = Nothing
 '    Set dOldAtten = Nothing
     
@@ -517,5 +525,27 @@ Function renderAmpList(stimAmpCounts As Variant, stimAmp As Variant, intChartGap
         neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 9 + iAmpOffset * 4, 2).Value = stimAmpCounts(iAmpOffset)
     Next
 End Function
+
+
+Function containsSnips()
+    containsSnips = False
+    Dim lCounter As Long
+    Dim vEvtCodes As Variant
+    Dim sEvtName As String
+    vEvtCodes = objTTX.GetEventCodes(0)
+    
+    If IsArray(vEvtCodes) Then
+        For lCounter = LBound(vEvtCodes) To UBound(vEvtCodes)
+            sEvtName = objTTX.CodeToString(vEvtCodes(lCounter))
+            If LCase(sEvtName) = LCase(snipEpocName) Then
+                containsSnips = True
+                Exit For
+            End If
+        Next
+    End If
+    
+End Function
+
+
 
 
