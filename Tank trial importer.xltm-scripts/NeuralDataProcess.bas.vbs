@@ -124,12 +124,6 @@ Function parseNeuralData()
     
     Call objTTX.CreateEpocIndexing
 
-    Dim returnVal As Variant
-    Dim trialsList As Variant
-
-    Call objTTX.ResetFilters
-    trialsList = objTTX.GetEpocsExV("TriS", 0)
-
     iTrialNum = 1
     While trialDataWS.Cells(iTrialNum + 1, 1) <> "" 'iterate through all trials
 '        iTrialNumTDT = CInt(trialDataWS.Range("B" & (iTrialNum + 1)).Value)
@@ -254,6 +248,54 @@ Function readTrialNeuralData(iTrialNum As Integer, neuroWS As Worksheet, trialDa
     
     Call outputResults(neuroWS, intChartGap, histoBinCount, iTrialNum, lHistoBin, histoSums, histoSquares, histoN, 0)
     
+    histoN = 0
+    Call setHistoArraySizes(histoSums, histoSquares, histoBinCount) 'flush the histo data
+    Call objTTX.ResetFilters
+    Call objTTX.SetFilterWithDescEx("TriS = " & iTrialNumTDT)
+        
+    Dim vTrialsList As Variant
+    Dim dblTrialStart As Double
+    vTrialsList = objTTX.GetEpocsExV("TriS", 0)
+    dblTrialStart = vTrialsList(1, 0)
+    
+    Dim iIncompleteAmplitudes As Integer
+    iIncompleteAmplitudes = 3
+    Dim iPrevStimCount As Integer
+    If isAtten Then
+        iPrevStimCount = objTTX.ReadEventsV(500, "Attn", 0, 0, dblTrialStart - 60, dblTrialStart, "ALL") 'look for previous 60s for the stimulus
+    Else
+        iPrevStimCount = objTTX.ReadEventsV(500, "Ampl", 0, 0, dblTrialStart - 60, dblTrialStart, "ALL") 'look for previous 60s for the stimulus
+    End If
+    
+    If iPrevStimCount = 0 Then
+        MsgBox "Couldn't find any previous stim??"
+        Exit Function
+    End If
+    
+    returnVal = objTTX.ParseEvInfoV(0, iPrevStimCount, 0)
+    
+    For iStimNum = (iPrevStimCount - 1) To 0 Step -1
+        For stimAmpStep = 0 To 2
+            If CInt(returnVal(6, iStimNum)) = stimAmp(stimAmpStep) Then
+                If stimAmpCounts(stimAmpStep) > 0 Then 'check if we want a stim of this amplitude
+                    'yes - let's process it =)
+                    stimAmpCounts(stimAmpStep) = stimAmpCounts(stimAmpStep) - 1
+                    If stimAmpCounts(stimAmpStep) = 0 Then
+                        iIncompleteAmplitudes = iIncompleteAmplitudes - 1
+                    End If
+                    histoN = histoN + 1
+                    Call buildHistogramForStimMethod1(returnVal(5, iStimNum), histoSums, histoSquares, histoBinCount)
+                End If
+                Exit For
+            End If
+        Next
+        If iIncompleteAmplitudes = 0 Then
+            Exit For
+        End If
+    Next
+    
+    Call outputResults(neuroWS, intChartGap, histoBinCount, iTrialNum, lHistoBin, histoSums, histoSquares, histoN, 1)
+    
 End Function
 
 Function buildHistogramForStimMethod1(ByVal dblStartTime As Double, ByRef histoSums As Variant, ByRef histoSquares As Variant, lHistoBinCount As Long)
@@ -363,8 +405,9 @@ Function outputHeaders(neuroWS As Worksheet, intChartGap As Integer, histoBinCou
     neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 2, 1).Value = "Channel"
     neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 1, 3).Value = "Freq:"
     neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 2, 3).Value = lStim1Freq
-    neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 1, 5).Value = "Mean:"
-    neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 1, 7 + histoBinCount).Value = "StdDev:"
+    neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 1, 5).Value = "Total:"
+    neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 1, 7 + histoBinCount).Value = "Mean:"
+    neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 1, 9 + histoBinCount * 2).Value = "StdDev:"
     For lHistoBin = 0 To histoBinCount
             'totals
             neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 2, 5 + lHistoBin).Value = _
@@ -384,13 +427,17 @@ Function outputResults(neuroWS As Worksheet, intChartGap As Integer, histoBinCou
     Dim chartHeight As Long
     
     Dim iChartOffset As Integer
+    Dim vBarColour As Variant
     Dim sTitleAdjustment As String
+    'Dim sBarColor as
     iChartOffset = iOffset * intChartGap
-    Select Case iChartOffset
+    Select Case iOffset
         Case 0:
             sTitleAdjustment = " alternating"
+            vBarColour = RGB(247, 150, 70)
         Case 1:
             sTitleAdjustment = " repeated"
+            vBarColour = RGB(85, 142, 213)
     End Select
     
     If blnBuildCharts Then
@@ -409,9 +456,9 @@ Function outputResults(neuroWS As Worksheet, intChartGap As Integer, histoBinCou
             'totals
             neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + ((dictOnlyIncludeChannels(vChanKey) - 1) * 2) + 1 + 2 + iOffset, 5 + lHistoBin).Value = histoSums(dictOnlyIncludeChannels(vChanKey) - 1)(lHistoBin)
             'mean
-            neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + ((dictOnlyIncludeChannels(vChanKey) - 1) * 2) + 1 + 2 + iOffset, 7 + histoBinCount * 2 + lHistoBin).Value = histoSums(dictOnlyIncludeChannels(vChanKey) - 1)(lHistoBin) / histoN
+            neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + ((dictOnlyIncludeChannels(vChanKey) - 1) * 2) + 1 + 2 + iOffset, 7 + histoBinCount + lHistoBin).Value = histoSums(dictOnlyIncludeChannels(vChanKey) - 1)(lHistoBin) / histoN
             'stddev
-            neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + ((dictOnlyIncludeChannels(vChanKey) - 1) * 2) + 1 + 2 + iOffset, 9 + histoBinCount + lHistoBin).Value = (histoSquares(dictOnlyIncludeChannels(vChanKey) - 1)(lHistoBin) - ((histoSums(dictOnlyIncludeChannels(vChanKey) - 1)(lHistoBin) ^ 2) / histoN) / (histoN - 1)) ^ 0.5
+            neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + ((dictOnlyIncludeChannels(vChanKey) - 1) * 2) + 1 + 2 + iOffset, 9 + histoBinCount * 2 + lHistoBin).Value = (histoSquares(dictOnlyIncludeChannels(vChanKey) - 1)(lHistoBin) - ((histoSums(dictOnlyIncludeChannels(vChanKey) - 1)(lHistoBin) ^ 2) / histoN) / (histoN - 1)) ^ 0.5
             'top of chart will be: (iTrialNum - 1) * (dictOnlyIncludeChannels.Count + 4) + dictOnlyIncludeChannels.Count + 3
         Next
         
@@ -427,6 +474,9 @@ Function outputResults(neuroWS As Worksheet, intChartGap As Integer, histoBinCou
             myChart.Chart.SeriesCollection(1).Format.Line.Style = msoLineSingle
             myChart.Chart.SeriesCollection(1).Format.Line.Weight = 0.25
             myChart.Chart.SeriesCollection(1).Format.Line.Visible = msoTrue
+            'myChart.Chart.SeriesCollection(1).Format.Fill.Type = msoFillSolid
+            myChart.Chart.SeriesCollection(1).Format.Fill.ForeColor.RGB = vBarColour
+            
             myChart.Chart.Legend.Delete
 
             myChart.Chart.ChartTitle.Characters.Font.Size = 12
