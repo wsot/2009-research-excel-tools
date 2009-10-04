@@ -7,6 +7,8 @@ Sub reprocess()
     Dim regenerateTDTdata As Boolean
     Dim regenerateDropoutData As Boolean
     Dim regenerateHRcalculations As Boolean
+    Dim regenerateNeuralData As Boolean
+    Dim doNeuralPlots As Boolean
     Dim updateAttenData As Boolean
 
     Dim maxAllowVariation As Double
@@ -67,6 +69,8 @@ Sub reprocess()
     regenerateDropoutData = thisWorkbook.Worksheets("Configuration").Cells(10, 2).Value
     regenerateHRcalculations = thisWorkbook.Worksheets("Configuration").Cells(11, 2).Value
     updateAttenData = thisWorkbook.Worksheets("Configuration").Cells(12, 2).Value
+    regenerateNeuralData = thisWorkbook.Worksheets("Configuration").Cells(21, 2).Value
+    doNeuralPlots = thisWorkbook.Worksheets("Configuration").Cells(22, 2).Value
     
     Dim tankFilename As String
     Dim blockName As String
@@ -142,7 +146,6 @@ Sub reprocess()
                                 
                                 newFilename = objExpFolder.Path & "\xls backups\" & Left(strExcelFilename, Len(strExcelFilename) - 5) & Year(Now()) & "-" & Month(Now()) & "-" & Day(Now()) & "_" & Hour(Now()) & "-" & Minute(Now()) & "-" & Second(Now()) & ".XLSM"
                                 Call objFS.CopyFile(strExcelPathname, newFilename)
-                    
                                                                 
                                 Call newWorkbook.SaveAs(objExpFolder.Path & "\" & objExpFolder.Name & ".xlsm", 52)
                                 strExcelFilename = objExpFolder.Name & ".xlsm"
@@ -179,6 +182,14 @@ Sub reprocess()
                             End If
                             If regenerateDropoutData Then
                                 Application.Run ("'" & strExcelFilename & "'!buildDeadzoneLists")
+                            End If
+                            
+                            If regenerateNeuralData Then
+                                If doNeuralPlots Then
+                                    Application.Run ("'" & strExcelFilename & "'!ExtractNeuralDataWithCharts")
+                                Else
+                                    Application.Run ("'" & strExcelFilename & "'!ExtractNeuralDataWithoutCharts")
+                                End If
                             End If
 
                             Call workbookToProcess.Save

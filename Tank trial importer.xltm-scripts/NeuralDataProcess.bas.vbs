@@ -16,6 +16,7 @@ Dim theBlock As String
 'Const stimEpocName = "SweS"
 
 Dim blnBuildCharts As Boolean
+Global unmatchedStimCell As Range
 
 Const ConnectSuccess = 0
 Const ServerConnectFail = 1
@@ -37,6 +38,7 @@ End Sub
 Sub ExtractNeuralData()
     
     Application.Calculation = xlCalculationManual
+    Set unmatchedStimCell = Worksheets("Settings").Cells(28, 2)
     
     Set objTTX = CreateObject("TTank.X") 'establish connection to TDT Tank engine
     
@@ -57,7 +59,7 @@ Sub ExtractNeuralData()
     
     Call getParsingVariables
     
-    Call Worksheets("Neural Data").UsedRange.Delete
+    Call Worksheets("Neural Data").UsedRange.Clear
 '    Dim lChartDelete As Long
     While Worksheets("Neural Data").ChartObjects.Count > 0
     'For lChartDelete = 1 To Worksheets("Neural Data").ChartObjects.Count
@@ -246,6 +248,8 @@ Function readTrialNeuralData(iTrialNum As Integer, neuroWS As Worksheet, trialDa
     Next
     'once it has gotten to this point, it has the histogram data for all channels, and all bins in the histoSums and histoSquares arrays
     
+    Call renderAmpList(stimAmpCounts, stimAmp, intChartGap, iTrialNum, neuroWS)
+     
     Call outputResults(neuroWS, intChartGap, histoBinCount, iTrialNum, lHistoBin, histoSums, histoSquares, histoN, 0)
     
     histoN = 0
@@ -258,8 +262,8 @@ Function readTrialNeuralData(iTrialNum As Integer, neuroWS As Worksheet, trialDa
     vTrialsList = objTTX.GetEpocsExV("TriS", 0)
     dblTrialStart = vTrialsList(1, 0)
     
-    Dim iIncompleteAmplitudes As Integer
-    iIncompleteAmplitudes = 3
+    Dim iMatchesLeft As Integer
+    iMatchesLeft = 9 'check we match all the stim
     Dim iPrevStimCount As Integer
     If isAtten Then
         iPrevStimCount = objTTX.ReadEventsV(500, "Attn", 0, 0, dblTrialStart - 60, dblTrialStart, "ALL") 'look for previous 60s for the stimulus
@@ -280,19 +284,37 @@ Function readTrialNeuralData(iTrialNum As Integer, neuroWS As Worksheet, trialDa
                 If stimAmpCounts(stimAmpStep) > 0 Then 'check if we want a stim of this amplitude
                     'yes - let's process it =)
                     stimAmpCounts(stimAmpStep) = stimAmpCounts(stimAmpStep) - 1
-                    If stimAmpCounts(stimAmpStep) = 0 Then
-                        iIncompleteAmplitudes = iIncompleteAmplitudes - 1
-                    End If
+                    iMatchesLeft = iMatchesLeft - 1
                     histoN = histoN + 1
                     Call buildHistogramForStimMethod1(returnVal(5, iStimNum), histoSums, histoSquares, histoBinCount)
                 End If
                 Exit For
             End If
         Next
-        If iIncompleteAmplitudes = 0 Then
+        If iMatchesLeft = 0 Then
             Exit For
         End If
     Next
+    
+    For stimAmpStep = 0 To 2
+        neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 9 + stimAmpStep * 4, 2).Value = stimAmpCounts(stimAmpStep)
+'        If stimAmpCounts(stimAmpStep) > 0 Then 'check if we didn't find all instances of this stim
+'            neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 9 + stimAmpStep * 4, 2).Interior.Color = unmatchedStimCell.Interior.Color
+'            neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 9 + stimAmpStep * 4, 2).Font.Color = unmatchedStimCell.Font.Color
+'        End If
+    Next
+    
+    If iMatchesLeft = 0 Then
+        neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 4, 1).Value = "Pre-trial span (s):"
+        neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 4, 2).Value = Round(dblTrialStart - returnVal(5, iStimNum), 2)
+    Else
+        neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 4, 1).Value = "No match made"
+        neuroWS.Range(neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 1, 1), neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + dictOnlyIncludeChannels.Count * 2 + 3, histoBinCount * 3 + 5)).Interior.Color = unmatchedStimCell.Interior.Color
+        neuroWS.Range(neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 1, 1), neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + dictOnlyIncludeChannels.Count * 2 + 3, histoBinCount * 3 + 5)).Font.Color = unmatchedStimCell.Font.Color
+
+'        neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 4, 1).Interior.Color = unmatchedStimCell.Interior.Color
+'        neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 4, 1).Font.Color = unmatchedStimCell.Font.Color
+    End If
     
     Call outputResults(neuroWS, intChartGap, histoBinCount, iTrialNum, lHistoBin, histoSums, histoSquares, histoN, 1)
     
@@ -402,9 +424,9 @@ Function outputHeaders(neuroWS As Worksheet, intChartGap As Integer, histoBinCou
     
     'write out all the headings
     neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 1, 1).Value = "Trial " & iTrialNum
-    neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 2, 1).Value = "Channel"
+    neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 2, 4).Value = "Channel"
     neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 1, 3).Value = "Freq:"
-    neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 2, 3).Value = lStim1Freq
+    neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 1, 4).Value = lStim1Freq
     neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 1, 5).Value = "Total:"
     neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 1, 7 + histoBinCount).Value = "Mean:"
     neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 1, 9 + histoBinCount * 2).Value = "StdDev:"
@@ -450,7 +472,7 @@ Function outputResults(neuroWS As Worksheet, intChartGap As Integer, histoBinCou
     'step through each channel
     For Each vChanKey In dictOnlyIncludeChannels.Keys
         If iOffset = 0 Then
-            neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + ((dictOnlyIncludeChannels(vChanKey) - 1) * 2) + 1 + 2, 1).Value = vChanKey
+            neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + ((dictOnlyIncludeChannels(vChanKey) - 1) * 2) + 1 + 2, 4).Value = vChanKey
         End If
         For lHistoBin = 0 To histoBinCount
             'totals
@@ -481,6 +503,18 @@ Function outputResults(neuroWS As Worksheet, intChartGap As Integer, histoBinCou
 
             myChart.Chart.ChartTitle.Characters.Font.Size = 12
         End If
+    Next
+End Function
+
+Function renderAmpList(stimAmpCounts As Variant, stimAmp As Variant, intChartGap As Integer, iTrialNum As Integer, neuroWS As Worksheet)
+    Dim iAmpOffset As Integer
+    For iAmpOffset = 0 To 2
+        neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 7 + iAmpOffset * 4, 1).Value = "Amp/Attn:"
+        neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 7 + iAmpOffset * 4, 2).Value = stimAmp(iAmpOffset)
+        neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 8 + iAmpOffset * 4, 1).Value = "Count:"
+        neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 8 + iAmpOffset * 4, 2).Value = stimAmpCounts(iAmpOffset)
+        neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 9 + iAmpOffset * 4, 1).Value = "Unmatched:"
+        neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 9 + iAmpOffset * 4, 2).Value = stimAmpCounts(iAmpOffset)
     Next
 End Function
 
