@@ -87,7 +87,7 @@ Sub processImport()
     
     Do
         'locate the start of blocks
-        i = objTTX.ReadEventsV(500, "BloS", 0, 0, dblStartTime, 0#, "ALL")
+        i = objTTX.ReadEventsV(10000, "BloS", 0, 0, dblStartTime, 0#, "ALL")
         If i = 0 Then
             Exit Do
         End If
@@ -111,8 +111,8 @@ Sub processImport()
             iArrOffset = iArrOffset + 1
         Next
         
-        'check if this retrieved all the blocks - if <500 (the maximum number requested) then all blocks have been retrieved
-        If i < 500 Then
+        'check if this retrieved all the blocks - if <10000 (the maximum number requested) then all blocks have been retrieved
+        If i < 10000 Then
             Exit Do
         End If
     Loop
@@ -125,7 +125,7 @@ Sub processImport()
         dblStartTime = arrBlocks(iBlockOffset)(1)
         Do
             'search for trials between the start of the block, and the start of the next block
-            i = objTTX.ReadEventsV(500, "TriS", 0, 0, dblStartTime, arrBlocks(iBlockOffset)(2), "ALL")
+            i = objTTX.ReadEventsV(10000, "TriS", 0, 0, dblStartTime, arrBlocks(iBlockOffset)(2), "ALL")
             If i = 0 Then
                 Exit Do
             End If
@@ -159,7 +159,7 @@ Sub processImport()
                 iArrOffset = iArrOffset + 1
             Next
             
-            If i < 500 Then
+            If i < 10000 Then
                 Exit Do
             End If
         Loop

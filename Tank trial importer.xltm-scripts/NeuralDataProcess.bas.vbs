@@ -274,9 +274,9 @@ Function readTrialNeuralData(iTrialNum As Integer, neuroWS As Worksheet, trialDa
     iMatchesLeft = 9 'check we match all the stim
     Dim iPrevStimCount As Integer
     If isAtten Then
-        iPrevStimCount = objTTX.ReadEventsV(500, "Attn", 0, 0, dblTrialStart - 60, dblTrialStart, "ALL") 'look for previous 60s for the stimulus
+        iPrevStimCount = objTTX.ReadEventsV(10000, "Attn", 0, 0, dblTrialStart - 60, dblTrialStart, "ALL") 'look for previous 60s for the stimulus
     Else
-        iPrevStimCount = objTTX.ReadEventsV(500, "Ampl", 0, 0, dblTrialStart - 60, dblTrialStart, "ALL") 'look for previous 60s for the stimulus
+        iPrevStimCount = objTTX.ReadEventsV(10000, "Ampl", 0, 0, dblTrialStart - 60, dblTrialStart, "ALL") 'look for previous 60s for the stimulus
     End If
     
     If iPrevStimCount = 0 Then
@@ -348,7 +348,7 @@ Function buildHistogramForStimMethod1(ByVal dblStartTime As Double, ByRef histoS
     dblEndTime = dblStartTime + dblBinWidthSecs
     For lBinNum = 0 To lHistoBinCount
             Do
-                iEvtCount = objTTX.ReadEventsV(500, "CSPK", 0, 0, dblStartTime, dblEndTime, "ALL")
+                iEvtCount = objTTX.ReadEventsV(10000, "CSPK", 0, 0, dblStartTime, dblEndTime, "ALL")
                 If iEvtCount = 0 Then
                     Exit Do
                 End If
@@ -360,12 +360,12 @@ Function buildHistogramForStimMethod1(ByVal dblStartTime As Double, ByRef histoS
                     nCount(dictOnlyIncludeChannels(varData(iEvtNum)) - 1) = nCount(dictOnlyIncludeChannels(varData(iEvtNum)) - 1) + 1
                 Next
     
-                'if the full 500 was retrieved, there may be more to fetch, so try to fetch them
-                If iEvtCount < 500 Then
+                'if the full 10000 was retrieved, there may be more to fetch, so try to fetch them
+                If iEvtCount < 10000 Then
                     Exit Do
                 Else
-                    'get the time of the last event, and search forward from that - there is a risk this could miss events where the time is identical, however. That said, never got more than 500 event yet
-                    MsgBox "Obtained 500+ events!"
+                    'get the time of the last event, and search forward from that - there is a risk this could miss events where the time is identical, however. That said, never got more than 10000 event yet
+                    MsgBox "Obtained 10000+ events!"
                     varData = objTTX.ParseEvInfoV(iEvtCount - 1, 1, 6)
                     dblStartTime = varData(0) + (1 / 100000)
                 End If
