@@ -19,6 +19,7 @@ Sub reprocess(isTestRun As Boolean, onlyOne As Boolean)
     Dim dblStartOffsetSecs As Double
     Dim iNumOfChans As Integer
     Dim sOnlyIncludeChannels As String
+    Dim blnExcludeUndrivenChannels As Boolean
 
     Dim maxAllowVariation As Double
     Dim minAcceptableHR As Integer
@@ -44,6 +45,7 @@ Sub reprocess(isTestRun As Boolean, onlyOne As Boolean)
     dblStartOffsetSecs = CDbl(Worksheets("Configuration").Range("B27").Value)
     iNumOfChans = CInt(Worksheets("Configuration").Range("B28").Value)
     sOnlyIncludeChannels = Worksheets("Configuration").Range("B30").Value
+    blnExcludeUndrivenChannels = CBln(Worksheets("Configuration").Range("B33").Value)
 
     Dim templateFilename As String
     templateFilename = "\Code current\Excel tools\Tank trial importer.xltm"
@@ -208,6 +210,7 @@ Sub reprocess(isTestRun As Boolean, onlyOne As Boolean)
                             workbookToProcess.Worksheets("Settings").Range("B22").Value = dblStartOffsetSecs
                             workbookToProcess.Worksheets("Settings").Range("B23").Value = iNumOfChans
                             workbookToProcess.Worksheets("Settings").Range("B25").Value = sOnlyIncludeChannels
+                            workbookToProcess.Worksheets("Settings").Range("B34").Value = blnExcludeUndrivenChannels
                             
                             If updateAttenData Then
                                 workbookToProcess.Worksheets("Attenuations").Range("B2:B44301").Value = thisWorkbook.Worksheets("Attenuation").Range("B1:B44300").Value
