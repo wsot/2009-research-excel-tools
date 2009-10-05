@@ -37,6 +37,7 @@ Const DriveDetect_OnsetDetected = 1
 Const DriveDetect_ActDiffDetected = 2
 
 Const DriveDetect_ActivityDifferenceThreshold = 2#
+Const DriveDetect_AbsoluteMinimumSpikesInFirstBin = 2
 
 
 Sub ExtractNeuralDataWithCharts()
@@ -711,7 +712,7 @@ Function identifyDrivenChannels(stimEpocs As Variant, dDrivenChanList As Diction
     For Each vChanKey In dictOnlyIncludeChannels.Keys
         iChanOffset = dictOnlyIncludeChannels(vChanKey) - 1
         'do the actual check - check if the first 10ms bin is greater than each of the four subsequent bins
-        If histoSums(iChanOffset)(0) > (histoSums(iChanOffset)(4) * DriveDetect_ActivityDifferenceThreshold) Then
+        If histoSums(iChanOffset)(0) > (histoSums(iChanOffset)(4) * DriveDetect_ActivityDifferenceThreshold) And (histoSums(iChanOffset)(0) > DriveDetect_AbsoluteMinimumSpikesInFirstBin) Then
                 If Not dDrivenChanList.Exists(vChanKey) Then
                     Call dDrivenChanList.Add(vChanKey, DriveDetect_ActDiffDetected)
                 End If

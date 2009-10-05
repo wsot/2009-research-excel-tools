@@ -2,6 +2,10 @@ Attribute VB_Name = "Module2"
 Sub testRun()
     Call reprocess(True, False)
 End Sub
+
+Sub testRunSingle()
+    Call reprocess(True, True)
+End Sub
 Sub realRun()
     Call reprocess(False, False)
 End Sub

@@ -45,7 +45,7 @@ Sub reprocess(isTestRun As Boolean, onlyOne As Boolean)
     dblStartOffsetSecs = CDbl(Worksheets("Configuration").Range("B27").Value)
     iNumOfChans = CInt(Worksheets("Configuration").Range("B28").Value)
     sOnlyIncludeChannels = Worksheets("Configuration").Range("B30").Value
-    blnExcludeUndrivenChannels = CBln(Worksheets("Configuration").Range("B33").Value)
+    blnExcludeUndrivenChannels = CBool(Worksheets("Configuration").Range("B33").Value)
 
     Dim templateFilename As String
     templateFilename = "\Code current\Excel tools\Tank trial importer.xltm"
@@ -243,9 +243,10 @@ Sub reprocess(isTestRun As Boolean, onlyOne As Boolean)
                             If Not isTestRun Then
                                 Call workbookToProcess.Save
                             End If
-                            Call workbookToProcess.Close
                             If onlyOne Then
                                 GoTo outsideTheLoop
+                            Else
+                                Call workbookToProcess.Close
                             End If
                         End If
                     End If
