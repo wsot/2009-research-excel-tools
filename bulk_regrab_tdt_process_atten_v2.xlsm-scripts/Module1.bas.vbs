@@ -15,6 +15,7 @@ Sub reprocess(isTestRun As Boolean, onlyOne As Boolean)
     Dim updateAttenData As Boolean
     Dim DriveDetect_ActivityDifferenceThreshold As Double '= CDbl(Worksheets("Settings").Range("B37").Value)
     Dim DriveDetect_AbsoluteMinimumSpikesInFirstBin As Long '= CLng(Worksheets("Settings").Range("B38").Value)
+    Dim DriveDetect_MinIn2nd3rdForOnset As Long
 
     Dim dblTotalWidthSecs As Double
     Dim dblBinWidthSecs As Double
@@ -48,9 +49,9 @@ Sub reprocess(isTestRun As Boolean, onlyOne As Boolean)
     iNumOfChans = CInt(Worksheets("Configuration").Range("B28").Value)
     sOnlyIncludeChannels = Worksheets("Configuration").Range("B30").Value
     blnExcludeUndrivenChannels = CBool(Worksheets("Configuration").Range("B33").Value)
-    DriveDetect_ActivityDifferenceThreshold = CDbl(Worksheets("Settings").Range("B36").Value)
-    DriveDetect_AbsoluteMinimumSpikesInFirstBin = CLng(Worksheets("Settings").Range("B37").Value)
-
+    DriveDetect_ActivityDifferenceThreshold = CDbl(Worksheets("Configuration").Range("B36").Value)
+    DriveDetect_AbsoluteMinimumSpikesInFirstBin = CLng(Worksheets("Configuration").Range("B37").Value)
+    DriveDetect_MinIn2nd3rdForOnset = CLng(Worksheets("Configuration").Range("B38").Value)
 
     Dim templateFilename As String
     templateFilename = "\Code current\Excel tools\Tank trial importer.xltm"
@@ -219,6 +220,7 @@ Sub reprocess(isTestRun As Boolean, onlyOne As Boolean)
                             
                             workbookToProcess.Worksheets("Settings").Range("B37").Value = DriveDetect_ActivityDifferenceThreshold
                             workbookToProcess.Worksheets("Settings").Range("B38").Value = DriveDetect_AbsoluteMinimumSpikesInFirstBin
+                            workbookToProcess.Worksheets("Settings").Range("B39").Value = DriveDetect_MinIn2nd3rdForOnset
 
                             
                             If updateAttenData Then

@@ -38,6 +38,7 @@ Const DriveDetect_ActDiffDetected = 2
 
 Dim DriveDetect_ActivityDifferenceThreshold As Double
 Dim DriveDetect_AbsoluteMinimumSpikesInFirstBin As Long
+Dim DriveDetect_MinIn2nd3rdForOnset As Long
 
 
 
@@ -154,6 +155,7 @@ Function getParsingVariables(ByRef dblTotalWidthSecs As Double, ByRef dblBinWidt
     
     DriveDetect_ActivityDifferenceThreshold = CDbl(Worksheets("Settings").Range("B37").Value)
     DriveDetect_AbsoluteMinimumSpikesInFirstBin = CLng(Worksheets("Settings").Range("B38").Value)
+    DriveDetect_MinIn2nd3rdForOnset = CLng(Worksheets("Settings").Range("B39").Value)
 End Function
 
 Function parseNeuralData(dblTotalWidthSecs As Double, dblBinWidthSecs As Double, dblStartOffsetSecs As Double)
@@ -692,7 +694,8 @@ Function identifyDrivenChannels(stimEpocs As Variant, dDrivenChanList As Diction
             histoSums(iChanOffset)(0) > histoSums(iChanOffset)(2) And _
             histoSums(iChanOffset)(0) > histoSums(iChanOffset)(3) And _
             histoSums(iChanOffset)(0) > histoSums(iChanOffset)(4) And _
-            histoSums(iChanOffset)(0) > histoSums(iChanOffset)(5) Then
+            histoSums(iChanOffset)(0) > histoSums(iChanOffset)(5) And _
+            (histoSums(iChanOffset)(1) + histoSums(iChanOffset)(2)) >= DriveDetect_MinIn2nd3rdForOnset Then
                 Call dDrivenChanList.Add(vChanKey, DriveDetect_OnsetDetected)
         End If
     Next
@@ -716,7 +719,7 @@ Function identifyDrivenChannels(stimEpocs As Variant, dDrivenChanList As Diction
     For Each vChanKey In dictOnlyIncludeChannels.Keys
         iChanOffset = dictOnlyIncludeChannels(vChanKey) - 1
         'do the actual check - check if the first 10ms bin is greater than each of the four subsequent bins
-        If histoSums(iChanOffset)(0) > (histoSums(iChanOffset)(4) * DriveDetect_ActivityDifferenceThreshold) And (histoSums(iChanOffset)(0) > DriveDetect_AbsoluteMinimumSpikesInFirstBin) Then
+        If (histoSums(iChanOffset)(0) > (histoSums(iChanOffset)(4) * DriveDetect_ActivityDifferenceThreshold)) And (histoSums(iChanOffset)(0) > DriveDetect_AbsoluteMinimumSpikesInFirstBin) Then
                 If Not dDrivenChanList.Exists(vChanKey) Then
                     Call dDrivenChanList.Add(vChanKey, DriveDetect_ActDiffDetected)
                 End If
