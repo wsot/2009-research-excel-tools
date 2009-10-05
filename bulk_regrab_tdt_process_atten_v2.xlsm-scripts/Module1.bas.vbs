@@ -13,6 +13,8 @@ Sub reprocess(isTestRun As Boolean, onlyOne As Boolean)
     Dim regenerateNeuralData As Boolean
     Dim doNeuralPlots As Boolean
     Dim updateAttenData As Boolean
+    Dim DriveDetect_ActivityDifferenceThreshold As Double '= CDbl(Worksheets("Settings").Range("B37").Value)
+    Dim DriveDetect_AbsoluteMinimumSpikesInFirstBin As Long '= CLng(Worksheets("Settings").Range("B38").Value)
 
     Dim dblTotalWidthSecs As Double
     Dim dblBinWidthSecs As Double
@@ -46,6 +48,9 @@ Sub reprocess(isTestRun As Boolean, onlyOne As Boolean)
     iNumOfChans = CInt(Worksheets("Configuration").Range("B28").Value)
     sOnlyIncludeChannels = Worksheets("Configuration").Range("B30").Value
     blnExcludeUndrivenChannels = CBool(Worksheets("Configuration").Range("B33").Value)
+    DriveDetect_ActivityDifferenceThreshold = CDbl(Worksheets("Settings").Range("B36").Value)
+    DriveDetect_AbsoluteMinimumSpikesInFirstBin = CLng(Worksheets("Settings").Range("B37").Value)
+
 
     Dim templateFilename As String
     templateFilename = "\Code current\Excel tools\Tank trial importer.xltm"
@@ -211,6 +216,10 @@ Sub reprocess(isTestRun As Boolean, onlyOne As Boolean)
                             workbookToProcess.Worksheets("Settings").Range("B23").Value = iNumOfChans
                             workbookToProcess.Worksheets("Settings").Range("B25").Value = sOnlyIncludeChannels
                             workbookToProcess.Worksheets("Settings").Range("B34").Value = blnExcludeUndrivenChannels
+                            
+                            workbookToProcess.Worksheets("Settings").Range("B37").Value = DriveDetect_ActivityDifferenceThreshold
+                            workbookToProcess.Worksheets("Settings").Range("B38").Value = DriveDetect_AbsoluteMinimumSpikesInFirstBin
+
                             
                             If updateAttenData Then
                                 workbookToProcess.Worksheets("Attenuations").Range("B2:B44301").Value = thisWorkbook.Worksheets("Attenuation").Range("B1:B44300").Value

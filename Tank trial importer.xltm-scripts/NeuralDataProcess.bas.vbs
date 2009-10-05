@@ -36,8 +36,9 @@ Const DriveDetect_Undriven = 0
 Const DriveDetect_OnsetDetected = 1
 Const DriveDetect_ActDiffDetected = 2
 
-Const DriveDetect_ActivityDifferenceThreshold = 2#
-Const DriveDetect_AbsoluteMinimumSpikesInFirstBin = 2
+Dim DriveDetect_ActivityDifferenceThreshold As Double
+Dim DriveDetect_AbsoluteMinimumSpikesInFirstBin As Long
+
 
 
 Sub ExtractNeuralDataWithCharts()
@@ -150,6 +151,9 @@ Function getParsingVariables(ByRef dblTotalWidthSecs As Double, ByRef dblBinWidt
     Else
         undrivenAction = UndrivenNoAction
     End If
+    
+    DriveDetect_ActivityDifferenceThreshold = CDbl(Worksheets("Settings").Range("B37").Value)
+    DriveDetect_AbsoluteMinimumSpikesInFirstBin = CLng(Worksheets("Settings").Range("B38").Value)
 End Function
 
 Function parseNeuralData(dblTotalWidthSecs As Double, dblBinWidthSecs As Double, dblStartOffsetSecs As Double)
