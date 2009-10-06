@@ -1,5 +1,5 @@
 Attribute VB_Name = "ImportFrom"
-Attribute VB_Base = "0{F9A89EFE-8F94-4F3D-ABB0-8852E5023A3A}{D5FF12FF-3473-4C9A-BFE6-58FBDF51D61A}"
+Attribute VB_Base = "0{66060526-B681-4378-8532-B6CC84124645}{DBFBC0E2-FBDB-48F6-8709-A040EF90BBC0}"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
@@ -105,19 +105,19 @@ Private Sub ImportButton_Click()
 End Sub
 
 
-Private Sub TankSelect1_TankChanged(ActTank As String, ActServer As String)
+Private Sub TankSelect1_TankChanged(actTank As String, ActServer As String)
     'When a different tank is selected, test if a connection can be made
-    Select Case testSettings(ActServer, ActTank, "")
+    Select Case testSettings(ActServer, actTank, "")
         Case ConnectSuccess:
             'if so update the list of available blocks for the tank
             BlockSelect1.UseServer = ActServer
-            BlockSelect1.UseTank = ActTank
+            BlockSelect1.UseTank = actTank
             Call BlockSelect1.Refresh
             Call buildBlockList(TankSelect1.ActiveTank)
         Case BlockConnectFail:
             'if so update the list of available blocks for the tank
             BlockSelect1.UseServer = ActServer
-            BlockSelect1.UseTank = ActTank
+            BlockSelect1.UseTank = actTank
             Call BlockSelect1.Refresh
             Call buildBlockList(TankSelect1.ActiveTank)
     End Select
@@ -184,21 +184,21 @@ Private Sub UserForm_Activate()
     
 End Sub
 
-Private Sub BlockSelect1_BlockChanged(ActBlock As String, ActTank As String, ActServer As String)
-    Call buildOptionLists(ActBlock, ActTank, ActServer, False)
+Private Sub BlockSelect1_BlockChanged(actBlock As String, actTank As String, ActServer As String)
+    Call buildOptionLists(actBlock, actTank, ActServer, False)
 End Sub
 
 'test the connection settings to see if it is possible to connect to the server/tank/block
-Function testSettings(ActServer, ActTank, ActBlock)
+Function testSettings(ActServer, actTank, actBlock)
     
     If objTTX.ConnectServer(ActServer, "Me") <> CLng(1) Then
         testSettings = ServerConnectFail
         Exit Function
-    ElseIf objTTX.OpenTank(ActTank, "R") <> CLng(1) Then
+    ElseIf objTTX.OpenTank(actTank, "R") <> CLng(1) Then
         objTTX.ReleaseServer
         testSettings = TankConnectFail
         Exit Function
-    ElseIf objTTX.SelectBlock(ActBlock) <> CLng(1) Then
+    ElseIf objTTX.SelectBlock(actBlock) <> CLng(1) Then
         objTTX.CloseTank
         objTTX.ReleaseServer
         testSettings = BlockConnectFail
@@ -206,7 +206,7 @@ Function testSettings(ActServer, ActTank, ActBlock)
     
 End Function
 
-Sub buildOptionLists(ActBlock, ActTank, ActServer, usePrevValues)
+Sub buildOptionLists(actBlock, actTank, ActServer, usePrevValues)
     'if a different block is selcted, try to connect to it
     Const EVTYPE_STRON = &H101
     
@@ -218,13 +218,13 @@ Sub buildOptionLists(ActBlock, ActTank, ActServer, usePrevValues)
         Exit Sub
     End If
     
-    If objTTX.OpenTank(ActTank, "R") <> CLng(1) Then
+    If objTTX.OpenTank(actTank, "R") <> CLng(1) Then
         MsgBox ("Connecting to tank " & theTank & " on server " & theServer & " failed .")
         Call objTTX.ReleaseServer
         Exit Sub
     End If
     
-    If objTTX.SelectBlock(ActBlock) <> CLng(1) Then
+    If objTTX.SelectBlock(actBlock) <> CLng(1) Then
         MsgBox ("Connecting to block " & theBlock & " in tank " & theTank & " on server " & theServer & " failed.")
         Call objTTX.CloseTank
         Call objTTX.ReleaseServer
