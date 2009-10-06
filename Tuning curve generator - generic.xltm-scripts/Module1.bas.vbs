@@ -3,30 +3,39 @@ Option Explicit
 
 Const useSendKeys = False
 
-Global doImport
-Global theServer, theTank, theBlock
-Global xAxisEp, yAxisEp, arrOtherEp
-Global lBinWidth As Double
-Global lIgnoreFirstMsec As Double
-Global iRowOffset As Integer
-Global iColOffset As Integer
-Global bReverseX, bReverseY As Boolean
 
-Global dHeadingList As Dictionary
-Global dHeadingsSelected As Dictionary
-Global bXAxisLog As Boolean
+Dim doImport
+Dim theServer As String
+Dim theTank As String
+Dim theBlock As String
 
-Global thisWorkbook As Workbook
-Global outputWorkbook As Workbook
-Global plotWorkbook As Workbook
+Dim xAxisEp As String
+Dim yAxisEp As String
+Dim arrOtherEp As Variant
+Dim stimStartEpoc As String
 
-Global plotWhichSheet As String
+Dim lBinWidth As Double
+Dim lIgnoreFirstMsec As Double
 
-Global bulkImportRootDir As String
+Dim iRowOffset As Integer
+Dim iColOffset As Integer
+Dim bReverseX, bReverseY As Boolean
 
-Global isFirstChart As Boolean
+Dim dHeadingList As Dictionary
+Dim dHeadingsSelected As Dictionary
+Dim bXAxisLog As Boolean
 
-Global SigmaPlotHandle
+Dim thisWorkbook As Workbook
+Dim outputWorkbook As Workbook
+Dim plotWorkbook As Workbook
+
+Dim plotWhichSheet As String
+
+Dim bulkImportRootDir As String
+
+Dim isFirstChart As Boolean
+
+Dim SigmaPlotHandle As Variant
 
 Const marginForGoodTuning = 1#
 
@@ -261,17 +270,9 @@ End Sub
 
 
 Sub processImport(importIntoSigmaplot As Boolean)
+    Dim lNumOfChans As Long
 
-    'load the bin width for histogram generation
-    lBinWidth = thisWorkbook.Worksheets("Settings").Range("B1").Value
-    outputWorkbook.Worksheets("Settings").Range("B1").Value = lBinWidth
-    
-    'load the # of msec to ignore at the start (for filtering stimulation artifact
-    lIgnoreFirstMsec = thisWorkbook.Worksheets("Settings").Range("B2").Value
-    outputWorkbook.Worksheets("Settings").Range("B2").Value = lIgnoreFirstMsec
-    
-    'write number of channels to output template
-    outputWorkbook.Worksheets("Settings").Range("B3").Value = thisWorkbook.Worksheets("Settings").Range("B3").Value
+    Call loadConfigParams(outputWorkbook, thisWorkbook, stimStartEpoc, lBinWidth, lIgnoreFirstMsec, lNumOfChans, iRowOffset, iColOffset)
     
     'used to store the maximum histogram peak for normalisation
     Dim lMaxHistHeight As Double
@@ -279,18 +280,12 @@ Sub processImport(importIntoSigmaplot As Boolean)
     Dim lMaxHistMeanHeight As Double
     lMaxHistMeanHeight = 0
     
-    Dim theWorksheets As Variant 'stores the created worksheets to write to
     Dim arrHistTmp() As Long 'used to store the histogram data for each channel as it is generated
-    ReDim arrHistTmp(thisWorkbook.Worksheets("Settings").Range("B3").Value - 1)
-    'ReDim arrHistTmp(31)
+    ReDim arrHistTmp(lNumOfChans - 1)
     
-    Dim yCount As Long
-    Dim xCount As Long
-    Dim zOffsetSize As Long
-    
-    'offsets to leave space at the top and left of the chart
-    iRowOffset = 1
-    iColOffset = 0
+    Dim yCount As Long 'number of items on y axis per block
+    Dim xCount As Long 'number of items on x axis per block
+    Dim zOffsetSize As Long 'the total length that needs to be offset per set of grouping parameters
 
 '    theWorksheets = buildWorksheetArray() 'build the worksheets for writing data
     
@@ -641,7 +636,7 @@ Function BuildEpocList(objTTX, AxisEp, bReverseOrder)
         Next
     Else
         Do
-            i = objTTX.ReadEventsV(500, AxisEp, 0, 0, dblStartTime, 0#, "ALL")
+            i = objTTX.ReadEventsV(10000, AxisEp, 0, 0, dblStartTime, 0#, "ALL")
             If i = 0 Then
                 Exit Do
             End If
@@ -750,7 +745,7 @@ Sub writeResults(ByRef objTTX, xOffset, yOffset, zOffset, iChanNum, ByRef lMaxHi
 
     Dim swepVals()
 
-    varReturn = objTTX.GetEpocsExV("Swep", 0)
+    varReturn = objTTX.GetEpocsExV(stimStartEpoc, 0)
     If IsArray(varReturn) Then
         ReDim swepVals(UBound(varReturn, 2))
         nSweps = UBound(varReturn, 2) + 1
@@ -759,14 +754,14 @@ Sub writeResults(ByRef objTTX, xOffset, yOffset, zOffset, iChanNum, ByRef lMaxHi
             dblEndTime = dblStartTime + lBinWidth + lIgnoreFirstMsec
             dblSwepStartTime = dblStartTime
             Do
-                k = objTTX.ReadEventsV(500, "CSPK", iChanNum, 0, dblStartTime, dblEndTime, "JUSTTIMES")
+                k = objTTX.ReadEventsV(10000, "CSPK", iChanNum, 0, dblStartTime, dblEndTime, "JUSTTIMES")
                 If k = 0 Then
                     Exit Do
                 End If
     
                 histTmp = CLng(histTmp) + CLng(k)
                 swepVals(i) = CLng(swepVals(i)) + CLng(k)
-                If k < 500 Then
+                If k < 10000 Then
                     Exit Do
                 Else
                     varChanData = objTTX.ParseEvInfoV(k - 1, 1, 6)
