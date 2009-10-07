@@ -7,9 +7,6 @@ Global plotWhichSheet As String
 Global isFirstChart As Boolean
 Global SigmaPlotHandle As Variant
 
-Global Const Tuning_DetectedByMode1 = 1
-Global Const Tuning_DetectedByMode2 = 2
-
 Option Explicit
 Sub findSigmplotWindow()
         Dim iRet As Long
@@ -195,7 +192,7 @@ Sub transferCandidatesToSigmaplot(vDrivenChannels As Variant, saveFilename As St
     Do
         If plotWorkbook.Worksheets("Likely tuned channels").Cells(iRow, 1).Value <> "" Then
             If Not dHeadingsSelected.Exists(plotWorkbook.Worksheets("Likely tuned channels").Cells(iRow, 1).Value) Then
-                Call dHeadingsSelected.Add(plotWorkbook.Worksheets("Likely tuned channels").Cells(iRow, 1).Value, Tuning_DetectedByMode1)
+                Call dHeadingsSelected.Add(plotWorkbook.Worksheets("Likely tuned channels").Cells(iRow, 1).Value, "Mode1")
             End If
             iRow = iRow + 1
         Else
@@ -208,9 +205,9 @@ Sub transferCandidatesToSigmaplot(vDrivenChannels As Variant, saveFilename As St
         vKeys = vDrivenChannels.Keys
         For iRow = 0 To UBound(vKeys)
             If Not dHeadingsSelected.Exists("Channel = " & vKeys(iRow)) Then
-                Call dHeadingsSelected.Add("Channel = " & vKeys(iRow), Tuning_DetectedByMode2)
+                Call dHeadingsSelected.Add("Channel = " & vKeys(iRow), "Mode2 (" & vDrivenChannels(vKeys(iRow)) & ")")
             Else
-                dHeadingsSelected("Channel = " & vKeys(iRow)) = dHeadingsSelected("Channel = " & vKeys(iRow)) And Tuning_DetectedByMode2
+                dHeadingsSelected("Channel = " & vKeys(iRow)) = dHeadingsSelected("Channel = " & vKeys(iRow)) & ", Mode2 (" & vDrivenChannels(vKeys(iRow)) & ")"
             End If
         Next
     End If

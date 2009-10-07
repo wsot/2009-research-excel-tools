@@ -4,7 +4,7 @@ Option Explicit
 Const DriveDetect_Undriven = 0
 Const DriveDetect_MinimumSpikesCrossed = 1
 Const DriveDetect_OnsetDetected = 2
-Const DriveDetect_ActDiffDetected = 3
+Const DriveDetect_ActDiffDetected = 4
 
 'adds responding channel numbers to dDrivenChanList
 'this will screw up if the vChannelCount is actually less than the REAL number of channels in the system
@@ -79,10 +79,10 @@ Function identifyDrivenChannels( _
                 blnChanIsDriven = False
         End If
         If blnChanIsDriven Then
-            If Not dDrivenChanList.Exists(lArrIndx) Then
-                Call dDrivenChanList.Add(lArrIndx, DriveDetect_MinimumSpikesCrossed)
+            If Not dDrivenChanList.Exists(lArrIndx + 1) Then
+                Call dDrivenChanList.Add(lArrIndx + 1, DriveDetect_MinimumSpikesCrossed)
             Else
-                dDrivenChanList(lArrIndx) = dDrivenChanList(lArrIndx) Or DriveDetect_MinimumSpikesCrossed
+                dDrivenChanList(lArrIndx + 1) = dDrivenChanList(lArrIndx + 1) Or DriveDetect_MinimumSpikesCrossed
             End If
         End If
     Next
@@ -102,7 +102,7 @@ Function identifyDrivenChannels( _
     
     'step through each channel
     For lArrIndx = 0 To (UBound(histoSums) - 1)
-        If dDrivenChanList.Exists(lArrIndx) Then 'if this doesn't exist, the intital onset drive has not been detected, so can not be counted to have drive
+        If dDrivenChanList.Exists(lArrIndx + 1) Then 'if this doesn't exist, the intital onset drive has not been detected, so can not be counted to have drive
             dblSpikePerEpoc = 0#
             'do the actual check - check if the first 10ms bin is greater than each of the four subsequent bins
             For lComparisonBin = 1 To 1 + oDriveDetectionParams.Onset_NumComparBins
@@ -114,7 +114,7 @@ Function identifyDrivenChannels( _
             Next
             If blnChanIsDriven Then
                 If dblSpikePerEpoc / (UBound(arrStimTimes) + 1) > oDriveDetectionParams.Onset_MinSpikesPerEpocInComparBins Then
-                    dDrivenChanList(lArrIndx) = dDrivenChanList(lArrIndx) Or DriveDetect_OnsetDetected
+                    dDrivenChanList(lArrIndx + 1) = dDrivenChanList(lArrIndx + 1) Or DriveDetect_OnsetDetected
                 Else
                     blnChanIsDriven = False
                 End If
@@ -138,9 +138,19 @@ Function identifyDrivenChannels( _
     
     'step through each channel
     For lArrIndx = 0 To (UBound(histoSums) - 1)
-        If dDrivenChanList.Exists(lArrIndx) Then 'if this doesn't exist, the intital onset drive has not been detected, so can not be counted to have drive
+        If dDrivenChanList.Exists(lArrIndx + 1) Then 'if this doesn't exist, the intital onset drive has not been detected, so can not be counted to have drive
             If histoSums(lArrIndx)(0) > (histoSums(lArrIndx)(1) * oDriveDetectionParams.Diff_Threshold) Then
-                dDrivenChanList(lArrIndx) = dDrivenChanList(lArrIndx) Or DriveDetect_ActDiffDetected
+                dDrivenChanList(lArrIndx + 1) = dDrivenChanList(lArrIndx + 1) Or DriveDetect_ActDiffDetected
+            End If
+        End If
+    Next
+    
+        
+    'step through each channel
+    For lArrIndx = 0 To (UBound(histoSums) - 1)
+        If dDrivenChanList.Exists(lArrIndx + 1) Then 'if this doesn't exist, the intital onset drive has not been detected, so can not be counted to have drive
+            If dDrivenChanList.Exists(lArrIndx + 1) = DriveDetect_MinimumSpikesCrossed Then 'if only detected by threshold crossing, so should be removed
+                Call dDrivenChanList(lArrIndx + 1).Remove
             End If
         End If
     Next
@@ -301,4 +311,6 @@ End Function
 Function calcBinCount(dblTotalWidthSecs As Double, dblBinWidthSecs As Double) As Long
     calcBinCount = CLng(dblTotalWidthSecs / dblBinWidthSecs)
 End Function
+
+
 
