@@ -11,6 +11,32 @@ Global Const TDT_BlockConnectFail = 6
 
 'reads a value from the input workbook, typechecks it, stores it in a (byref) variable to be passed back, and writes it to the matching spot on the output workbook
 Function readCopyParam(ByRef outputWorkbook As Workbook, ByRef inputWorkbook As Workbook, strWorksheetName As String, strAddress As String, strParamNameAddress As String, ByRef theVariable As Variant, intType As Integer, blnBlankAllowed As Boolean)
+        
+    Dim vInputValue As Variant
+    Dim strParamName As String
+    
+    readCopyParam = False
+    
+    If strParamNameAddress = "" Then 'if no param name address provided, we assume the title is located one cell left of the value address
+        If inputWorkbook.Worksheets(strWorksheetName).Range(strAddress).Column > 1 Then 'label can only be in the next column to the left if we are not in the first column
+            strParamName = inputWorkbook.Worksheets(strWorksheetName).Range(strAddress).Offset(0, -1).Value
+        Else
+            strParamName = "<no name specified>"
+        End If
+    Else
+        strParamName = inputWorkbook.Worksheets(strWorksheetName).Range(strParamNameAddress).Value
+    End If
+    
+    vInputValue = inputWorkbook.Worksheets(strWorksheetName).Range(strAddress).Value
+    If checkDataType(vInputValue, intType, strParamName, blnBlankAllowed, strWorksheetName, strAddress) = 0 Then
+            theVariable = vInputValue
+            outputWorkbook.Worksheets(strWorksheetName).Range(strAddress).Value = theVariable
+            readCopyParam = True
+    End If
+End Function
+
+'reads a value from the input workbook, typechecks it, stores it in a (byref) variable to be passed back, and writes it to the matching spot on the output workbook
+Function checkDataType(ByRef vInputValue As Variant, intType As Integer, strParamName As String, Optional blnBlankAllowed As Variant, Optional strWorksheetName, Optional strAddress As Variant) As Integer
     Const ErrType_NoError = 0
     Const ErrType_NotNumeric = 1
     Const ErrType_NotWholeNum = 2
@@ -19,12 +45,12 @@ Function readCopyParam(ByRef outputWorkbook As Workbook, ByRef inputWorkbook As 
     Const ErrType_BlankNotAllowed = 5
     Const ErrType_UnsupportedDataTypeCheck = 6
     'const ErrType_DataType = 1
-        
-    Dim vInputValue As Variant
-    Dim strParamName As String
-    Dim intErrType As Integer
     
-    readCopyParam = False
+    If IsMissing(blnBlankAllowed) Or Not VarType(blnBlankAllowed) = vbBoolean Then
+        blnBlankAllowed = False
+    End If
+    
+    Dim intErrType As Integer
     
     intErrType = ErrType_NoError
     
@@ -35,8 +61,6 @@ Function readCopyParam(ByRef outputWorkbook As Workbook, ByRef inputWorkbook As 
         intType <> 11 Then
             intErrType = ErrType_UnsupportedDataTypeCheck
     Else
-        vInputValue = inputWorkbook.Worksheets(strWorksheetName).Range(strAddress).Value
-        
         If intType = vbInteger Or intType = vbLong Or intType = vbDouble Then
             If Not IsNumeric(vInputValue) Then
                 If Not (vInputValue = "" And blnBlankAllowed) Then
@@ -65,15 +89,8 @@ Function readCopyParam(ByRef outputWorkbook As Workbook, ByRef inputWorkbook As 
         End If
         
         If intErrType <> ErrType_NoError Then
-            If strParamNameAddress = "" Then 'if no param name address provided, we assume the title is located one cell left of the value address
-                If inputWorkbook.Worksheets(strWorksheetName).Range(strAddress).Column > 1 Then 'label can only be in the next column to the left if we are not in the first column
-                    strParamName = inputWorkbook.Worksheets(strWorksheetName).Range(strAddress).Offset(0, -1).Value
-                Else
-                    strParamName = "<no name specified>"
-                End If
-            Else
-                strParamName = inputWorkbook.Worksheets(strWorksheetName).Range(strParamNameAddress).Value
-            End If
+            If IsMissing(strWorksheetName) Then strWorksheetName = "<Not Available>"
+            If IsMissing(strAddress) Then strAddress = "<Not Available>"
             
             Select Case intErrType
                 Case ErrType_NotNumeric:
@@ -87,13 +104,9 @@ Function readCopyParam(ByRef outputWorkbook As Workbook, ByRef inputWorkbook As 
                 Case ErrType_BlankNotAllowed:
                     MsgBox "The parameter '" & strParamName & "' at location " & strWorksheetName & "." & strAddress & " must not be blank"
             End Select
-        Else
-            theVariable = vInputValue
-            outputWorkbook.Worksheets(strWorksheetName).Range(strAddress).Value = theVariable
-            
-            readCopyParam = True
         End If
     End If
+    checkDataType = intErrType
 End Function
 
 
@@ -310,6 +323,8 @@ Function connectToTDTReportError(vReturnArr As Variant)
             connectToTDTReportError = True
     End Select
 End Function
+
+
 
 
 

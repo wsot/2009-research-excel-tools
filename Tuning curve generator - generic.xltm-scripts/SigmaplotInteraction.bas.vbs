@@ -7,6 +7,9 @@ Global plotWhichSheet As String
 Global isFirstChart As Boolean
 Global SigmaPlotHandle As Variant
 
+Global Const Tuning_DetectedByMode1 = 1
+Global Const Tuning_DetectedByMode2 = 2
+
 Option Explicit
 Sub findSigmplotWindow()
         Dim iRet As Long
@@ -166,7 +169,7 @@ Sub trySigmaplotSave(saveFilename As String, SPApp)
 End Sub
 
 
-Sub transferCandidatesToSigmaplot(saveFilename As String)
+Sub transferCandidatesToSigmaplot(vDrivenChannels As Variant, saveFilename As String)
     plotWhichSheet = plotWorkbook.Worksheets("Settings").Range("B18").Value
 
 '    Dim zOffsetSize As Long
@@ -188,16 +191,30 @@ Sub transferCandidatesToSigmaplot(saveFilename As String)
     
     Set dHeadingsSelected = New Dictionary
     
+'    Stop
     Do
         If plotWorkbook.Worksheets("Likely tuned channels").Cells(iRow, 1).Value <> "" Then
             If Not dHeadingsSelected.Exists(plotWorkbook.Worksheets("Likely tuned channels").Cells(iRow, 1).Value) Then
-                Call dHeadingsSelected.Add(plotWorkbook.Worksheets("Likely tuned channels").Cells(iRow, 1).Value, 0)
+                Call dHeadingsSelected.Add(plotWorkbook.Worksheets("Likely tuned channels").Cells(iRow, 1).Value, Tuning_DetectedByMode1)
             End If
             iRow = iRow + 1
         Else
             Exit Do
         End If
     Loop
+    
+    If Not IsMissing(vDrivenChannels) And Not IsEmpty(vDrivenChannels) And IsObject(vDrivenChannels) And Not vDrivenChannels Is Nothing Then
+        Dim vKeys As Variant
+        vKeys = vDrivenChannels.Keys
+        For iRow = 0 To UBound(vKeys)
+            If Not dHeadingsSelected.Exists("Channel = " & vKeys(iRow)) Then
+                Call dHeadingsSelected.Add("Channel = " & vKeys(iRow), Tuning_DetectedByMode2)
+            Else
+                dHeadingsSelected("Channel = " & vKeys(iRow)) = dHeadingsSelected("Channel = " & vKeys(iRow)) And Tuning_DetectedByMode2
+            End If
+        Next
+    End If
+    
     
     If doImport Then
         Call TransferToSigmaplot(saveFilename)
@@ -297,7 +314,7 @@ Sub TransferToSigmaplot(saveFilename As String)
     Do
         If plotWorkbook.Worksheets(plotWhichSheet).Cells(yPos, xPos).Value <> "" Then
             If dHeadingsSelected.Exists(plotWorkbook.Worksheets(plotWhichSheet).Cells(yPos, xPos).Value) Then
-                strTitle = plotWorkbook.Worksheets(plotWhichSheet).Cells(yPos, xPos).Value
+                strTitle = plotWorkbook.Worksheets(plotWhichSheet).Cells(yPos, xPos).Value & " " & dHeadingsSelected(plotWorkbook.Worksheets(plotWhichSheet).Cells(yPos, xPos).Value)
                 Set spNB = SPApp.Notebooks.Item(SPApp.Notebooks.Count - 1)
                 Set spWS = spNB.NotebookItems.Item(spNB.NotebookItems.Count - 1)
                 spWS.Name = plotWorkbook.Worksheets(plotWhichSheet).Cells(yPos, xPos).Value
@@ -469,4 +486,6 @@ Sub transferToSigmaplotButton()
     End If
 
 End Sub
+
+
 

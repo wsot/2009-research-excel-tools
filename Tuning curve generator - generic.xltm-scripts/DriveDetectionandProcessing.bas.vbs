@@ -1,19 +1,44 @@
 Attribute VB_Name = "DriveDetectionandProcessing"
 Option Explicit
 
-Global Const DDParam_Gen_MinSpikesPerEpocInFirstN = 0 'Absolute minimum spikes per epoc in intital time window duration
-Global Const DDParam_Gen_FirstNDur = 1 'Duration of initial time window (s)
-Global Const DDParam_Onset_IgnoreTime = 2 'Bin Width (s) for 'onset detection' (First bit compared to subsequent bins)
-Global Const DDParam_Onset_BinWidth = 3 'Bin Width (s) for 'onset detection' (First bit compared to subsequent bins)
-Global Const DDParam_Onset_ReqMultiple = 4 'Onset spike must be at least x times larger than following spikes for onset spike detection
-Global Const DDParam_Onset_NumComparBins = 5 'Number of subsequent bins to compare onset spike to
-Global Const DDParam_Onset_MinSpikesPerEpocInComparBins = 6 'Minimum total spikes (per epoc) in comparison bins (the number of bins specified above)
-Global Const DDParam_Diff_Threshold = 7 'During-tone vs outside-tone activity difference threshold (ratio inside/outside) for inclusion as 'driven'
-Global Const DDParam_Diff_StimDur = 8 'Tone duration (s)
-Global Const DDParam_Diff_ITI__ = 9 'Inter-tone interval (s; including the duration of the tone)
+Const DriveDetect_Undriven = 0
+Const DriveDetect_MinimumSpikesCrossed = 1
+Const DriveDetect_OnsetDetected = 2
+Const DriveDetect_ActDiffDetected = 3
 
+'adds responding channel numbers to dDrivenChanList
+'this will screw up if the vChannelCount is actually less than the REAL number of channels in the system
+Function identifyDrivenChannels( _
+        objTTX As TTankX, _
+        arrStimTimes As Variant, _
+        oDriveDetectionParams As DriveDetection, _
+        ByRef dDrivenChanList As Dictionary, _
+        Optional vChannelCount As Variant, _
+        Optional dChannelRemapping As Variant, _
+        Optional dChannelsToArrayMapping As Variant _
+    )
 
-Function identifyDrivenChannels(arrStimTimes As Variant, vDriveDetectionParams As Variant, Optional dChannelList As Variant) As Variant 'return dictionary of channel numbers that are driven
+    If IsMissing(vChannelCount) Or Not IsNumeric(vChannelCount) Then
+        If Not IsMissing(dChannelsToArrayMapping) Then
+            If IsObject(dChannelsToArrayMapping) Then
+                If Not (dChannelsToArrayMapping Is Nothing) Then
+                    vChannelCount = dChannelsToArrayMapping.Count
+                End If
+            End If
+        End If
+    ElseIf Not Int(vChannelCount) = vChannelCount Then
+        If Not IsMissing(dChannelsToArrayMapping) Then
+            If IsObject(dChannelsToArrayMapping) Then
+                If Not (dChannelsToArrayMapping Is Nothing) Then
+                    vChannelCount = dChannelsToArrayMapping.Count
+                End If
+            End If
+        End If
+    End If
+
+    If dDrivenChanList Is Nothing Then
+        Set dDrivenChanList = New Dictionary
+    End If
 
     Dim dblTotalWidthSecs As Double
     Dim dblBinWidthSecs As Double
@@ -26,98 +51,139 @@ Function identifyDrivenChannels(arrStimTimes As Variant, vDriveDetectionParams A
     
     Dim iStimNum As Integer
     Dim returnVal As Variant
+
+    'FIRST: check for initital spikes per epoc requirement
     
-    'FIRST: check for onset spike
-    
-    'create 3 bins, each 0.01 wide, to check for an onset spike
-    dblBinWidthSecs = vDriveDetectionParams(DDParam_Onset_BinWidth)
-    dblStartOffsetSecs = vDriveDetectionParams(DDParam_Onset_IgnoreTime)
-    dblTotalWidthSecs = dblBinWidthSecs * (vDriveDetectionParams(DDParam_Onset_NumComparBins) + 1)
+    'create bins based of provided configuration parameters to check for an onset spike
+    dblBinWidthSecs = oDriveDetectionParams.Gen_FirstNDur
+    dblTotalWidthSecs = dblBinWidthSecs
     
     lHistoBinCount = calcBinCount(dblTotalWidthSecs, dblBinWidthSecs)
-    Call setHistoArraySizes(histoSums, histoSquares, lHistoBinCount)
+    Call setHistoArraySizes(histoSums, histoSquares, lHistoBinCount, CLng(vChannelCount))
     
     For iStimNum = 0 To UBound(arrStimTimes)
-        Call buildHistogramForStim(arrStimTimes(iStimNum) + dblStartOffsetSecs, histoSums, histoSquares, lHistoBinCount, dblTotalWidthSecs, dblBinWidthSecs, dblStartOffsetSecs)
+        Call buildHistogramForStim(objTTX, arrStimTimes(iStimNum) + oDriveDetectionParams.IgnoreInitialTime, histoSums, histoSquares, dblTotalWidthSecs, dblBinWidthSecs, dChannelRemapping, dChannelsToArrayMapping)
     Next
     
-    Dim vChanKey As Variant
-    Dim iChanOffset As Integer
+    Dim blnChanIsDriven As Boolean
+    Dim dblSpikePerEpoc As Double
+    
+    Dim lArrIndx As Long
+    Dim lComparisonBin As Long
+
     'step through each channel
-    For Each vChanKey In dictOnlyIncludeChannels.Keys
-        iChanOffset = dictOnlyIncludeChannels(vChanKey) - 1
+    For lArrIndx = 0 To (UBound(histoSums) - 1)
+        blnChanIsDriven = True
         'do the actual check - check if the first 10ms bin is greater than each of the four subsequent bins
-        If histoSums(iChanOffset)(0) > histoSums(iChanOffset)(1) And _
-            histoSums(iChanOffset)(0) > histoSums(iChanOffset)(2) And _
-            histoSums(iChanOffset)(0) > histoSums(iChanOffset)(3) And _
-            histoSums(iChanOffset)(0) > histoSums(iChanOffset)(4) And _
-            histoSums(iChanOffset)(0) > histoSums(iChanOffset)(5) And _
-            (histoSums(iChanOffset)(1) + histoSums(iChanOffset)(2)) >= DriveDetect_MinIn2nd3rdForOnset Then
-                Call dDrivenChanList.Add(vChanKey, DriveDetect_OnsetDetected)
+        If Not histoSums(lArrIndx)(0) / (UBound(arrStimTimes) + 1) > oDriveDetectionParams.Gen_MinSpikesPerEpocInFirstN Then
+                blnChanIsDriven = False
+        End If
+        If blnChanIsDriven Then
+            If Not dDrivenChanList.Exists(lArrIndx) Then
+                Call dDrivenChanList.Add(lArrIndx, DriveDetect_MinimumSpikesCrossed)
+            Else
+                dDrivenChanList(lArrIndx) = dDrivenChanList(lArrIndx) Or DriveDetect_MinimumSpikesCrossed
+            End If
         End If
     Next
-            
-    'SECOND: check for higher overall activity in stim period than non-stim period
+
+    'SECOND: check for onset spike
     
-    'create 4 bins, each 0.1 wide, to check for greater activity during the 'in-tone' period than in the 'no-tone' period
-    dblTotalWidthSecs = 0.4
-    dblBinWidthSecs = 0.1
-    dblStartOffsetSecs = 0#
+    'create bins based of provided configuration parameters to check for an onset spike
+    dblBinWidthSecs = oDriveDetectionParams.Onset_BinWidth
+    dblTotalWidthSecs = dblBinWidthSecs * (oDriveDetectionParams.Onset_NumComparBins + 1)
     
     lHistoBinCount = calcBinCount(dblTotalWidthSecs, dblBinWidthSecs)
-    'flush the arrays
-    Call setHistoArraySizes(histoSums, histoSquares, lHistoBinCount)
+    Call setHistoArraySizes(histoSums, histoSquares, lHistoBinCount, CLng(vChannelCount))
     
-    For iStimNum = 0 To 8 'only want to look at the first 9 stims, because after than the shock will be on, which could screw up the neural data
-        Call buildHistogramForStimMethod1(stimEpocs(1, iStimNum), histoSums, histoSquares, lHistoBinCount, dblTotalWidthSecs, dblBinWidthSecs, dblStartOffsetSecs)
+    For iStimNum = 0 To UBound(arrStimTimes)
+        Call buildHistogramForStim(objTTX, arrStimTimes(iStimNum) + oDriveDetectionParams.IgnoreInitialTime, histoSums, histoSquares, dblTotalWidthSecs, dblBinWidthSecs, dChannelRemapping, dChannelsToArrayMapping)
     Next
     
     'step through each channel
-    For Each vChanKey In dictOnlyIncludeChannels.Keys
-        iChanOffset = dictOnlyIncludeChannels(vChanKey) - 1
-        'do the actual check - check if the first 10ms bin is greater than each of the four subsequent bins
-        If (histoSums(iChanOffset)(0) > (histoSums(iChanOffset)(4) * DriveDetect_ActivityDifferenceThreshold)) And (histoSums(iChanOffset)(0) > DriveDetect_AbsoluteMinimumSpikesInFirstBin) Then
-                If Not dDrivenChanList.Exists(vChanKey) Then
-                    Call dDrivenChanList.Add(vChanKey, DriveDetect_ActDiffDetected)
+    For lArrIndx = 0 To (UBound(histoSums) - 1)
+        If dDrivenChanList.Exists(lArrIndx) Then 'if this doesn't exist, the intital onset drive has not been detected, so can not be counted to have drive
+            dblSpikePerEpoc = 0#
+            'do the actual check - check if the first 10ms bin is greater than each of the four subsequent bins
+            For lComparisonBin = 1 To 1 + oDriveDetectionParams.Onset_NumComparBins
+                If Not histoSums(lArrIndx)(0) > (histoSums(lArrIndx)(lComparisonBin) * oDriveDetectionParams.Onset_ReqMultiple) Then
+                    blnChanIsDriven = False
+                    Exit For
                 End If
+                dblSpikePerEpoc = dblSpikePerEpoc + histoSums(lArrIndx)(lComparisonBin)
+            Next
+            If blnChanIsDriven Then
+                If dblSpikePerEpoc / (UBound(arrStimTimes) + 1) > oDriveDetectionParams.Onset_MinSpikesPerEpocInComparBins Then
+                    dDrivenChanList(lArrIndx) = dDrivenChanList(lArrIndx) Or DriveDetect_OnsetDetected
+                Else
+                    blnChanIsDriven = False
+                End If
+            End If
         End If
     Next
     
-    For Each vChanKey In dictOnlyIncludeChannels.Keys
-        If Not dDrivenChanList.Exists(vChanKey) Then
-            Call dDrivenChanList.Add(vChanKey, DriveDetect_Undriven)
+    'THIRD: check for higher overall activity in stim period than non-stim period
+    
+    'create 4 bins, each 0.1 wide, to check for greater activity during the 'in-tone' period than in the 'no-tone' period
+    dblTotalWidthSecs = oDriveDetectionParams.Diff_ITI
+    dblBinWidthSecs = oDriveDetectionParams.Diff_StimDur
+    lHistoBinCount = calcBinCount(dblTotalWidthSecs, dblBinWidthSecs)
+    
+    'flush the arrays
+    Call setHistoArraySizes(histoSums, histoSquares, lHistoBinCount, CLng(vChannelCount))
+    
+    For iStimNum = 0 To UBound(arrStimTimes)
+        Call buildHistogramForStim(objTTX, arrStimTimes(iStimNum) + oDriveDetectionParams.IgnoreInitialTime, histoSums, histoSquares, dblTotalWidthSecs, dblBinWidthSecs, dChannelRemapping, dChannelsToArrayMapping)
+    Next
+    
+    'step through each channel
+    For lArrIndx = 0 To (UBound(histoSums) - 1)
+        If dDrivenChanList.Exists(lArrIndx) Then 'if this doesn't exist, the intital onset drive has not been detected, so can not be counted to have drive
+            If histoSums(lArrIndx)(0) > (histoSums(lArrIndx)(1) * oDriveDetectionParams.Diff_Threshold) Then
+                dDrivenChanList(lArrIndx) = dDrivenChanList(lArrIndx) Or DriveDetect_ActDiffDetected
+            End If
         End If
     Next
+    
+    'If Not IsMissing(dChannelsToArrayMapping) And IsObject(dChannelsToArrayMapping) And Not (dChannelsToArrayMapping Is Nothing) Then
+        'need to reverse-convert index numbers to channel numbers, because they may not be the same
+    'End If
+    Set identifyDrivenChannels = dDrivenChanList
     
 End Function
 
-'creates arrays the right size for the histogram data
-Function setHistoArraySizes(ByRef histoSums As Variant, ByRef histoSquares As Variant, ByRef lHistoBinCount As Long)
+'creates arrays the right size for the histogram data.
+Function setHistoArraySizes( _
+        ByRef histoSums As Variant, _
+        ByRef histoSquares As Variant, _
+        lHistoBinCount As Long, _
+        lChanCount As Long _
+    )
+    
     Dim i As Long
     
     Dim arrDoubles() As Double
         
-    ReDim histoSums(dictOnlyIncludeChannels.Count - 1)
-    ReDim histoSquares(dictOnlyIncludeChannels.Count - 1)
-    
-    'ReDim arrVariants(dictOnlyIncludeChannels.Count - 1)
-    
+    ReDim histoSums(lChanCount - 1)
+    ReDim histoSquares(lChanCount - 1)
+        
     ReDim arrDoubles(lHistoBinCount)
     
-    For i = 0 To dictOnlyIncludeChannels.Count - 1
+    For i = 0 To lChanCount - 1
         histoSums(i) = arrDoubles
         histoSquares(i) = arrDoubles
     Next
 End Function
 
 Function buildHistogramForStim( _
+        objTTX As TTankX, _
         ByVal dblStartTime As Double, _
         ByRef histoSums As Variant, _
         ByRef histoSquares As Variant, _
         ByRef dblTotalWidthSecs As Double, _
         ByRef dblBinWidthSecs As Double, _
-        Optional ByRef dChannelRemapping As Variant, _
-        Optional ByRef dChannelsToArrayMapping As Variant _
+        Optional dChannelRemapping As Variant, _
+        Optional dChannelsToArrayMapping As Variant _
         )
     
     Dim lHistoBinCount As Long
@@ -143,14 +209,22 @@ Function buildHistogramForStim( _
     'for the remapping table, the first value (key) needs to be the TDT CHANNEL RECORDED, and the second value the DESIRED NEW LABEL
     Dim blnRemapChannels As Boolean
     If Not IsMissing(dChannelRemapping) Then
-        blnRemapChannels = True
+        If Not IsObject(dChannelRemapping) Then
+            If Not (dChannelRemapping Is Nothing) Then
+                blnRemapChannels = True
+            End If
+        End If
     Else
         blnRemapChannels = False
     End If
 
     Dim blnRemapToArray As Boolean
     If Not IsMissing(dChannelsToArrayMapping) Then
-        blnRemapToArray = True
+        If IsObject(dChannelsToArrayMapping) Then
+            If Not (dChannelsToArrayMapping Is Nothing) Then
+                blnRemapToArray = True
+            End If
+        End If
     Else
         blnRemapToArray = False
     End If
@@ -211,17 +285,20 @@ Function buildHistogramForStim( _
                 End If
                 
                 If iWriteToChan <> 0 Then 'if iWriteToChan is 0, then the value will be ignored
-                    histoSums(iWriteToChan - 1)(lBinNum) = histoSums(iWriteToChan)(lBinNum) + nCount(iChanNum)
-                    histoSquares(iWriteToChan - 1)(lBinNum) = histoSquares(iWriteToChan)(lBinNum) + (nCount(iChanNum) ^ 2)
+                    histoSums(iWriteToChan - 1)(lBinNum) = histoSums(iWriteToChan - 1)(lBinNum) + arrCount(iChanNum - 1)
+                    histoSquares(iWriteToChan - 1)(lBinNum) = histoSquares(iWriteToChan - 1)(lBinNum) + (arrCount(iChanNum - 1) ^ 2)
                 End If
             Next
-            ReDim nCount(intArrCountUpperLimit) 'clear the storage array, but keep it with the same number of channels
+            ReDim arrCount(intArrCountUpperLimit) 'clear the storage array, but keep it with the same number of channels
 
             dblStartTime = dblEndTime
             dblEndTime = dblStartTime + dblBinWidthSecs
         Next
 
+
+
 End Function
 Function calcBinCount(dblTotalWidthSecs As Double, dblBinWidthSecs As Double) As Long
     calcBinCount = CLng(dblTotalWidthSecs / dblBinWidthSecs)
 End Function
+

@@ -49,7 +49,8 @@ Function loadConfigParams( _
         ByRef xAxisEp As String, _
         ByRef yAxisEp As String, _
         ByRef bReverseX As Boolean, _
-        ByRef bReverseY As Boolean)
+        ByRef bReverseY As Boolean, _
+        ByRef oDriveDetParams As Variant)
         
     loadConfigParams = True
         
@@ -106,11 +107,54 @@ Function loadConfigParams( _
     If Not readCopyParam(outputWorkbook, thisWorkbook, "Variables (do not edit)", "E2", "", bReverseY, vbBoolean, False) Then
         loadConfigParams = False
     End If
-
+    
+    Set oDriveDetParams = New DriveDetection
+    
+    If Not oDriveDetParams.readDriveDetection(thisWorkbook.Worksheets("Settings"), "A27", outputWorkbook.Worksheets("Settings")) Then
+        loadConfigParams = False
+    End If
     
 End Function
 
+
+'to check for drive, does a sum of all values with a single value on the Y axis (the first value...)
+'it will reflect drive with whatever grouping filter is currently in place when it is called (i.e. it does not reset filters)
+'Any channel that does not have drive is fully excluded (including when they are on an X or Y axis)
+'DOESN'T ACTUALLY DO ANYWHERE NEAR ALL THAT RIGHT NOW!!
+Function checkChannelsForDrive(objTTX As TTankX, xAxisEp As String, vXAxisKeys As Variant, yAxisEp As String, vYAxisKeys As Variant, stimStartEpoc As String, oDriveDetectionParams As DriveDetection, lNumOfChans As Long) As Dictionary
+
+    Dim sStableSearchString As String
+    Dim sThisSearchString As String
+    
+    Dim dDrivenChanList As Dictionary
+    
+    Dim vStimEpocs As Variant
+    Dim aStimTimes() As Double
+    
+    Dim lStimIter As Long
+    
+    If Not xAxisEp = "Channel" Then
+        sStableSearchString = yAxisEp & " = " & CStr(vYAxisKeys(0))
+        Dim i
+        For i = 0 To UBound(vXAxisKeys)
+            sThisSearchString = sStableSearchString & " and " & xAxisEp & " = " & CStr(vXAxisKeys(i))
+            Call objTTX.ResetFilters
+            Call objTTX.SetFilterWithDescEx(sThisSearchString)
+            vStimEpocs = objTTX.GetEpocsExV(stimStartEpoc, 0)
+            ReDim aStimTimes(UBound(vStimEpocs, 2))
+            For lStimIter = 0 To UBound(vStimEpocs, 2)
+                aStimTimes(lStimIter) = vStimEpocs(1, lStimIter)
+            Next
+            Call identifyDrivenChannels(objTTX, aStimTimes, oDriveDetectionParams, dDrivenChanList, lNumOfChans)
+        Next
+    End If
+    
+    Set checkChannelsForDrive = dDrivenChanList
+
+End Function
+
 Sub bulkBuildTuningCurves()
+
     isFirstChart = True
 '        Dim thisWorkbook As Workbook
     Set thisWorkbook = Application.ActiveWorkbook
@@ -164,6 +208,10 @@ Sub bulkBuildTuningCurves()
         Dim blnPlotOnlyCandidates As Boolean
         blnPlotOnlyCandidates = thisWorkbook.Worksheets("Settings").Range("B6").Value
        
+        Dim blnPlotOnlyDriven As Boolean
+        Dim dDrivenChans As Dictionary
+        blnPlotOnlyDriven = thisWorkbook.Worksheets("Settings").Range("B8").Value
+       
         Dim dBlocks As Dictionary
         Set dBlocks = New Dictionary
         Dim i As Integer
@@ -214,7 +262,7 @@ Sub bulkBuildTuningCurves()
             outputWorkbook.Worksheets("Variables (do not edit)").Range("B2").Value = theTank 'update the block on the worksheet
             outputWorkbook.Worksheets("Variables (do not edit)").Range("B3").Value = theBlock 'update the block on the worksheet
             outputWorkbook.Worksheets("Settings").Range("B18").Value = thisWorkbook.Worksheets("Settings").Range("B18").Value
-            Call processImport(False)
+            Call processImport(False, blnPlotOnlyDriven, dDrivenChans)
             Call detectTunedSegments
             If blnAutosave Then
                 Call outputWorkbook.SaveAs(outputFilename, 52)
@@ -226,7 +274,7 @@ Sub bulkBuildTuningCurves()
                     End If
                     Set plotWorkbook = outputWorkbook
                     If blnPlotOnlyCandidates Then
-                        Call transferCandidatesToSigmaplot(outputFilename & ".JNB")
+                        Call transferCandidatesToSigmaplot(dDrivenChans, outputFilename & ".JNB")
                     Else
                         Call transferAllToSigmaplot(outputFilename & ".JNB")
                     End If
@@ -243,6 +291,9 @@ Sub bulkBuildTuningCurves()
 End Sub
 
 Sub buildTuningCurves()
+    MsgBox "Currently no workee"
+    Exit Sub
+
     isFirstChart = True
 '        Dim thisWorkbook As Workbook
     Set thisWorkbook = Application.ActiveWorkbook
@@ -320,7 +371,7 @@ Sub buildTuningCurves()
                 If blnAutoPlot Then
                     Set plotWorkbook = outputWorkbook
                     If blnPlotOnlyCandidates Then
-                        Call transferCandidatesToSigmaplot(outputFilename & ".JNB")
+                        Call transferCandidatesToSigmaplot(vDrivenChannels, outputFilename & ".JNB")
                     Else
                         Call transferAllToSigmaplot(outputFilename & ".JNB")
                     End If
@@ -336,10 +387,12 @@ Sub buildTuningCurves()
 End Sub
 
 
-Sub processImport(importIntoSigmaplot As Boolean)
+Sub processImport(importIntoSigmaplot As Boolean, Optional vDetectDriven As Variant, Optional vDrivenChans As Variant)
+'    Stop
     Dim lNumOfChans As Long
+    Dim oDriveDetectionParams As DriveDetection
 
-    If loadConfigParams(outputWorkbook, thisWorkbook, stimStartEpoc, dblBinWidth, dblIgnoreFirstMsec, lNumOfChans, iRowOffset, iColOffset, arrOtherEp, xAxisEp, yAxisEp, bReverseX, bReverseY) Then
+    If loadConfigParams(outputWorkbook, thisWorkbook, stimStartEpoc, dblBinWidth, dblIgnoreFirstMsec, lNumOfChans, iRowOffset, iColOffset, arrOtherEp, xAxisEp, yAxisEp, bReverseX, bReverseY, oDriveDetectionParams) Then
         
         'used to store the maximum histogram peak for normalisation
         Dim lMaxHistHeight As Double
@@ -375,6 +428,14 @@ Sub processImport(importIntoSigmaplot As Boolean)
             vXAxisKeys = BuildEpocList(objTTX, xAxisEp, bReverseX)
             vYAxisKeys = BuildEpocList(objTTX, yAxisEp, bReverseY)
                 
+            If Not IsMissing(vDetectDriven) Or IsMissing(vDrivenChans) Then
+                If VarType(vDetectDriven) = vbBoolean Then
+                    If vDetectDriven = True Then
+                        Set vDrivenChans = checkChannelsForDrive(objTTX, xAxisEp, vXAxisKeys, yAxisEp, vYAxisKeys, stimStartEpoc, oDriveDetectionParams, lNumOfChans) 'WARNING! this doesn't correctly support channel mappings etc yet!!
+                    End If
+                End If
+            End If
+            
             Dim i As Long
             Dim j As Long
             Dim k As Long
@@ -801,5 +862,11 @@ Sub Broadcast_It()
         iRet = oDynWrap.SendMessageA(lWindHandle, WM_COMMAND, MAKELPARAM(780, 0), 0&) 'send the 'close all notebooks' command
     Set oDynWrap = Nothing
 End Sub
+
+
+
+
+
+
 
 
