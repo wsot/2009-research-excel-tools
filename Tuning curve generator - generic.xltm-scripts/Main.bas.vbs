@@ -126,6 +126,10 @@ Function checkChannelsForDrive(objTTX As TTankX, xAxisEp As String, vXAxisKeys A
     Dim blnReturnVal As Boolean
     blnReturnVal = True
 
+    Dim dFinalDrivenChanList As Dictionary
+    Set dFinalDrivenChanList = New Dictionary
+    Dim dTmpDrivenChanList As Dictionary
+
     Dim sStableSearchString As String
     Dim sThisSearchString As String
     
@@ -133,6 +137,10 @@ Function checkChannelsForDrive(objTTX As TTankX, xAxisEp As String, vXAxisKeys A
     
     Dim vStimEpocs As Variant
     Dim aStimTimes() As Double
+    
+    Dim vStrKeyArray As Variant
+    Dim sThisKey As String
+    Dim lStrKeyIndex As Integer
     
     Dim lStimIter As Long
     
@@ -149,15 +157,26 @@ Function checkChannelsForDrive(objTTX As TTankX, xAxisEp As String, vXAxisKeys A
                 For lStimIter = 0 To UBound(vStimEpocs, 2)
                     aStimTimes(lStimIter) = vStimEpocs(1, lStimIter)
                 Next
-                Call identifyDrivenChannels(objTTX, aStimTimes, oDriveDetectionParams, dDrivenChanList, lNumOfChans)
+                Call identifyDrivenChannels(objTTX, aStimTimes, oDriveDetectionParams, dTmpDrivenChanList, lNumOfChans)
+                vStrKeyArray = dTmpDrivenChanList.Keys
+                For lStrKeyIndex = LBound(vStrKeyArray) To UBound(vStrKeyArray)
+                    sThisKey = vStrKeyArray(lStrKeyIndex)
+                    If Not dFinalDrivenChanList.Exists(sThisKey) Then
+                        Call dFinalDrivenChanList.Add(sThisKey, Array(dTmpDrivenChanList(sThisKey), 1))
+                    Else
+                        dFinalDrivenChanList(sThisKey)(0) = dFinalDrivenChanList(sThisKey)(0) And dTmpDrivenChanList(sThisKey)
+                        dFinalDrivenChanList(sThisKey)(1) = dFinalDrivenChanList(sThisKey)(1) + 1
+                    End If
+                Next
             Else
                 blnReturnVal = False
             End If
         Next
+        
+        
     End If
     
-    
-    
+    Set dDrivenChanList = dFinalDrivenChanList
     checkChannelsForDrive = blnReturnVal
 
 End Function
@@ -877,6 +896,10 @@ Sub Broadcast_It()
         iRet = oDynWrap.SendMessageA(lWindHandle, WM_COMMAND, MAKELPARAM(780, 0), 0&) 'send the 'close all notebooks' command
     Set oDynWrap = Nothing
 End Sub
+
+
+
+
 
 
 

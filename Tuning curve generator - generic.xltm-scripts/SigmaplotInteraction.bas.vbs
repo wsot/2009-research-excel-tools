@@ -205,9 +205,9 @@ Sub transferCandidatesToSigmaplot(vDrivenChannels As Variant, saveFilename As St
         vKeys = vDrivenChannels.Keys
         For iRow = 0 To UBound(vKeys)
             If Not dHeadingsSelected.Exists("Channel = " & vKeys(iRow)) Then
-                Call dHeadingsSelected.Add("Channel = " & vKeys(iRow), "Mode2 (" & vDrivenChannels(vKeys(iRow)) & ")")
+                Call dHeadingsSelected.Add("Channel = " & vKeys(iRow), "Mode2 (" & vDrivenChannels(vKeys(iRow))(0) & "," & vDrivenChannels(vKeys(iRow))(1) & ")")
             Else
-                dHeadingsSelected("Channel = " & vKeys(iRow)) = dHeadingsSelected("Channel = " & vKeys(iRow)) & ", Mode2 (" & vDrivenChannels(vKeys(iRow)) & ")"
+                dHeadingsSelected("Channel = " & vKeys(iRow)) = dHeadingsSelected("Channel = " & vKeys(iRow)) & ", Mode2 (" & vDrivenChannels(vKeys(iRow) & "," & vDrivenChannels(vKeys(iRow))(1) & ")")
             End If
         Next
     End If
