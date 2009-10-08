@@ -12,7 +12,7 @@ Function identifyDrivenChannels( _
         objTTX As TTankX, _
         arrStimTimes As Variant, _
         oDriveDetectionParams As DriveDetection, _
-        ByRef dDrivenChanList As Dictionary, _
+        ByRef dDrivenChanList As Variant, _
         Optional vChannelCount As Variant, _
         Optional dChannelRemapping As Variant, _
         Optional dChannelsToArrayMapping As Variant _
@@ -149,8 +149,8 @@ Function identifyDrivenChannels( _
     'step through each channel
     For lArrIndx = 0 To (UBound(histoSums) - 1)
         If dDrivenChanList.Exists(lArrIndx + 1) Then 'if this doesn't exist, the intital onset drive has not been detected, so can not be counted to have drive
-            If dDrivenChanList.Exists(lArrIndx + 1) = DriveDetect_MinimumSpikesCrossed Then 'if only detected by threshold crossing, so should be removed
-                Call dDrivenChanList(lArrIndx + 1).Remove
+            If dDrivenChanList(lArrIndx + 1) = DriveDetect_MinimumSpikesCrossed Then 'if only detected by threshold crossing, so should be removed
+                Call dDrivenChanList.Remove(lArrIndx + 1)
             End If
         End If
     Next
@@ -311,6 +311,12 @@ End Function
 Function calcBinCount(dblTotalWidthSecs As Double, dblBinWidthSecs As Double) As Long
     calcBinCount = CLng(dblTotalWidthSecs / dblBinWidthSecs)
 End Function
+
+
+
+
+
+
 
 
 

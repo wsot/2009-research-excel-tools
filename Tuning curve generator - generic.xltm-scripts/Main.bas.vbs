@@ -121,12 +121,15 @@ End Function
 'it will reflect drive with whatever grouping filter is currently in place when it is called (i.e. it does not reset filters)
 'Any channel that does not have drive is fully excluded (including when they are on an X or Y axis)
 'DOESN'T ACTUALLY DO ANYWHERE NEAR ALL THAT RIGHT NOW!!
-Function checkChannelsForDrive(objTTX As TTankX, xAxisEp As String, vXAxisKeys As Variant, yAxisEp As String, vYAxisKeys As Variant, stimStartEpoc As String, oDriveDetectionParams As DriveDetection, lNumOfChans As Long) As Dictionary
+Function checkChannelsForDrive(objTTX As TTankX, xAxisEp As String, vXAxisKeys As Variant, yAxisEp As String, vYAxisKeys As Variant, stimStartEpoc As String, oDriveDetectionParams As DriveDetection, lNumOfChans As Long, dDrivenChanList As Variant) As Boolean
+
+    Dim blnReturnVal As Boolean
+    blnReturnVal = True
 
     Dim sStableSearchString As String
     Dim sThisSearchString As String
     
-    Dim dDrivenChanList As Dictionary
+'    Dim dDrivenChanList As Dictionary
     
     Dim vStimEpocs As Variant
     Dim aStimTimes() As Double
@@ -141,15 +144,21 @@ Function checkChannelsForDrive(objTTX As TTankX, xAxisEp As String, vXAxisKeys A
             Call objTTX.ResetFilters
             Call objTTX.SetFilterWithDescEx(sThisSearchString)
             vStimEpocs = objTTX.GetEpocsExV(stimStartEpoc, 0)
-            ReDim aStimTimes(UBound(vStimEpocs, 2))
-            For lStimIter = 0 To UBound(vStimEpocs, 2)
-                aStimTimes(lStimIter) = vStimEpocs(1, lStimIter)
-            Next
-            Call identifyDrivenChannels(objTTX, aStimTimes, oDriveDetectionParams, dDrivenChanList, lNumOfChans)
+            If Not IsEmpty(vStimEpocs) Then
+                ReDim aStimTimes(UBound(vStimEpocs, 2))
+                For lStimIter = 0 To UBound(vStimEpocs, 2)
+                    aStimTimes(lStimIter) = vStimEpocs(1, lStimIter)
+                Next
+                Call identifyDrivenChannels(objTTX, aStimTimes, oDriveDetectionParams, dDrivenChanList, lNumOfChans)
+            Else
+                blnReturnVal = False
+            End If
         Next
     End If
     
-    Set checkChannelsForDrive = dDrivenChanList
+    
+    
+    checkChannelsForDrive = blnReturnVal
 
 End Function
 
@@ -240,7 +249,7 @@ Sub bulkBuildTuningCurves()
             theBlock = Right(theBlocks(i), Len(theBlocks(i)) - Len(theTank) - 1)
             theTank = bulkImportRootDir & "\" & theTank
             
-            thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 1).Value = theBlocks(i) & " processing"
+            thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 4).Value = theBlocks(i) & " processing"
             
             If i = 0 Then
                 templatePath = getFilename(templatePath, theTank)
@@ -262,28 +271,31 @@ Sub bulkBuildTuningCurves()
             outputWorkbook.Worksheets("Variables (do not edit)").Range("B2").Value = theTank 'update the block on the worksheet
             outputWorkbook.Worksheets("Variables (do not edit)").Range("B3").Value = theBlock 'update the block on the worksheet
             outputWorkbook.Worksheets("Settings").Range("B18").Value = thisWorkbook.Worksheets("Settings").Range("B18").Value
-            Call processImport(False, blnPlotOnlyDriven, dDrivenChans)
-            Call detectTunedSegments
-            If blnAutosave Then
-                Call outputWorkbook.SaveAs(outputFilename, 52)
-                If blnAutoPlot Then
-                    If Not useSendKeys Then
-                        If IsNull(SigmaPlotHandle) Or SigmaPlotHandle = 0 Then
-                            Call findSigmplotWindow
+            If processImport(False, blnPlotOnlyDriven, dDrivenChans) Then
+                Call detectTunedSegments
+                If blnAutosave Then
+                    Call outputWorkbook.SaveAs(outputFilename, 52)
+                    If blnAutoPlot Then
+                        If Not useSendKeys Then
+                            If IsNull(SigmaPlotHandle) Or SigmaPlotHandle = 0 Then
+                                Call findSigmplotWindow
+                            End If
+                        End If
+                        Set plotWorkbook = outputWorkbook
+                        If blnPlotOnlyCandidates Then
+                            Call transferCandidatesToSigmaplot(dDrivenChans, outputFilename & ".JNB")
+                        Else
+                            Call transferAllToSigmaplot(outputFilename & ".JNB")
                         End If
                     End If
-                    Set plotWorkbook = outputWorkbook
-                    If blnPlotOnlyCandidates Then
-                        Call transferCandidatesToSigmaplot(dDrivenChans, outputFilename & ".JNB")
-                    Else
-                        Call transferAllToSigmaplot(outputFilename & ".JNB")
+                    If blnAutoclose Then
+                        Call outputWorkbook.Close
                     End If
                 End If
-                If blnAutoclose Then
-                    Call outputWorkbook.Close
-                End If
+                thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 5).Value = "Processed"
+            Else
+                thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 5).Value = "Problem with import"
             End If
-            thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 2).Value = "Processed"
             successfullyProcessedOffset = successfullyProcessedOffset + 1
         Next
         Application.DisplayAlerts = True
@@ -387,7 +399,8 @@ Sub buildTuningCurves()
 End Sub
 
 
-Sub processImport(importIntoSigmaplot As Boolean, Optional vDetectDriven As Variant, Optional vDrivenChans As Variant)
+Function processImport(importIntoSigmaplot As Boolean, Optional vDetectDriven As Variant, Optional vDrivenChans As Variant) As Boolean
+    processImport = True
 '    Stop
     Dim lNumOfChans As Long
     Dim oDriveDetectionParams As DriveDetection
@@ -431,7 +444,9 @@ Sub processImport(importIntoSigmaplot As Boolean, Optional vDetectDriven As Vari
             If Not IsMissing(vDetectDriven) Or IsMissing(vDrivenChans) Then
                 If VarType(vDetectDriven) = vbBoolean Then
                     If vDetectDriven = True Then
-                        Set vDrivenChans = checkChannelsForDrive(objTTX, xAxisEp, vXAxisKeys, yAxisEp, vYAxisKeys, stimStartEpoc, oDriveDetectionParams, lNumOfChans) 'WARNING! this doesn't correctly support channel mappings etc yet!!
+                        If Not checkChannelsForDrive(objTTX, xAxisEp, vXAxisKeys, yAxisEp, vYAxisKeys, stimStartEpoc, oDriveDetectionParams, lNumOfChans, vDrivenChans) Then 'WARNING! this doesn't correctly support channel mappings etc yet!!
+                            processImport = False
+                        End If
                     End If
                 End If
             End If
@@ -512,7 +527,7 @@ Sub processImport(importIntoSigmaplot As Boolean, Optional vDetectDriven As Vari
             'End If
         End If
     End If
-End Sub
+End Function
 
 Sub writeAxes(colLabels As Variant, rowLabels As Variant, iColOffset, iRowOffset, zOffset)
     Dim j As Long
@@ -862,10 +877,6 @@ Sub Broadcast_It()
         iRet = oDynWrap.SendMessageA(lWindHandle, WM_COMMAND, MAKELPARAM(780, 0), 0&) 'send the 'close all notebooks' command
     Set oDynWrap = Nothing
 End Sub
-
-
-
-
 
 
 
