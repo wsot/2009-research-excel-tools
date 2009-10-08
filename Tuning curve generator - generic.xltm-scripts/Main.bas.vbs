@@ -121,8 +121,9 @@ End Function
 'it will reflect drive with whatever grouping filter is currently in place when it is called (i.e. it does not reset filters)
 'Any channel that does not have drive is fully excluded (including when they are on an X or Y axis)
 'DOESN'T ACTUALLY DO ANYWHERE NEAR ALL THAT RIGHT NOW!!
-Function checkChannelsForDrive(objTTX As TTankX, xAxisEp As String, vXAxisKeys As Variant, yAxisEp As String, vYAxisKeys As Variant, stimStartEpoc As String, oDriveDetectionParams As DriveDetection, lNumOfChans As Long, dDrivenChanList As Variant) As Boolean
-
+Function checkChannelsForDrive(objTTX As TTankX, xAxisEp As String, vXAxisKeys As Variant, yAxisEp As String, vYAxisKeys As Variant, stimStartEpoc As String, oDriveDetectionParams As DriveDetection, lNumOfChans As Long, dDrivenChanList As Variant, Optional outputWS As Worksheet) As Boolean
+'    Stop
+    Const fixAsValidAfterXAdjacentDetections = 3 'once this many sequential detections have turned up the channel it is 'locked' as driven
     Dim blnReturnVal As Boolean
     blnReturnVal = True
 
@@ -139,10 +140,23 @@ Function checkChannelsForDrive(objTTX As TTankX, xAxisEp As String, vXAxisKeys A
     Dim aStimTimes() As Double
     
     Dim vStrKeyArray As Variant
-    Dim sThisKey As String
+    Dim lThisKey As Long
     Dim lStrKeyIndex As Integer
     
     Dim lStimIter As Long
+    
+    Dim blnOutputToWorksheet As Boolean
+    blnOutputToWorksheet = False
+    If Not IsMissing(outputWS) Then
+        If IsObject(outputWS) Then
+            If Not outputWS Is Nothing Then
+                outputWS.Cells(1, 1).Value = "Channel"
+                outputWS.Cells(1, 3).Value = xAxisEp
+                blnOutputToWorksheet = True
+            End If
+        End If
+    End If
+
     
     If Not xAxisEp = "Channel" Then
         sStableSearchString = yAxisEp & " = " & CStr(vYAxisKeys(0))
@@ -158,26 +172,140 @@ Function checkChannelsForDrive(objTTX As TTankX, xAxisEp As String, vXAxisKeys A
                     aStimTimes(lStimIter) = vStimEpocs(1, lStimIter)
                 Next
                 Call identifyDrivenChannels(objTTX, aStimTimes, oDriveDetectionParams, dTmpDrivenChanList, lNumOfChans)
-                vStrKeyArray = dTmpDrivenChanList.Keys
+                
+                'check if there are previously identified entries not found this round
+                vStrKeyArray = dFinalDrivenChanList.Keys
                 For lStrKeyIndex = LBound(vStrKeyArray) To UBound(vStrKeyArray)
-                    sThisKey = vStrKeyArray(lStrKeyIndex)
-                    If Not dFinalDrivenChanList.Exists(sThisKey) Then
-                        Call dFinalDrivenChanList.Add(sThisKey, Array(dTmpDrivenChanList(sThisKey), 1))
-                    Else
-                        dFinalDrivenChanList(sThisKey)(0) = dFinalDrivenChanList(sThisKey)(0) And dTmpDrivenChanList(sThisKey)
-                        dFinalDrivenChanList(sThisKey)(1) = dFinalDrivenChanList(sThisKey)(1) + 1
+                    lThisKey = vStrKeyArray(lStrKeyIndex)
+                    If Not dTmpDrivenChanList.Exists(lThisKey) Then 'wasn't detected on this pass
+                        If dFinalDrivenChanList(lThisKey)(1) < fixAsValidAfterXAdjacentDetections Then 'if didn't detect and isn't already above the 'keeping' threshold, drop the channel
+                            If dFinalDrivenChanList(lThisKey)(1) < 1 Then
+                                dFinalDrivenChanList(lThisKey) = Nothing
+                                Call dFinalDrivenChanList.Remove(lThisKey)
+                            End If
+                           'dFinalDrivenChanList.Remove (lThisKey)
+                           'dFinalDrivenChanList(lThisKey) = Nothing
+                           'dFinalDrivenChanList.Remove (lThisKey)
+                        End If
                     End If
                 Next
+                
+                vStrKeyArray = dTmpDrivenChanList.Keys
+                If UBound(vStrKeyArray) > -1 Then 'check the array is not empty
+                    For lStrKeyIndex = LBound(vStrKeyArray) To UBound(vStrKeyArray)
+                        lThisKey = vStrKeyArray(lStrKeyIndex)
+                        If Not dFinalDrivenChanList.Exists(lThisKey) Then
+                            Call dFinalDrivenChanList.Add(lThisKey, Array(dTmpDrivenChanList(lThisKey), 1))
+                        Else
+                            dFinalDrivenChanList(lThisKey)(0) = dFinalDrivenChanList(lThisKey)(0) And dTmpDrivenChanList(lThisKey)
+                            dFinalDrivenChanList(lThisKey)(1) = dFinalDrivenChanList(lThisKey)(1) + 1
+                        End If
+                    Next
+                    
+                    If blnOutputToWorksheet Then
+                        outputWS.Cells(1, 4 + i).Value = CStr(vXAxisKeys(i))
+        
+                        vStrKeyArray = dTmpDrivenChanList.Keys
+                        For lStrKeyIndex = LBound(vStrKeyArray) To UBound(vStrKeyArray)
+                            lThisKey = vStrKeyArray(lStrKeyIndex)
+                            outputWS.Cells(lThisKey + 1, 1).Value = lThisKey
+                            outputWS.Cells(lThisKey + 1, 2).Value = dTmpDrivenChanList(lThisKey)
+                        Next
+                    End If
+                End If
             Else
                 blnReturnVal = False
             End If
         Next
-        
-        
     End If
     
     Set dDrivenChanList = dFinalDrivenChanList
     checkChannelsForDrive = blnReturnVal
+
+End Function
+
+'detects the 'noise floor' for each channel - i.e. the mean spike count per second of the non-acoustic period
+Function detectNoiseFloor(objTTX As TTankX, stimStartEpoc As String, oDriveDetectionParams As DriveDetection, lNumOfChans As Long, dNoiseFloorList As Variant, Optional outputWS As Worksheet) As Boolean
+'    Stop
+    Dim blnReturnVal As Boolean
+    blnReturnVal = True
+
+    Set dNoiseFloorList = New Dictionary
+   
+    Dim vStimEpocs As Variant
+    Dim aStimTimes() As Double
+    
+    Dim dblMeanSpikes As Double
+    Dim dblStdDevSpikes As Double
+    
+    Dim lStimIter As Long
+    Dim iStimNum As Long
+    
+    Call objTTX.ResetFilters
+    vStimEpocs = objTTX.GetEpocsExV(stimStartEpoc, 0)
+    If Not IsEmpty(vStimEpocs) Then
+        ReDim aStimTimes(UBound(vStimEpocs, 2))
+        For lStimIter = 0 To UBound(vStimEpocs, 2)
+            aStimTimes(lStimIter) = vStimEpocs(1, lStimIter)
+        Next
+            'Call identifyDrivenChannels(objTTX, aStimTimes, oDriveDetectionParams, dTmpDrivenChanList, lNumOfChans)
+        
+            Dim dblTotalWidthSecs As Double
+            Dim dblBinWidthSecs As Double
+            Dim dblStartOffsetSecs As Double
+            
+            Dim histoSums() As Variant
+            Dim histoSquares() As Variant
+            Dim histoN As Long
+            Dim lHistoBinCount As Long
+            
+            Dim returnVal As Variant
+            
+            'create bins based of provided configuration parameters to check for an onset spike
+            dblBinWidthSecs = oDriveDetectionParams.Diff_ITI - oDriveDetectionParams.Diff_StimDur
+            dblTotalWidthSecs = dblBinWidthSecs
+            
+            lHistoBinCount = calcBinCount(dblTotalWidthSecs, dblBinWidthSecs)
+            Call setHistoArraySizes(histoSums, histoSquares, lHistoBinCount, lNumOfChans)
+            
+            For iStimNum = 0 To UBound(aStimTimes)
+                Call buildHistogramForStim(objTTX, aStimTimes(iStimNum) + oDriveDetectionParams.Diff_StimDur, histoSums, histoSquares, dblTotalWidthSecs, dblBinWidthSecs)
+            Next
+            
+            Dim dblSpikePerEpoc As Double
+            
+            Dim lArrIndx As Long
+            Dim lComparisonBin As Long
+        
+            'step through each channel
+            For lArrIndx = 0 To (UBound(histoSums) - 1)
+                dblMeanSpikes = histoSums(lArrIndx)(0) / (UBound(aStimTimes) + 1)
+                dblStdDevSpikes = (histoSquares(lArrIndx)(0) - ((dblMeanSpikes ^ 2) / (UBound(aStimTimes) + 1))) / (UBound(aStimTimes) + 1)
+                Call dNoiseFloorList.Add(lArrIndx + 1, (dblMeanSpikes + dblStdDevSpikes) / (oDriveDetectionParams.Diff_ITI - oDriveDetectionParams.Diff_StimDur))
+            Next
+        
+    End If
+    
+    If Not IsMissing(outputWS) Then
+        If IsObject(outputWS) Then
+            If Not outputWS Is Nothing Then
+                outputWS.Cells(1, 1).Value = "Channel"
+            
+                Dim vStrKeyArray As Variant
+                Dim lThisKey As Long
+                Dim lStrKeyIndex As Integer
+                
+                vStrKeyArray = dNoiseFloorList.Keys
+                For lStrKeyIndex = LBound(vStrKeyArray) To UBound(vStrKeyArray)
+                    lThisKey = vStrKeyArray(lStrKeyIndex)
+                    outputWS.Cells(lThisKey + 1, 1).Value = lThisKey
+                    outputWS.Cells(lThisKey + 1, 2).Value = dNoiseFloorList(lThisKey)
+                Next
+            End If
+        End If
+    End If
+    
+    detectNoiseFloor = blnReturnVal
 
 End Function
 
@@ -238,7 +366,11 @@ Sub bulkBuildTuningCurves()
        
         Dim blnPlotOnlyDriven As Boolean
         Dim dDrivenChans As Dictionary
-        blnPlotOnlyDriven = thisWorkbook.Worksheets("Settings").Range("B8").Value
+        blnPlotOnlyDriven = thisWorkbook.Worksheets("Settings").Range("B24").Value
+                
+        Dim blnSubtractNoiseFloor As Boolean
+        Dim dNoiseFloorList As Dictionary
+        blnSubtractNoiseFloor = thisWorkbook.Worksheets("Settings").Range("B25").Value
        
         Dim dBlocks As Dictionary
         Set dBlocks = New Dictionary
@@ -290,7 +422,12 @@ Sub bulkBuildTuningCurves()
             outputWorkbook.Worksheets("Variables (do not edit)").Range("B2").Value = theTank 'update the block on the worksheet
             outputWorkbook.Worksheets("Variables (do not edit)").Range("B3").Value = theBlock 'update the block on the worksheet
             outputWorkbook.Worksheets("Settings").Range("B18").Value = thisWorkbook.Worksheets("Settings").Range("B18").Value
-            If processImport(False, blnPlotOnlyDriven, dDrivenChans) Then
+            
+            outputWorkbook.Worksheets("Settings").Range("B6").Value = blnPlotOnlyCandidates
+            outputWorkbook.Worksheets("Settings").Range("B24").Value = blnPlotOnlyDriven
+            outputWorkbook.Worksheets("Settings").Range("B25").Value = blnSubtractNoiseFloor
+            
+            If processImport(False, blnPlotOnlyDriven, dDrivenChans, blnSubtractNoiseFloor, dNoiseFloorList) Then
                 Call detectTunedSegments
                 If blnAutosave Then
                     Call outputWorkbook.SaveAs(outputFilename, 52)
@@ -418,7 +555,7 @@ Sub buildTuningCurves()
 End Sub
 
 
-Function processImport(importIntoSigmaplot As Boolean, Optional vDetectDriven As Variant, Optional vDrivenChans As Variant) As Boolean
+Function processImport(importIntoSigmaplot As Boolean, Optional vDetectDriven As Variant, Optional vDrivenChans As Variant, Optional vSubtractNoiseFloor As Variant, Optional vNoiseFloorList As Variant) As Boolean
     processImport = True
 '    Stop
     Dim lNumOfChans As Long
@@ -463,7 +600,17 @@ Function processImport(importIntoSigmaplot As Boolean, Optional vDetectDriven As
             If Not IsMissing(vDetectDriven) Or IsMissing(vDrivenChans) Then
                 If VarType(vDetectDriven) = vbBoolean Then
                     If vDetectDriven = True Then
-                        If Not checkChannelsForDrive(objTTX, xAxisEp, vXAxisKeys, yAxisEp, vYAxisKeys, stimStartEpoc, oDriveDetectionParams, lNumOfChans, vDrivenChans) Then 'WARNING! this doesn't correctly support channel mappings etc yet!!
+                        If Not checkChannelsForDrive(objTTX, xAxisEp, vXAxisKeys, yAxisEp, vYAxisKeys, stimStartEpoc, oDriveDetectionParams, lNumOfChans, vDrivenChans, outputWorkbook.Worksheets("Drive detection output")) Then 'WARNING! this doesn't correctly support channel mappings etc yet!!
+                            processImport = False
+                        End If
+                    End If
+                End If
+            End If
+            
+            If Not IsMissing(vSubtractNoiseFloor) Or IsMissing(vNoiseFloorList) Then
+                If VarType(vSubtractNoiseFloor) = vbBoolean Then
+                    If vSubtractNoiseFloor = True Then
+                        If Not detectNoiseFloor(objTTX, stimStartEpoc, oDriveDetectionParams, lNumOfChans, vNoiseFloorList, outputWorkbook.Worksheets("Noise Floor")) Then  'WARNING! this doesn't correctly support channel mappings etc yet!!
                             processImport = False
                         End If
                     End If
@@ -896,9 +1043,6 @@ Sub Broadcast_It()
         iRet = oDynWrap.SendMessageA(lWindHandle, WM_COMMAND, MAKELPARAM(780, 0), 0&) 'send the 'close all notebooks' command
     Set oDynWrap = Nothing
 End Sub
-
-
-
 
 
 
