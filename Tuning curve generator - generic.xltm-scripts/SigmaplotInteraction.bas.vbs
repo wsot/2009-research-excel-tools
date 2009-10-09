@@ -20,7 +20,7 @@ Sub findSigmplotWindow()
 End Sub
 
 Sub trySigmaplotSave(saveFilename As String, SPApp)
-    plotWorkbook.ActiveSheet.Range("A25").Value = "'Interacting with SigmaPlot"
+'    plotWorkbook.ActiveSheet.Range("A25").Value = "'Interacting with SigmaPlot"
     Dim iRetries As Integer
     Dim z As Integer
     Dim filenameParts
@@ -161,13 +161,13 @@ Sub trySigmaplotSave(saveFilename As String, SPApp)
             Set oDynWrap = Nothing
         End If
     End If
-    plotWorkbook.ActiveSheet.Range("A25").Value = ""
+'    plotWorkbook.ActiveSheet.Range("A25").Value = ""
     Set objFS = Nothing
 End Sub
 
 
 Sub transferCandidatesToSigmaplot(vDrivenChannels As Variant, saveFilename As String)
-    plotWhichSheet = plotWorkbook.Worksheets("Settings").Range("B18").Value
+    plotWhichSheet = plotWorkbook.Worksheets("Variables (do not edit)").Range("E7").Value
 
 '    Dim zOffsetSize As Long
 '    Dim iColOffset As Integer
@@ -218,7 +218,7 @@ Sub transferCandidatesToSigmaplot(vDrivenChannels As Variant, saveFilename As St
     End If
 End Sub
 Sub transferAllToSigmaplot(saveFilename As String)
-    plotWhichSheet = plotWorkbook.Worksheets("Settings").Range("B18").Value
+    plotWhichSheet = plotWorkbook.Worksheets("Variables (do not edit)").Range("E7").Value
 
     Dim zOffsetSize As Long
     Dim iColOffset As Integer
@@ -447,7 +447,7 @@ Sub TransferToSigmaplot(saveFilename As String)
     
 End Sub
 Sub transferToSigmaplotButton()
-    plotWhichSheet = plotWorkbook.Worksheets("Settings").Range("B18").Value
+    plotWhichSheet = plotWorkbook.Worksheets("Variables (do not edit)").Range("E7").Value
     Set plotWorkbook = Application.ActiveWorkbook
 
     Dim zOffsetSize As Long

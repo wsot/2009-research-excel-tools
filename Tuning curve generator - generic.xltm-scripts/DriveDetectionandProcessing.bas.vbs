@@ -72,7 +72,7 @@ Function identifyDrivenChannels( _
     Dim lComparisonBin As Long
 
     'step through each channel
-    For lArrIndx = 0 To (UBound(histoSums) - 1)
+    For lArrIndx = 0 To (UBound(histoSums))
         blnChanIsDriven = True
         'do the actual check - check if the first 10ms bin is greater than each of the four subsequent bins
         If Not histoSums(lArrIndx)(0) / (UBound(arrStimTimes) + 1) > oDriveDetectionParams.Gen_MinSpikesPerEpocInFirstN Then
@@ -101,7 +101,7 @@ Function identifyDrivenChannels( _
     Next
     
     'step through each channel
-    For lArrIndx = 0 To (UBound(histoSums) - 1)
+    For lArrIndx = 0 To (UBound(histoSums))
         If dDrivenChanList.Exists(lArrIndx + 1) Then 'if this doesn't exist, the intital onset drive has not been detected, so can not be counted to have drive
             dblSpikePerEpoc = 0#
             'do the actual check - check if the first 10ms bin is greater than each of the four subsequent bins
@@ -137,7 +137,7 @@ Function identifyDrivenChannels( _
     Next
     
     'step through each channel
-    For lArrIndx = 0 To (UBound(histoSums) - 1)
+    For lArrIndx = 0 To (UBound(histoSums))
         If dDrivenChanList.Exists(lArrIndx + 1) Then 'if this doesn't exist, the intital onset drive has not been detected, so can not be counted to have drive
             If histoSums(lArrIndx)(0) > (histoSums(lArrIndx)(1) * oDriveDetectionParams.Diff_Threshold) Then
                 dDrivenChanList(lArrIndx + 1) = dDrivenChanList(lArrIndx + 1) Or DriveDetect_ActDiffDetected
@@ -147,7 +147,7 @@ Function identifyDrivenChannels( _
     
         
     'step through each channel
-    For lArrIndx = 0 To (UBound(histoSums) - 1)
+    For lArrIndx = 0 To (UBound(histoSums))
         If dDrivenChanList.Exists(lArrIndx + 1) Then 'if this doesn't exist, the intital onset drive has not been detected, so can not be counted to have drive
             If dDrivenChanList(lArrIndx + 1) = DriveDetect_MinimumSpikesCrossed Then 'if only detected by threshold crossing, so should be removed
                 Call dDrivenChanList.Remove(lArrIndx + 1)
@@ -311,15 +311,5 @@ End Function
 Function calcBinCount(dblTotalWidthSecs As Double, dblBinWidthSecs As Double) As Long
     calcBinCount = CLng(dblTotalWidthSecs / dblBinWidthSecs)
 End Function
-
-
-
-
-
-
-
-
-
-
 
 
