@@ -299,12 +299,12 @@ Function detectNoiseFloor(objTTX As TTankX, stimStartEpoc As String, oDriveDetec
                             outputWS.Cells(1, 6).Value = "Threshold"
                             
                                                     
-                            outputWS.Cells(lArrIndx + 1, 1).Value = lArrIndx
-                            outputWS.Cells(lArrIndx + 1, 2).Value = histoSums(lArrIndx)(0)
-                            outputWS.Cells(lArrIndx + 1, 3).Value = histoSquares(lArrIndx)(0)
-                            outputWS.Cells(lArrIndx + 1, 4).Value = dblMeanSpikes
-                            outputWS.Cells(lArrIndx + 1, 5).Value = dblStdDevSpikes
-                            outputWS.Cells(lArrIndx + 1, 6).Value = (dblMeanSpikes + dblStdDevSpikes) / (oDriveDetectionParams.Diff_ITI - oDriveDetectionParams.Diff_StimDur)
+                            outputWS.Cells(lArrIndx + 2, 1).Value = lArrIndx + 1
+                            outputWS.Cells(lArrIndx + 2, 2).Value = histoSums(lArrIndx)(0)
+                            outputWS.Cells(lArrIndx + 2, 3).Value = histoSquares(lArrIndx)(0)
+                            outputWS.Cells(lArrIndx + 2, 4).Value = dblMeanSpikes
+                            outputWS.Cells(lArrIndx + 2, 5).Value = dblStdDevSpikes
+                            outputWS.Cells(lArrIndx + 2, 6).Value = (dblMeanSpikes + dblStdDevSpikes) / (oDriveDetectionParams.Diff_ITI - oDriveDetectionParams.Diff_StimDur)
                         End If
                     End If
                 End If
@@ -323,6 +323,7 @@ Sub bulkBuildTuningCurves()
     isFirstChart = True
 '        Dim thisWorkbook As Workbook
     Set thisWorkbook = Application.ActiveWorkbook
+    Application.Calculation = xlCalculationManual
 
 '    If IsEmpty(theTank) Then
     theServer = thisWorkbook.Worksheets("Variables (do not edit)").Range("B1").Value
@@ -444,6 +445,8 @@ Sub bulkBuildTuningCurves()
             
             If processImport(False, blnPlotOnlyDriven, dDrivenChans, blnSubtractNoiseFloor, dNoiseFloorList) Then
                 Call detectTunedSegments
+                Application.Calculation = xlCalculationAutomatic
+                Application.Calculation = xlCalculationManual
                 If blnAutosave Then
                     Call outputWorkbook.SaveAs(outputFilename, 52)
                     If blnAutoPlot Then
@@ -846,6 +849,8 @@ Function processSearch(ByRef objTTX, ByRef arrOtherEp, ByRef arrOtherEpocKeys, i
 End Function
 
 Sub writeResults(ByRef objTTX, xOffset, yOffset, zOffset, iChanNum, ByRef lMaxHistHeight, ByRef lMaxHistMeanHeight, Optional ByRef vNoiseFloorList As Variant)
+    Dim strTmpAddr As String
+    Dim strTmpFormula As String
     Dim varReturn As Variant
     Dim varChanData As Variant
     
@@ -918,14 +923,20 @@ Sub writeResults(ByRef objTTX, xOffset, yOffset, zOffset, iChanNum, ByRef lMaxHi
             outputWorkbook.Worksheets("N").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value = nSweps
             If iChanNum <> 0 Then
                 If Not IsMissing(vNoiseFloorList) Then
-                    outputWorkbook.Worksheets("Noise-adjusted Totals").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value = histTmp - (vNoiseFloorList(iChanNum)(1) * dblBinWidth) * nSweps
-                    If outputWorkbook.Worksheets("Noise-adjusted Totals").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value < 0 Then
-                        outputWorkbook.Worksheets("Noise-adjusted Totals").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value = 0
-                    End If
-                    outputWorkbook.Worksheets("Noise-adjusted Means").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value = histMean - (vNoiseFloorList(iChanNum)(1) * dblBinWidth)
-                    If outputWorkbook.Worksheets("Noise-adjusted Means").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value < 0 Then
-                        outputWorkbook.Worksheets("Noise-adjusted Means").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value = 0
-                    End If
+                    strTmpAddr = outputWorkbook.Worksheets("Totals").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Address
+                    strTmpFormula = "=IF('Totals'!" & strTmpAddr & "-(('Noise Floor'!F" & (iChanNum + 1) & " * 'Settings'!B1)*('N'!" & strTmpAddr & ")) < 0,0,'Totals'!" & strTmpAddr & "-(('Noise Floor'!F" & (iChanNum + 1) & " * 'Settings'!B1)*('N'!" & strTmpAddr & ")))"
+                    outputWorkbook.Worksheets("Noise-adjusted Totals").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Formula = strTmpFormula
+                    strTmpFormula = "=IF('Means'!" & strTmpAddr & "-('Noise Floor'!F" & (iChanNum + 1) & " * 'Settings'!B1) < 0,0,'Means'!" & strTmpAddr & "-('Noise Floor'!F" & (iChanNum + 1) & " * 'Settings'!B1))"
+                    'strTmpFormula = "=IF('Totals'!" & strTmpAddr & "-(('Noise Floor'!F" & CStr(CInt(iChanNum) + 1) & " * 'Settings'!B1)/'N'!" & strTmpAddr * ") < 0,0,'Totals'!" & strTmpAddr & "-(('Noise Floor'!F" & CStr(CInt(iChanNum) + 1) & " * Settings!B1)/'N'!" & strTmpAddr & "))"
+                    outputWorkbook.Worksheets("Noise-adjusted Means").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Formula = strTmpFormula
+                    'outputWorkbook.Worksheets("Noise-adjusted Totals").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Formula = "Totals"(vNoiseFloorList(iChanNum)(1) * dblBinWidth) * nSweps
+'                    If outputWorkbook.Worksheets("Noise-adjusted Totals").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value < 0 Then
+'                        outputWorkbook.Worksheets("Noise-adjusted Totals").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value = 0
+'                    End If
+'                    outputWorkbook.Worksheets("Noise-adjusted Means").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value = histMean - (vNoiseFloorList(iChanNum)(1) * dblBinWidth)
+'                    If outputWorkbook.Worksheets("Noise-adjusted Means").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value < 0 Then
+'                        outputWorkbook.Worksheets("Noise-adjusted Means").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value = 0
+'                    End If
                 End If
             End If
         End If
@@ -1077,4 +1088,10 @@ Sub Broadcast_It()
         iRet = oDynWrap.SendMessageA(lWindHandle, WM_COMMAND, MAKELPARAM(780, 0), 0&) 'send the 'close all notebooks' command
     Set oDynWrap = Nothing
 End Sub
+
+
+
+
+
+
 
