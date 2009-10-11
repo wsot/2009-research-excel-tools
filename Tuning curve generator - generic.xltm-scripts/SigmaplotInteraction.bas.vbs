@@ -311,7 +311,7 @@ Sub TransferToSigmaplot(saveFilename As String)
     Do
         If plotWorkbook.Worksheets(plotWhichSheet).Cells(yPos, xPos).Value <> "" Then
             If dHeadingsSelected.Exists(plotWorkbook.Worksheets(plotWhichSheet).Cells(yPos, xPos).Value) Then
-                strTitle = plotWorkbook.Worksheets(plotWhichSheet).Cells(yPos, xPos).Value & " " & dHeadingsSelected(plotWorkbook.Worksheets(plotWhichSheet).Cells(yPos, xPos).Value)
+                strTitle = plotWorkbook.Worksheets(plotWhichSheet).Cells(yPos, xPos).Value '& " " & dHeadingsSelected(plotWorkbook.Worksheets(plotWhichSheet).Cells(yPos, xPos).Value)
                 Set spNB = SPApp.Notebooks.Item(SPApp.Notebooks.Count - 1)
                 Set spWS = spNB.NotebookItems.Item(spNB.NotebookItems.Count - 1)
                 spWS.Name = plotWorkbook.Worksheets(plotWhichSheet).Cells(yPos, xPos).Value
@@ -326,7 +326,6 @@ Sub TransferToSigmaplot(saveFilename As String)
                 For j = 0 To (yCount - 1)
                     spDT.Cell(1, j) = plotWorkbook.Worksheets(plotWhichSheet).Cells(yPos + j + 2, xPos).Value
                 Next
-                
                 
                 For j = 0 To (xCount - 1)
                     For k = 0 To (yCount - 1)
@@ -365,8 +364,9 @@ Sub TransferToSigmaplot(saveFilename As String)
                 PlotColumnCountArray(0) = 4
                 Call SPApp.ActiveDocument.CurrentPageItem.CreateWizardGraph("Contour Plot", "Filled Contour Plot", "XY Many Z", ColumnsPerPlot, PlotColumnCountArray, "Worksheet Columns", "Standard Deviation", "Degrees", 0#, 360#, , "Standard Deviation", True)
                 Call SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).SelectObject
-            
-                SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Name = strTitle
+                
+                spNB.NotebookItems.Item(spNB.NotebookItems.Count - 1).Name = strTitle & " Normalised"
+                SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Name = strTitle & " Normalised"
                 SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Axes(0).Name = "Attenuation"
                 SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Axes(1).Name = "Frequency"
                 
@@ -414,7 +414,8 @@ Sub TransferToSigmaplot(saveFilename As String)
                 Call SPApp.ActiveDocument.CurrentPageItem.CreateWizardGraph("Contour Plot", "Filled Contour Plot", "XY Many Z", ColumnsPerPlot, PlotColumnCountArray, "Worksheet Columns", "Standard Deviation", "Degrees", 0#, 360#, , "Standard Deviation", True)
                 Call SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).SelectObject
             
-                SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Name = "Site y"
+                spNB.NotebookItems.Item(spNB.NotebookItems.Count - 1).Name = strTitle & " Non-Normalised"
+                SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Name = strTitle
                 SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Axes(0).Name = "Attenuation"
                 SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Axes(1).Name = "Frequency"
                         
@@ -435,6 +436,103 @@ Sub TransferToSigmaplot(saveFilename As String)
                 Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SUB1OPTIONS, 3889)
                 Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 1)
         
+                Call SPApp.ActiveDocument.NotebookItems.Add(2)
+                ColumnsPerPlot(0, 0) = 0
+                ColumnsPerPlot(1, 0) = 0
+                ColumnsPerPlot(2, 0) = 31999999
+                ColumnsPerPlot(0, 1) = 1
+                ColumnsPerPlot(1, 1) = 0
+                ColumnsPerPlot(2, 1) = 31999999
+                ColumnsPerPlot(0, 2) = 3
+                ColumnsPerPlot(1, 2) = 0
+                ColumnsPerPlot(2, 2) = 31999999
+                ColumnsPerPlot(0, 3) = 3 + (yCount - 1)
+                ColumnsPerPlot(1, 3) = 0
+                ColumnsPerPlot(2, 3) = 31999999
+                
+                ReDim PlotColumnCountArray(0)
+                
+                PlotColumnCountArray(0) = 4
+                Call SPApp.ActiveDocument.CurrentPageItem.CreateWizardGraph("Contour Plot", "Filled Contour Plot", "XY Many Z", ColumnsPerPlot, PlotColumnCountArray, "Worksheet Columns", "Standard Deviation", "Degrees", 0#, 360#, , "Standard Deviation", True)
+                Call SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).SelectObject
+                
+                spNB.NotebookItems.Item(spNB.NotebookItems.Count - 1).Name = strTitle & " Normalised with noise floor"
+                SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Name = strTitle & " Normalised with noise floor"
+                SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Axes(0).Name = "Attenuation"
+                SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Axes(1).Name = "Frequency"
+                
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETPLOTATTR, SLA_SELECTDIM, 3)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_OPTIONS, 10)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_OPTIONS, 51380225)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_OPTIONS, 12583938)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTRSTRING, SAA_FROMVAL, plotWorkbook.Worksheets(plotWhichSheet & " Noise Floor").Cells(yPos + 2, xPos + 1).Value)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTRSTRING, SAA_TOVAL, CStr(lMaxHistHeight))
+                
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETPLOTATTR, SLA_SELECTDIM, 3)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 2)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_THICKNESS, 10)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 4)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLOR, &HFFFFFF)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLORCOL, 2)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLORREPEAT, 4)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETPLOTATTR, SLA_CONTOURFILLTYPE, 1)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 5)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLOR, &HFFFFFF)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLORCOL, 2)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLORREPEAT, 4)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 4)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SUB1OPTIONS, 1298)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SUB1OPTIONS, 3889)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 1)
+       
+                Call SPApp.ActiveDocument.NotebookItems.Add(2)
+                ColumnsPerPlot(0, 0) = 0
+                ColumnsPerPlot(1, 0) = 0
+                ColumnsPerPlot(2, 0) = 31999999
+                ColumnsPerPlot(0, 1) = 1
+                ColumnsPerPlot(1, 1) = 0
+                ColumnsPerPlot(2, 1) = 31999999
+                ColumnsPerPlot(0, 2) = 3
+                ColumnsPerPlot(1, 2) = 0
+                ColumnsPerPlot(2, 2) = 31999999
+                ColumnsPerPlot(0, 3) = 3 + (yCount - 1)
+                ColumnsPerPlot(1, 3) = 0
+                ColumnsPerPlot(2, 3) = 31999999
+                
+                ReDim PlotColumnCountArray(0)
+                
+                PlotColumnCountArray(0) = 4
+                Call SPApp.ActiveDocument.CurrentPageItem.CreateWizardGraph("Contour Plot", "Filled Contour Plot", "XY Many Z", ColumnsPerPlot, PlotColumnCountArray, "Worksheet Columns", "Standard Deviation", "Degrees", 0#, 360#, , "Standard Deviation", True)
+                Call SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).SelectObject
+                
+                spNB.NotebookItems.Item(spNB.NotebookItems.Count - 1).Name = strTitle & " With noise floor"
+                SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Name = strTitle & " with noise floor"
+                SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Axes(0).Name = "Attenuation"
+                SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Axes(1).Name = "Frequency"
+                
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETPLOTATTR, SLA_SELECTDIM, 3)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_OPTIONS, 10)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_OPTIONS, 51380225)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_OPTIONS, 12583938)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTRSTRING, SAA_FROMVAL, plotWorkbook.Worksheets(plotWhichSheet & " Noise Floor").Cells(yPos + 2, xPos + 1).Value)
+                
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETPLOTATTR, SLA_SELECTDIM, 3)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 2)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_THICKNESS, 10)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 4)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLOR, &HFFFFFF)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLORCOL, 2)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLORREPEAT, 4)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETPLOTATTR, SLA_CONTOURFILLTYPE, 1)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 5)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLOR, &HFFFFFF)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLORCOL, 2)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SEA_COLORREPEAT, 4)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 4)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SUB1OPTIONS, 1298)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SUB1OPTIONS, 3889)
+                Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 1)
+       
                 Call spNB.NotebookItems.Add(1)
             End If
             yPos = yPos + zOffsetSize
@@ -483,6 +581,8 @@ Sub transferToSigmaplotButton()
     End If
 
 End Sub
+
+
 
 
 
