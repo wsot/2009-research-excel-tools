@@ -116,7 +116,7 @@ Function loadConfigParams( _
     End If
     
     Set vChannelMapper = New ChannelMapper
-    If Not vChannelMapper.readMappingListsFromDirName(theTank & "\" & theBlock, lNumOfChans, thisWorkbook.Worksheets("Channel Mappings").Range("A2"), thisWorkbook.Worksheets("Channel Mappings").Range("B2")) Then
+    If Not vChannelMapper.readMappingListsFromDirName(theTank & "\" & theBlock, lNumOfChans, outputWorkbook.Worksheets("Channel Mappings").Range("A2"), outputWorkbook.Worksheets("Channel Mappings").Range("B2")) Then
 '    If Not vChannelMapper.readMappingLists(thisWorkbook.Worksheets("Channel Mappings").Range("A2"), thisWorkbook.Worksheets("Channel Mappings").Range("B2"), lNumOfChans) Then
 '        loadConfigParams = False
     End If
