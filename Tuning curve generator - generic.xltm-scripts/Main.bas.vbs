@@ -50,7 +50,8 @@ Function loadConfigParams( _
         ByRef yAxisEp As String, _
         ByRef bReverseX As Boolean, _
         ByRef bReverseY As Boolean, _
-        ByRef oDriveDetParams As Variant)
+        ByRef oDriveDetParams As Variant, _
+        ByRef vChannelMapper As Variant)
         
     loadConfigParams = True
         
@@ -114,14 +115,129 @@ Function loadConfigParams( _
         loadConfigParams = False
     End If
     
+    Set vChannelMapper = New ChannelMapper
+    If Not vChannelMapper.readMappingLists(thisWorkbook.Worksheets("Channel Mappings").Range("A2"), thisWorkbook.Worksheets("Channel Mappings").Range("B2"), lNumOfChans) Then
+        loadConfigParams = False
+    End If
+    
 End Function
 
+'Tries to detect the CF of each driven channel
+Function findCF(objTTX As TTankX, lNumOfChans As Long, dDrivenChanList As Variant, inputWS As Worksheet, varsWS As Worksheet, outputWS As Worksheet, vChannelMapper As Variant) As Boolean
+
+    Dim blnReturnVal As Boolean
+    blnReturnVal = True
+
+    Dim xCount As Long
+    Dim yCount As Long
+    Dim zOffsetSize As Long
+    Dim lMaxHistHeight As Long
+    Dim iColOffset As Integer
+    Dim iRowOffset As Integer
+    Dim xPos As Integer
+    Dim yPos As Integer
+
+    xCount = varsWS.Range("H1").Value
+    yCount = varsWS.Range("H2").Value
+    zOffsetSize = varsWS.Range("H3").Value
+    iColOffset = varsWS.Range("H5").Value
+    iRowOffset = varsWS.Range("H6").Value
+    
+    Dim lThisKey As Long
+    Dim lChanNum As Long
+
+    outputWS.Cells(1, 1).Value = "Channel"
+    outputWS.Cells(1, 2).Value = "CF (main)"
+    outputWS.Cells(1, 3).Value = "Threshold (main)"
+    outputWS.Cells(1, 5).Value = "CF (secondary)"
+    outputWS.Cells(1, 5).Value = "Threshold (secondary)"
+    For lThisKey = 1 To lNumOfChans
+        outputWS.Cells(lThisKey + 1, 1).Value = lThisKey
+    Next
+    
+    Dim i As Long
+    Dim j As Long
+    
+    xPos = iColOffset + 1
+    yPos = iRowOffset
+    
+    Dim lPeakFreq As Long
+    Dim lSecondPeakFreq As Long
+    
+    Dim dblMean() As Double
+    ReDim dblMean(yCount - 1)
+    Dim frqVals() As Variant
+    ReDim frqVals(xCount - 2) 'Cant't check first freq and last freq for CF because can't get side values
+    
+    Dim processChannel As Boolean
+    
+    While inputWS.Cells(yPos, xPos).Value <> ""
+
+        lChanNum = CLng(Right(inputWS.Cells(yPos, xPos).Value, 2))
+        If dDrivenChanList.Exists(vChannelMapper.revLookup(lChanNum)) Then
+            processChannel = True
+        Else
+            processChannel = False
+        End If
+        
+        If processChannel Then
+            ReDim dblMean(yCount - 1)
+            For i = 0 To (yCount - 1)
+                For j = 0 To (xCount - 1)
+                    dblMean(i) = dblMean(i) + ((inputWS.Cells(yPos + 2 + i, xPos + j + 1).Value - dblMean(i)) / (j + 1))
+                Next
+            Next
+            
+            For j = 1 To (xCount - 2)
+                frqVals(j) = 0
+                For i = 0 To (yCount - 1)
+                    If Not inputWS.Cells(yPos + 2, xPos + j + 1).Value - dblMean(i) < 0 Then
+                        frqVals(j) = frqVals(j) + _
+                            (inputWS.Cells(yPos + i + 2, xPos + j + 1).Value - dblMean(i)) ^ 2 + _
+                            (inputWS.Cells(yPos + i + 2, xPos + j).Value - dblMean(i)) + _
+                            (inputWS.Cells(yPos + i + 2, xPos + j + 2).Value - dblMean(i))
+                        If i > 0 Then
+                            frqVals(j) = frqVals(j) + (inputWS.Cells(yPos + i + 1, xPos + j + 1).Value - dblMean(i - 1))
+                        Else
+                            frqVals(j) = frqVals(j) + (inputWS.Cells(yPos + i + 2, xPos + j + 1).Value - dblMean(i))
+                        End If
+                        If i < (yCount - 1) Then
+                            frqVals(j) = frqVals(j) + (inputWS.Cells(yPos + i + 3, xPos + j + 1).Value - dblMean(i + 1))
+                        Else
+                            frqVals(j) = frqVals(j) + (inputWS.Cells(yPos + i + 2, xPos + j + 1).Value - dblMean(i))
+                        End If
+                    End If
+                Next
+            Next
+                
+            For j = 1 To (xCount - 2)
+                If frqVals(j) > frqVals(lPeakFreq) Then
+                    lPeakFreq = j
+                End If
+            Next
+            
+            For j = 1 To (xCount - 2)
+                If frqVals(j) > frqVals(lSecondPeakFreq) Then
+                    If Abs(j - lPeakFreq) > 2 Then
+                        lSecondPeakFreq = j
+                    End If
+                End If
+            Next
+            
+            
+            outputWS.Cells(lChanNum + 1, 2) = inputWS.Cells(yPos + 1, xPos + lPeakFreq + 1).Value
+            outputWS.Cells(lChanNum + 1, 4) = inputWS.Cells(yPos + 1, xPos + lSecondPeakFreq + 1).Value
+        End If
+        yPos = yPos + zOffsetSize
+    Wend
+        
+End Function
 
 'to check for drive, does a sum of all values with a single value on the Y axis (the first value...)
 'it will reflect drive with whatever grouping filter is currently in place when it is called (i.e. it does not reset filters)
 'Any channel that does not have drive is fully excluded (including when they are on an X or Y axis)
 'DOESN'T ACTUALLY DO ANYWHERE NEAR ALL THAT RIGHT NOW!!
-Function checkChannelsForDrive(objTTX As TTankX, xAxisEp As String, vXAxisKeys As Variant, yAxisEp As String, vYAxisKeys As Variant, stimStartEpoc As String, oDriveDetectionParams As DriveDetection, lNumOfChans As Long, dDrivenChanList As Variant, Optional outputWS As Worksheet) As Boolean
+Function checkChannelsForDrive(objTTX As TTankX, xAxisEp As String, vXAxisKeys As Variant, yAxisEp As String, vYAxisKeys As Variant, stimStartEpoc As String, oDriveDetectionParams As DriveDetection, lNumOfChans As Long, dDrivenChanList As Variant, Optional outputWS As Worksheet, Optional vChannelMapper As Variant) As Boolean
 '    Stop
     Const fixAsValidAfterXAdjacentDetections = 3 'once this many sequential detections have turned up the channel it is 'locked' as driven
     Dim blnReturnVal As Boolean
@@ -141,6 +257,7 @@ Function checkChannelsForDrive(objTTX As TTankX, xAxisEp As String, vXAxisKeys A
     
     Dim vStrKeyArray As Variant
     Dim lThisKey As Long
+    Dim lThisDstKey As Long
     Dim lStrKeyIndex As Integer
     
     Dim lStimIter As Long
@@ -214,8 +331,13 @@ Function checkChannelsForDrive(objTTX As TTankX, xAxisEp As String, vXAxisKeys A
                         vStrKeyArray = dTmpDrivenChanList.Keys
                         For lStrKeyIndex = LBound(vStrKeyArray) To UBound(vStrKeyArray)
                             lThisKey = vStrKeyArray(lStrKeyIndex)
-                            outputWS.Cells(lThisKey + 1, 1).Value = lThisKey
-                            outputWS.Cells(lThisKey + 1, 2 + i).Value = dTmpDrivenChanList(lThisKey)
+                            If Not IsMissing(vChannelMapper) Then
+                                lThisDstKey = vChannelMapper.fwdLookup(lThisKey)
+                            Else
+                                lThisDstKey = lThisKey
+                            End If
+                            outputWS.Cells(lThisDstKey + 1, 1).Value = lThisDstKey
+                            outputWS.Cells(lThisDstKey + 1, 2 + i).Value = dTmpDrivenChanList(lThisKey)
                         Next
                     End If
                 End If
@@ -231,7 +353,7 @@ Function checkChannelsForDrive(objTTX As TTankX, xAxisEp As String, vXAxisKeys A
 End Function
 
 'detects the 'noise floor' for each channel - i.e. the mean spike count per second of the non-acoustic period
-Function detectNoiseFloor(objTTX As TTankX, stimStartEpoc As String, oDriveDetectionParams As DriveDetection, lNumOfChans As Long, dNoiseFloorList As Variant, Optional outputWS As Worksheet) As Boolean
+Function detectNoiseFloor(objTTX As TTankX, stimStartEpoc As String, oDriveDetectionParams As DriveDetection, lNumOfChans As Long, dNoiseFloorList As Variant, Optional outputWS As Worksheet, Optional vChannelMapper As Variant) As Boolean
 '    Stop
     Dim blnReturnVal As Boolean
     blnReturnVal = True
@@ -281,6 +403,7 @@ Function detectNoiseFloor(objTTX As TTankX, stimStartEpoc As String, oDriveDetec
             Dim dblSpikePerEpoc As Double
             
             Dim lArrIndx As Long
+            Dim lDstChan As Long
             Dim lComparisonBin As Long
         
             'step through each channel
@@ -291,6 +414,11 @@ Function detectNoiseFloor(objTTX As TTankX, stimStartEpoc As String, oDriveDetec
                 If Not IsMissing(outputWS) Then
                     If IsObject(outputWS) Then
                         If Not outputWS Is Nothing Then
+                            If Not IsMissing(vChannelMapper) Then
+                                lDstChan = vChannelMapper.fwdLookup(lArrIndx + 1)
+                            Else
+                                lDstChan = lArrIndx + 1
+                            End If
                             outputWS.Cells(1, 1).Value = "Channel"
                             outputWS.Cells(1, 2).Value = "Sum"
                             outputWS.Cells(1, 3).Value = "Sum of squares"
@@ -299,12 +427,12 @@ Function detectNoiseFloor(objTTX As TTankX, stimStartEpoc As String, oDriveDetec
                             outputWS.Cells(1, 6).Value = "Threshold"
                             
                                                     
-                            outputWS.Cells(lArrIndx + 2, 1).Value = lArrIndx + 1
-                            outputWS.Cells(lArrIndx + 2, 2).Value = histoSums(lArrIndx)(0)
-                            outputWS.Cells(lArrIndx + 2, 3).Value = histoSquares(lArrIndx)(0)
-                            outputWS.Cells(lArrIndx + 2, 4).Value = dblMeanSpikes
-                            outputWS.Cells(lArrIndx + 2, 5).Value = dblStdDevSpikes
-                            outputWS.Cells(lArrIndx + 2, 6).Value = (dblMeanSpikes + dblStdDevSpikes) / (oDriveDetectionParams.Diff_ITI - oDriveDetectionParams.Diff_StimDur)
+                            outputWS.Cells(lDstChan + 1, 1).Value = lDstChan
+                            outputWS.Cells(lDstChan + 1, 2).Value = histoSums(lArrIndx)(0)
+                            outputWS.Cells(lDstChan + 1, 3).Value = histoSquares(lArrIndx)(0)
+                            outputWS.Cells(lDstChan + 1, 4).Value = dblMeanSpikes
+                            outputWS.Cells(lDstChan + 1, 5).Value = dblStdDevSpikes
+                            outputWS.Cells(lDstChan + 1, 6).Value = (dblMeanSpikes + dblStdDevSpikes) / (oDriveDetectionParams.Diff_ITI - oDriveDetectionParams.Diff_StimDur)
                         End If
                     End If
                 End If
@@ -569,13 +697,13 @@ Sub buildTuningCurves()
 End Sub
 
 
-Function processImport(importIntoSigmaplot As Boolean, Optional vDetectDriven As Variant, Optional vDrivenChans As Variant, Optional vSubtractNoiseFloor As Variant, Optional vNoiseFloorList As Variant) As Boolean
+Function processImport(importIntoSigmaplot As Boolean, Optional vDetectDriven As Variant, Optional vDrivenChans As Variant, Optional vSubtractNoiseFloor As Variant, Optional vNoiseFloorList As Variant, Optional vChannelMapper As Variant) As Boolean
     processImport = True
 '    Stop
     Dim lNumOfChans As Long
     Dim oDriveDetectionParams As DriveDetection
 
-    If loadConfigParams(outputWorkbook, thisWorkbook, stimStartEpoc, dblBinWidth, dblIgnoreFirstMsec, lNumOfChans, iRowOffset, iColOffset, arrOtherEp, xAxisEp, yAxisEp, bReverseX, bReverseY, oDriveDetectionParams) Then
+    If loadConfigParams(outputWorkbook, thisWorkbook, stimStartEpoc, dblBinWidth, dblIgnoreFirstMsec, lNumOfChans, iRowOffset, iColOffset, arrOtherEp, xAxisEp, yAxisEp, bReverseX, bReverseY, oDriveDetectionParams, vChannelMapper) Then
         
         'used to store the maximum histogram peak for normalisation
         Dim lMaxHistHeight As Double
@@ -614,7 +742,7 @@ Function processImport(importIntoSigmaplot As Boolean, Optional vDetectDriven As
             If Not IsMissing(vDetectDriven) Or IsMissing(vDrivenChans) Then
                 If VarType(vDetectDriven) = vbBoolean Then
                     If vDetectDriven = True Then
-                        If Not checkChannelsForDrive(objTTX, xAxisEp, vXAxisKeys, yAxisEp, vYAxisKeys, stimStartEpoc, oDriveDetectionParams, lNumOfChans, vDrivenChans, outputWorkbook.Worksheets("Drive detection output")) Then 'WARNING! this doesn't correctly support channel mappings etc yet!!
+                        If Not checkChannelsForDrive(objTTX, xAxisEp, vXAxisKeys, yAxisEp, vYAxisKeys, stimStartEpoc, oDriveDetectionParams, lNumOfChans, vDrivenChans, outputWorkbook.Worksheets("Drive detection output"), vChannelMapper) Then 'WARNING! this doesn't correctly support channel mappings etc yet!!
                             processImport = False
                         End If
                     End If
@@ -624,7 +752,7 @@ Function processImport(importIntoSigmaplot As Boolean, Optional vDetectDriven As
             If Not IsMissing(vSubtractNoiseFloor) Or IsMissing(vNoiseFloorList) Then
                 If VarType(vSubtractNoiseFloor) = vbBoolean Then
                     If vSubtractNoiseFloor = True Then
-                        If Not detectNoiseFloor(objTTX, stimStartEpoc, oDriveDetectionParams, lNumOfChans, vNoiseFloorList, outputWorkbook.Worksheets("Noise Floor")) Then  'WARNING! this doesn't correctly support channel mappings etc yet!!
+                        If Not detectNoiseFloor(objTTX, stimStartEpoc, oDriveDetectionParams, lNumOfChans, vNoiseFloorList, outputWorkbook.Worksheets("Noise Floor"), vChannelMapper) Then  'WARNING! this doesn't correctly support channel mappings etc yet!!
                             processImport = False
                         End If
                     End If
@@ -691,9 +819,6 @@ Function processImport(importIntoSigmaplot As Boolean, Optional vDetectDriven As
         
         '    Call writeAxes(theWorksheets, vXAxisKeys, vYAxisKeys, iColOffset, iRowOffset)
         
-            Call objTTX.CloseTank
-            Call objTTX.ReleaseServer
-            
             outputWorkbook.Worksheets("Variables (do not edit)").Range("H1").Value = xCount
             outputWorkbook.Worksheets("Variables (do not edit)").Range("H2").Value = yCount
             outputWorkbook.Worksheets("Variables (do not edit)").Range("H3").Value = zOffsetSize
@@ -701,11 +826,19 @@ Function processImport(importIntoSigmaplot As Boolean, Optional vDetectDriven As
             outputWorkbook.Worksheets("Variables (do not edit)").Range("H5").Value = iColOffset
             outputWorkbook.Worksheets("Variables (do not edit)").Range("H6").Value = iRowOffset
             outputWorkbook.Worksheets("Variables (do not edit)").Range("H7").Value = lMaxHistMeanHeight
+        
+            Call findCF(objTTX, lNumOfChans, vDrivenChans, outputWorkbook.Worksheets("Means"), outputWorkbook.Worksheets("Variables (do not edit)"), outputWorkbook.Worksheets("Channel Tuning"), vChannelMapper)
+        
+            Call objTTX.CloseTank
+            Call objTTX.ReleaseServer
             
             'If importIntoSigmaplot Then
                 'Call transferToSigmaplot(xCount, yCount, zOffsetSize, iColOffset, iRowOffset, lMaxHistHeight)
             'End If
         End If
+    Else
+        Stop
+        processImport = False
     End If
 End Function
 
@@ -1108,4 +1241,7 @@ Sub Broadcast_It()
         iRet = oDynWrap.SendMessageA(lWindHandle, WM_COMMAND, MAKELPARAM(780, 0), 0&) 'send the 'close all notebooks' command
     Set oDynWrap = Nothing
 End Sub
+
+
+
 
