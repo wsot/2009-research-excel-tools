@@ -116,8 +116,9 @@ Function loadConfigParams( _
     End If
     
     Set vChannelMapper = New ChannelMapper
-    If Not vChannelMapper.readMappingLists(thisWorkbook.Worksheets("Channel Mappings").Range("A2"), thisWorkbook.Worksheets("Channel Mappings").Range("B2"), lNumOfChans) Then
-        loadConfigParams = False
+    If Not vChannelMapper.readMappingListsFromDirName(theTank & "\" & theBlock, lNumOfChans, thisWorkbook.Worksheets("Channel Mappings").Range("A2"), thisWorkbook.Worksheets("Channel Mappings").Range("B2")) Then
+'    If Not vChannelMapper.readMappingLists(thisWorkbook.Worksheets("Channel Mappings").Range("A2"), thisWorkbook.Worksheets("Channel Mappings").Range("B2"), lNumOfChans) Then
+'        loadConfigParams = False
     End If
     
 End Function
@@ -218,7 +219,7 @@ Function findCF(objTTX As TTankX, lNumOfChans As Long, dDrivenChanList As Varian
             
             For j = 1 To (xCount - 2)
                 If frqVals(j) > frqVals(lSecondPeakFreq) Then
-                    If Abs(j - lPeakFreq) > 2 Then
+                    If Abs(j - lPeakFreq) > 1 Then
                         lSecondPeakFreq = j
                     End If
                 End If
@@ -511,6 +512,8 @@ Sub bulkBuildTuningCurves()
         blnSubtractNoiseFloor = thisWorkbook.Worksheets("Settings").Range("B25").Value
         thisWorkbook.Worksheets("Variables (do not edit)").Range("E7").Value = thisWorkbook.Worksheets("Settings").Range("B18").Value
        
+        Dim vChannelMapper As Variant
+       
         Dim dBlocks As Dictionary
         Set dBlocks = New Dictionary
         Dim i As Integer
@@ -567,7 +570,7 @@ Sub bulkBuildTuningCurves()
             outputWorkbook.Worksheets("Settings").Range("B24").Value = blnPlotOnlyDriven
             outputWorkbook.Worksheets("Settings").Range("B25").Value = blnSubtractNoiseFloor
             
-            If processImport(False, blnPlotOnlyDriven, dDrivenChans, blnSubtractNoiseFloor, dNoiseFloorList) Then
+            If processImport(False, blnPlotOnlyDriven, dDrivenChans, blnSubtractNoiseFloor, dNoiseFloorList, vChannelMapper) Then
                 Call detectTunedSegments
                 Application.Calculation = xlCalculationAutomatic
                 Application.Calculation = xlCalculationManual
@@ -581,7 +584,7 @@ Sub bulkBuildTuningCurves()
                         End If
                         Set plotWorkbook = outputWorkbook
                         If blnPlotOnlyCandidates Then
-                            Call transferCandidatesToSigmaplot(dDrivenChans, outputFilename & ".JNB")
+                            Call transferCandidatesToSigmaplot(dDrivenChans, outputFilename & ".JNB", vChannelMapper)
                         Else
                             Call transferAllToSigmaplot(outputFilename & ".JNB")
                         End If
@@ -812,7 +815,7 @@ Function processImport(importIntoSigmaplot As Boolean, Optional vDetectDriven As
                         Else
                             yAxisSearchString = yAxisEp & " = " & CStr(vYAxisKeys(j)) & " and "
                         End If
-                        Call processSearch(objTTX, arrOtherEp, arrOtherEpocKeys, 0, xAxisSearchString & yAxisSearchString, i + 1, j + 1, UBound(vYAxisKeys) + 3, iChanNum, "", xCount, yCount, zOffsetSize, lMaxHistHeight, lMaxHistMeanHeight, vNoiseFloorList, vDrivenChans)
+                        Call processSearch(objTTX, arrOtherEp, arrOtherEpocKeys, 0, xAxisSearchString & yAxisSearchString, i + 1, j + 1, UBound(vYAxisKeys) + 3, iChanNum, "", xCount, yCount, zOffsetSize, lMaxHistHeight, lMaxHistMeanHeight, vNoiseFloorList, vDrivenChans, vChannelMapper)
                     Next
                 Next
             End If
@@ -925,7 +928,7 @@ Function BuildEpocList(objTTX, AxisEp, bReverseOrder)
 End Function
 
 
-Function processSearch(ByRef objTTX, ByRef arrOtherEp, ByRef arrOtherEpocKeys, iOtherEpocNum, strSearchString As String, xOffset, yOffset, zOffset, iChanNum, strTitle, ByRef xCount, ByRef yCount, ByRef zOffsetSize, ByRef lMaxHistHeight, ByRef lMaxHistMeanHeight, Optional ByRef vNoiseFloorList As Variant, Optional ByRef vDrivenChans As Variant)
+Function processSearch(ByRef objTTX, ByRef arrOtherEp, ByRef arrOtherEpocKeys, iOtherEpocNum, strSearchString As String, xOffset, yOffset, zOffset, iChanNum, strTitle, ByRef xCount, ByRef yCount, ByRef zOffsetSize, ByRef lMaxHistHeight, ByRef lMaxHistMeanHeight, Optional ByRef vNoiseFloorList As Variant, Optional ByRef vDrivenChans As Variant, Optional ByRef vChannelMapper As Variant)
     Dim i As Integer
     Dim j As Integer
     Dim strAddedSearchString As String
@@ -939,12 +942,17 @@ Function processSearch(ByRef objTTX, ByRef arrOtherEp, ByRef arrOtherEpocKeys, i
             strAddedTitle = strTitle & arrOtherEp(iOtherEpocNum) & " = " & CStr(arrOtherEpocKeys(iOtherEpocNum)(i)) & ", "
         Else
             strAddedSearchString = strSearchString
-            strAddedTitle = strTitle & "Channel = " & CStr(arrOtherEpocKeys(iOtherEpocNum)(i)) & ", "
+            'strAddedTitle = strTitle & "Channel = " & CStr(arrOtherEpocKeys(iOtherEpocNum)(i)) & ", "
+            If IsMissing(vChannelMapper) Then
+                strAddedTitle = strTitle & "Channel = " & CStr(arrOtherEpocKeys(iOtherEpocNum)(i)) & ", "
+            Else
+                strAddedTitle = strTitle & "Channel = " & vChannelMapper.fwdLookup(CInt(arrOtherEpocKeys(iOtherEpocNum)(i))) & ", "
+            End If
             iChanNum = arrOtherEpocKeys(iOtherEpocNum)(i)
         End If
         If iOtherEpocNum < UBound(arrOtherEp) Then
             'there are still more epocs to add to the search
-            Call processSearch(objTTX, arrOtherEp, arrOtherEpocKeys, iOtherEpocNum + 1, strAddedSearchString, xOffset, yOffset, (zOffset * UBound(arrOtherEpocKeys(iOtherEpocNum))) + i, iChanNum, strAddedTitle, xCount, yCount, zOffsetSize, lMaxHistHeight, lMaxHistMeanHeight)
+            Call processSearch(objTTX, arrOtherEp, arrOtherEpocKeys, iOtherEpocNum + 1, strAddedSearchString, xOffset, yOffset, (zOffset * UBound(arrOtherEpocKeys(iOtherEpocNum))) + i, iChanNum, strAddedTitle, xCount, yCount, zOffsetSize, lMaxHistHeight, lMaxHistMeanHeight, vNoiseFloorList, vDrivenChans, vChannelMapper)
         Else
             'we have reached the end of the list of epocs - can actually do a search now
             If Right(strAddedSearchString, 5) = " and " Then 'this should always be the case - should be a trailing 'and' to remove
@@ -1241,6 +1249,8 @@ Sub Broadcast_It()
         iRet = oDynWrap.SendMessageA(lWindHandle, WM_COMMAND, MAKELPARAM(780, 0), 0&) 'send the 'close all notebooks' command
     Set oDynWrap = Nothing
 End Sub
+
+
 
 
 

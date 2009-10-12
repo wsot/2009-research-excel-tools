@@ -166,7 +166,7 @@ Sub trySigmaplotSave(saveFilename As String, SPApp)
 End Sub
 
 
-Sub transferCandidatesToSigmaplot(vDrivenChannels As Variant, saveFilename As String)
+Sub transferCandidatesToSigmaplot(vDrivenChannels As Variant, saveFilename As String, Optional vChannelMapper As Variant)
     plotWhichSheet = plotWorkbook.Worksheets("Variables (do not edit)").Range("E7").Value
 
 '    Dim zOffsetSize As Long
@@ -200,14 +200,26 @@ Sub transferCandidatesToSigmaplot(vDrivenChannels As Variant, saveFilename As St
         End If
     Loop
     
+    Dim lActualChanVal As Long
+    
+    Dim vTheThing As Variant
+    
     If Not IsMissing(vDrivenChannels) And Not IsEmpty(vDrivenChannels) And IsObject(vDrivenChannels) And Not vDrivenChannels Is Nothing Then
         Dim vKeys As Variant
         vKeys = vDrivenChannels.Keys
         For iRow = 0 To UBound(vKeys)
-            If Not dHeadingsSelected.Exists("Channel = " & vKeys(iRow)) Then
-                Call dHeadingsSelected.Add("Channel = " & vKeys(iRow), "Mode2 (" & vDrivenChannels(vKeys(iRow))(0) & "," & vDrivenChannels(vKeys(iRow))(1) & ")")
+            If Not IsMissing(vChannelMapper) Then
+                lActualChanVal = vChannelMapper.fwdLookup(CLng(vKeys(iRow)))
             Else
-                dHeadingsSelected("Channel = " & vKeys(iRow)) = dHeadingsSelected("Channel = " & vKeys(iRow)) & ", Mode2 (" & vDrivenChannels(vKeys(iRow) & "," & vDrivenChannels(vKeys(iRow))(1) & ")")
+                lActualChanVal = vKeys(iRow)
+            End If
+            
+            vTheThing = vDrivenChannels(lActualChanVal)
+            
+            If Not dHeadingsSelected.Exists("Channel = " & lActualChanVal) Then
+                Call dHeadingsSelected.Add("Channel = " & lActualChanVal, "Mode2 (" & vDrivenChannels(vKeys(iRow))(0) & "," & vDrivenChannels(vKeys(iRow))(1) & ")")
+            Else
+                dHeadingsSelected("Channel = " & lActualChanVal) = dHeadingsSelected("Channel = " & lActualChanVal) & ", Mode2 (" & vDrivenChannels(vKeys(iRow))(0) & "," & vDrivenChannels(vKeys(iRow))(1) & ")"
             End If
         Next
     End If
@@ -581,6 +593,9 @@ Sub transferToSigmaplotButton()
     End If
 
 End Sub
+
+
+
 
 
 
