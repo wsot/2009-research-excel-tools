@@ -122,6 +122,9 @@ Public Function readMappingListsFromFile(objFile As File, lNumOfChans As Long, O
     Dim strLine As String
     Dim arrComponents As Variant
     
+    Dim TDTChanCol As Integer
+    TDTChanCol = 1
+    
     Do
         If objTxt.AtEndOfStream Then
             If lNumOfChans > (lIter + 1) Then
@@ -138,23 +141,39 @@ Public Function readMappingListsFromFile(objFile As File, lNumOfChans As Long, O
             Exit Do
         Else
         
-        If Not IsNumeric(arrComponents(0)) And IsNumeric(arrComponents(1)) Then 'check they are numeric
-            If lNumOfChans > (lIter + 1) Then
-                readMappingListsFromFile = False
+        If lIter = 0 Then 'if first column, could have headers to specify which col is TDT, and which is mapped
+            If Not IsNumeric(arrComponents(0)) And IsNumeric(arrComponents(1)) Then
+                If UCase(arrComponents(0)) = "TDT" Then
+                    TDTChanCol = 1
+                ElseIf UCase(arrComponents(1)) = "TDT" Then
+                    TDTChanCol = 2
+                End If
             End If
-            Exit Do
-        End If
-        
-        If Not Int(arrComponents(0)) = arrComponents(0) And Int(arrComponents(1)) = arrComponents(0) Then 'check they are integers
-            If lNumOfChans > (lIter + 1) Then
-                readMappingListsFromFile = False
+        Else
+            If Not IsNumeric(arrComponents(0)) And IsNumeric(arrComponents(1)) Then 'check they are numeric
+                If lNumOfChans > (lIter + 1) Then
+                    readMappingListsFromFile = False
+                End If
+                Exit Do
             End If
-            Exit Do
-        End If
             
-        Call fwdLookupDict.Add(Int(arrComponents(0)), Int(arrComponents(1)))
-        Call revLookupDict.Add(Int(arrComponents(1)), Int(arrComponents(0)))
-        lIter = lIter + 1
+            If Not Int(arrComponents(0)) = arrComponents(0) And Int(arrComponents(1)) = arrComponents(0) Then 'check they are integers
+                If lNumOfChans > (lIter + 1) Then
+                    readMappingListsFromFile = False
+                End If
+                Exit Do
+            End If
+               
+            If TDTChanCol = 1 Then
+                Call fwdLookupDict.Add(Int(arrComponents(0)), Int(arrComponents(1)))
+                Call revLookupDict.Add(Int(arrComponents(1)), Int(arrComponents(0)))
+            Else
+                Call fwdLookupDict.Add(Int(arrComponents(1)), Int(arrComponents(0)))
+                Call revLookupDict.Add(Int(arrComponents(0)), Int(arrComponents(1)))
+
+            End If
+            lIter = lIter + 1
+        End If
     Loop
         
     If readMappingListsFromFile = True Then
@@ -205,4 +224,3 @@ Public Function readMappingListsFromDirName(sDirName As String, lNumOfChans As L
     Set objFS = Nothing
 
 End Function
-
