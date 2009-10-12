@@ -325,8 +325,3 @@ Function connectToTDTReportError(vReturnArr As Variant)
 End Function
 
 
-
-
-
-
-

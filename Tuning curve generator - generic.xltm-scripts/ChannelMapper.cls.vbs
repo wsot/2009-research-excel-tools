@@ -11,6 +11,7 @@ Option Explicit
 Public fwdLookupDict As Dictionary
 Public revLookupDict As Dictionary
 Public hasValidMap As Boolean
+Const mapFilenamePrefix = "Channel map"
 
 Public Function fwdLookup(srchFor As Long) As Variant
     If Not hasValidMap Then
@@ -87,4 +88,121 @@ Public Function readMappingLists(rFirstTDTEntry As Range, rFirstMappedEntry As R
         
 End Function
 
+
+Public Function readMappingListsFromFilename(sFilename As String, lNumOfChans As Long, Optional rFirstTDTEntry As Range, Optional rFirstMappedEntry As Range) As Boolean
+    Dim objFS As FileSystemObject
+    Set objFS = New FileSystemObject
+    
+    If Not objFS.FileExists(sFilename) Then
+        readMappingListsFromFilename = False
+    Else
+        Dim objFile As File
+        Set objFile = objFS.GetFile(sFilename)
+        readMappingListsFromFile = readMappingListsFromFile(objFile, lNumOfChans, rFirstTDTEntry, rFirstMappedEntry)
+        Set objFile = Nothing
+    End If
+    
+    Set objFS = Nothing
+
+End Function
+
+Public Function readMappingListsFromFile(objFile As File, lNumOfChans As Long, Optional rFirstTDTEntry As Range, Optional rFirstMappedEntry As Range) As Boolean
+    
+    Dim lIter As Long
+    readMappingListsFromFile = True
+    Set fwdLookupDict = Nothing
+    Set fwdLookupDict = New Dictionary
+    Set revLookupDict = Nothing
+    Set revLookupDict = New Dictionary
+    lIter = 0
+    
+    Dim objTxt As TextStream
+    Set objTxt = objFile.OpenAsTextStream(ForReading)
+    
+    Dim strLine As String
+    Dim arrComponents As Variant
+    
+    Do
+        If objTxt.AtEndOfStream Then
+            If lNumOfChans > (lIter + 1) Then
+                readMappingListsFromFile = False
+            End If
+            Exit Do
+        End If
+        strLine = objTxt.ReadLine
+        arrComponents = Split(strLine, "    ", -1, vbTextCompare)
+        If Not UBound(arrComponents) = 1 Then
+            If lNumOfChans > (lIter + 1) Then
+                readMappingListsFromFile = False
+            End If
+            Exit Do
+        Else
+        
+        If Not IsNumeric(arrComponents(0)) And IsNumeric(arrComponents(1)) Then 'check they are numeric
+            If lNumOfChans > (lIter + 1) Then
+                readMappingListsFromFile = False
+            End If
+            Exit Do
+        End If
+        
+        If Not Int(arrComponents(0)) = arrComponents(0) And Int(arrComponents(1)) = arrComponents(0) Then 'check they are integers
+            If lNumOfChans > (lIter + 1) Then
+                readMappingListsFromFile = False
+            End If
+            Exit Do
+        End If
+            
+        Call fwdLookupDict.Add(Int(arrComponents(0)), Int(arrComponents(1)))
+        Call revLookupDict.Add(Int(arrComponents(1)), Int(arrComponents(0)))
+        lIter = lIter + 1
+    Loop
+        
+    If readMappingListsFromFile = True Then
+        hasValidMap = True
+        If Not IsMissing(rFirstTDTEntry) And Not IsMissing(rFirstMappedEntry) Then
+            Dim vKeys As Variant
+            vKeys = fwdLookupDict.Keys
+            For iIter = LBound(vKeys) To UBound(vKeys)
+                rFirstTDTEntry.Offset(iIter, 0).Value = vKeys(iIter)
+                rFirstMappedEntry.Offset(iIter, 0).Value = fwdLookupDict(vKeys(iIter))
+            Next
+        End If
+    Else
+        Set fwdLookupDict = Nothing
+        Set revLookupDict = Nothing
+        hasValidMap = False
+        readMappingListsFromFile = True
+    End If
+        
+End Function
+
+Public Function readMappingListsFromDirName(sDirName As String, lNumOfChans As Long, Optional rFirstTDTEntry As Range, Optional rFirstMappedEntry As Range) As Boolean
+    Dim objFS As FileSystemObject
+    Set objFS = New FileSystemObject
+    
+    If Not objFS.FolderExists(sDirName) Then
+        readMappingListsFromDirName = False
+    Else
+        Dim objFolder As Folder
+        Set objFolder = objFS.GetFolder(sDirName)
+        Dim objFiles As Files
+        Dim objFile As File
+        
+        objFiles = objFolder.Files
+        
+        For Each objFile In objFiles
+            If LCase(Left(objFile.Name, Len(mapFilenamePrefix))) = LCase(mapFilenamePrefix) Then
+                readMappingListsFromFile = readMappingListsFromFile(objFile, lNumOfChans, rFirstTDTEntry, rFirstMappedEntry)
+                Exit For
+            End If
+        Next
+        
+        Set objFile = Nothing
+        Set objFiles = Nothing
+        Set objFolder = Nothing
+    End If
+    
+    Set objFS = Nothing
+
+End Function
 
