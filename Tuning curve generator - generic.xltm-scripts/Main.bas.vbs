@@ -255,13 +255,18 @@ Function findCF(objTTX As TTankX, lNumOfChans As Long, dDrivenChanList As Varian
             Next
             
             
-            outputWS.Cells(lChanNum + 1, 2) = inputWS.Cells(yPos + 1, xPos + lPeakFreq + 1).Value
-            outputWS.Cells(lChanNum + 1, 4) = inputWS.Cells(yPos + 1, xPos + lSecondPeakFreq + 1).Value
-            If Not IsEmpty(CFTextStream) Then
-                Call CFTextStream.WriteLine(lChanNum & Chr(9) & inputWS.Cells(yPos + 1, xPos + lPeakFreq + 1).Value & Chr(9) & inputWS.Cells(yPos + 1, xPos + lSecondPeakFreq + 1).Value)
-            End If
+            outputWS.Cells(lChanNum + 1, 2).Value = inputWS.Cells(yPos + 1, xPos + lPeakFreq + 1).Value
+            outputWS.Cells(lChanNum + 1, 4).Value = inputWS.Cells(yPos + 1, xPos + lSecondPeakFreq + 1).Value
         End If
         yPos = yPos + zOffsetSize
+        
+        If Not IsEmpty(CFTextStream) Then
+            lChanNum = 1
+            While outputWS.Cells(lChanNum + 1, 1).Value <> ""
+                Call CFTextStream.WriteLine(lChanNum & Chr(9) & outputWS.Cells(lChanNum + 1, 2).Value & Chr(9) & outputWS.Cells(lChanNum + 1, 4).Value)
+                lChanNum = lChanNum + 1
+            Wend
+        End If
     Wend
     
 End Function
@@ -1300,6 +1305,8 @@ Sub Broadcast_It()
         iRet = oDynWrap.SendMessageA(lWindHandle, WM_COMMAND, MAKELPARAM(780, 0), 0&) 'send the 'close all notebooks' command
     Set oDynWrap = Nothing
 End Sub
+
+
 
 
 
