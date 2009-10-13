@@ -30,6 +30,9 @@ Global thisWorkbook As Workbook
 Global outputWorkbook As Workbook
 Global plotWorkbook As Workbook
 
+Global writeTuningsToFile As Boolean
+Global CFTextStream As TextStream
+
 Global Const marginForGoodTuning = 1#
 
 Dim successfullyProcessedOffset As Integer
@@ -126,6 +129,10 @@ End Function
 'Tries to detect the CF of each driven channel
 Function findCF(objTTX As TTankX, lNumOfChans As Long, dDrivenChanList As Variant, inputWS As Worksheet, varsWS As Worksheet, outputWS As Worksheet, vChannelMapper As Variant) As Boolean
 
+    If Not IsEmpty(CFTextStream) Then
+        Call CFTextStream.WriteLine("Channel" & Chr(9) & "CF (main)" & Chr(9) & "CF (secondary)")
+    End If
+
     Dim blnReturnVal As Boolean
     blnReturnVal = True
 
@@ -164,6 +171,7 @@ Function findCF(objTTX As TTankX, lNumOfChans As Long, dDrivenChanList As Varian
     
     Dim lPeakFreq As Long
     Dim lSecondPeakFreq As Long
+    Dim bIsPeak As Boolean
     
     Dim dblMean() As Double
     ReDim dblMean(yCount - 1)
@@ -212,15 +220,36 @@ Function findCF(objTTX As TTankX, lNumOfChans As Long, dDrivenChanList As Varian
             Next
                 
             For j = 1 To (xCount - 2)
-                If frqVals(j) > frqVals(lPeakFreq) Then
-                    lPeakFreq = j
+                'check if this is higher than/equal to the two adjacent points - i.e. a peak
+                If j = 1 Then
+                    If frqVals(j) >= frqVals(j + 1) Then bIsPeak = True
+                ElseIf j = (xCount - 2) Then
+                    If frqVals(j) >= frqVals(j - 1) Then bIsPeak = True
+                Else
+                    If frqVals(j) >= frqVals(j + 1) And frqVals(j) >= frqVals(j - 1) Then bIsPeak = True
+                End If
+                
+                If bIsPeak Then
+                    If frqVals(j) > frqVals(lPeakFreq) Then
+                        lPeakFreq = j
+                    End If
                 End If
             Next
             
             For j = 1 To (xCount - 2)
-                If frqVals(j) > frqVals(lSecondPeakFreq) Then
-                    If Abs(j - lPeakFreq) > 1 Then
-                        lSecondPeakFreq = j
+                If j = 1 Then
+                    If frqVals(j) >= frqVals(j + 1) Then bIsPeak = True
+                ElseIf j = (xCount - 2) Then
+                    If frqVals(j) >= frqVals(j - 1) Then bIsPeak = True
+                Else
+                    If frqVals(j) >= frqVals(j + 1) And frqVals(j) >= frqVals(j - 1) Then bIsPeak = True
+                End If
+                
+                If bIsPeak Then
+                    If frqVals(j) > frqVals(lSecondPeakFreq) Then
+                        If Abs(j - lPeakFreq) > 1 Then 'check it is not immediately adjacent to (or is) the main peak
+                            lSecondPeakFreq = j
+                        End If
                     End If
                 End If
             Next
@@ -228,10 +257,13 @@ Function findCF(objTTX As TTankX, lNumOfChans As Long, dDrivenChanList As Varian
             
             outputWS.Cells(lChanNum + 1, 2) = inputWS.Cells(yPos + 1, xPos + lPeakFreq + 1).Value
             outputWS.Cells(lChanNum + 1, 4) = inputWS.Cells(yPos + 1, xPos + lSecondPeakFreq + 1).Value
+            If Not IsEmpty(CFTextStream) Then
+                Call CFTextStream.WriteLine(lChanNum & Chr(9) & inputWS.Cells(yPos + 1, xPos + lPeakFreq + 1).Value & Chr(9) & inputWS.Cells(yPos + 1, xPos + lSecondPeakFreq + 1).Value)
+            End If
         End If
         yPos = yPos + zOffsetSize
     Wend
-        
+    
 End Function
 
 'to check for drive, does a sum of all values with a single value on the Y axis (the first value...)
@@ -475,6 +507,8 @@ Sub bulkBuildTuningCurves()
 '        Stop
         successfullyProcessedOffset = 25
         
+        Dim objFS As FileSystemObject
+        
         Dim specifiedOutputDir As String
         Dim outputDir As String
         Dim outputFilename As String
@@ -489,6 +523,9 @@ Sub bulkBuildTuningCurves()
         
         Dim blnAutoclose As Boolean
         blnAutoclose = thisWorkbook.Worksheets("Settings").Range("B10").Value
+        
+        Dim writeTuningsToFile As Boolean
+        writeTuningsToFile = thisWorkbook.Worksheets("Settings").Range("B47").Value
         
         Dim blnAutosave As Boolean
         If blnAutoclose Then
@@ -558,7 +595,7 @@ Sub bulkBuildTuningCurves()
                     MsgBox ("Output directory " & outputDir & " could not be found." & vbCrLf & "Please update the path and try again")
                     Exit Sub
                 End If
-                outputFilename = outputDir & "\" & Replace(theTank, "\", ".") & "_" & outputFilePrefix & theBlock
+                outputFilename = outputDir & "\" & Right(Replace(theTank, "\", "."), Len(theTank) - Len(bulkImportRootDir) - 1) & "_" & outputFilePrefix & theBlock
             End If
             
             outputWorkbook.Worksheets("Variables (do not edit)").Range("B2").Value = theTank 'update the block on the worksheet
@@ -569,6 +606,17 @@ Sub bulkBuildTuningCurves()
             outputWorkbook.Worksheets("Settings").Range("B6").Value = blnPlotOnlyCandidates
             outputWorkbook.Worksheets("Settings").Range("B24").Value = blnPlotOnlyDriven
             outputWorkbook.Worksheets("Settings").Range("B25").Value = blnSubtractNoiseFloor
+            
+            If writeTuningsToFile Then 'check if the CFs should be written to text files
+                Dim strTxtFileName As String
+                Set objFS = New FileSystemObject
+                strTxtFileName = objFS.GetFolder(theTank).ParentFolder.ParentFolder.Path & "\" & Right(Replace(theTank, "\", "."), Len(theTank) - Len(bulkImportRootDir) - 1) & "_" & outputFilePrefix & theBlock & ".txt"
+                Set CFTextStream = objFS.CreateTextFile(strTxtFileName, True, False)
+                CFTextStream.WriteLine ("Generated: " & Chr(9) & Now())
+                CFTextStream.WriteLine ("Tank: " & Chr(9) & theTank)
+                CFTextStream.WriteLine ("Block: " & Chr(9) & theBlock)
+                Set objFS = Nothing
+            End If
             
             If processImport(False, blnPlotOnlyDriven, dDrivenChans, blnSubtractNoiseFloor, dNoiseFloorList, vChannelMapper) Then
                 Call detectTunedSegments
@@ -594,6 +642,9 @@ Sub bulkBuildTuningCurves()
                     End If
                 End If
                 thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 5).Value = "Processed"
+                If Not IsEmpty(CFTextStream) Then 'close the CF listing file
+                    Call CFTextStream.Close
+                End If
             Else
                 thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 5).Value = "Problem with import"
             End If
@@ -1249,9 +1300,6 @@ Sub Broadcast_It()
         iRet = oDynWrap.SendMessageA(lWindHandle, WM_COMMAND, MAKELPARAM(780, 0), 0&) 'send the 'close all notebooks' command
     Set oDynWrap = Nothing
 End Sub
-
-
-
 
 
 
