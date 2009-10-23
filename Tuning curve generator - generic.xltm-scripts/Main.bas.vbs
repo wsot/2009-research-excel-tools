@@ -227,8 +227,10 @@ Function findCF(objTTX As TTankX, lNumOfChans As Long, dDrivenChanList As Varian
                     If frqVals(j) >= frqVals(j + 1) Then bIsPeak = True
                 ElseIf j = (xCount - 2) Then
                     If frqVals(j) >= frqVals(j - 1) Then bIsPeak = True
+                ElseIf frqVals(j) >= frqVals(j + 1) And frqVals(j) >= frqVals(j - 1) Then
+                    bIsPeak = True
                 Else
-                    If frqVals(j) >= frqVals(j + 1) And frqVals(j) >= frqVals(j - 1) Then bIsPeak = True
+                    bIsPeak = False
                 End If
                 
                 If bIsPeak Then
@@ -243,8 +245,10 @@ Function findCF(objTTX As TTankX, lNumOfChans As Long, dDrivenChanList As Varian
                     If frqVals(j) >= frqVals(j + 1) Then bIsPeak = True
                 ElseIf j = (xCount - 2) Then
                     If frqVals(j) >= frqVals(j - 1) Then bIsPeak = True
+                ElseIf frqVals(j) >= frqVals(j + 1) And frqVals(j) >= frqVals(j - 1) Then
+                    bIsPeak = True
                 Else
-                    If frqVals(j) >= frqVals(j + 1) And frqVals(j) >= frqVals(j - 1) Then bIsPeak = True
+                    bIsPeak = False
                 End If
                 
                 If bIsPeak Then
@@ -1313,6 +1317,8 @@ Sub Broadcast_It()
         iRet = oDynWrap.SendMessageA(lWindHandle, WM_COMMAND, MAKELPARAM(780, 0), 0&) 'send the 'close all notebooks' command
     Set oDynWrap = Nothing
 End Sub
+
+
 
 
 
