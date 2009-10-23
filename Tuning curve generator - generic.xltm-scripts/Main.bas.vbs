@@ -900,6 +900,7 @@ Function processImport(importIntoSigmaplot As Boolean, Optional vDetectDriven As
             outputWorkbook.Worksheets("Variables (do not edit)").Range("H7").Value = lMaxHistMeanHeight
         
             Call findCF(objTTX, lNumOfChans, vDrivenChans, outputWorkbook.Worksheets("Means"), outputWorkbook.Worksheets("Variables (do not edit)"), outputWorkbook.Worksheets("Channel Tuning"), vChannelMapper)
+            Call generateChanHistograms(objTTX, outputWorkbook.Worksheets("Channel Tuning"), outputWorkbook.Worksheets("Histograms"), xAxisEp, lNumOfChans, stimStartEpoc, vChannelMapper)
         
             Call objTTX.CloseTank
             Call objTTX.ReleaseServer
@@ -1317,6 +1318,8 @@ Sub Broadcast_It()
         iRet = oDynWrap.SendMessageA(lWindHandle, WM_COMMAND, MAKELPARAM(780, 0), 0&) 'send the 'close all notebooks' command
     Set oDynWrap = Nothing
 End Sub
+
+
 
 
 

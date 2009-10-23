@@ -1,5 +1,5 @@
 Attribute VB_Name = "BulkImportFrom"
-Attribute VB_Base = "0{0E9BC121-3120-4CAE-A6CD-12854C863289}{DF30BCDB-E191-4479-9C0E-9A77F5CDFFC6}"
+Attribute VB_Base = "0{DB324960-5311-4D2D-82EB-299458ECFD11}{5229D1C8-BF3A-49CB-9B3C-31C5B00B9E37}"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
