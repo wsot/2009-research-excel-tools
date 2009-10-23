@@ -188,7 +188,7 @@ Sub transferCandidatesToSigmaplot(vDrivenChannels As Variant, saveFilename As St
     
     Set dHeadingsSelected = New Dictionary
     
-'    Stop
+
     Do
         If plotWorkbook.Worksheets("Likely tuned channels").Cells(iRow, 1).Value <> "" Then
             If Not dHeadingsSelected.Exists(plotWorkbook.Worksheets("Likely tuned channels").Cells(iRow, 1).Value) Then

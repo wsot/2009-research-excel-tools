@@ -259,15 +259,15 @@ Function findCF(objTTX As TTankX, lNumOfChans As Long, dDrivenChanList As Varian
             outputWS.Cells(lChanNum + 1, 4).Value = inputWS.Cells(yPos + 1, xPos + lSecondPeakFreq + 1).Value
         End If
         yPos = yPos + zOffsetSize
-        
-        If Not IsEmpty(CFTextStream) Then
-            lChanNum = 1
-            While outputWS.Cells(lChanNum + 1, 1).Value <> ""
-                Call CFTextStream.WriteLine(lChanNum & Chr(9) & outputWS.Cells(lChanNum + 1, 2).Value & Chr(9) & outputWS.Cells(lChanNum + 1, 4).Value)
-                lChanNum = lChanNum + 1
-            Wend
-        End If
     Wend
+    
+    If Not IsEmpty(CFTextStream) Then
+        lChanNum = 1
+        While outputWS.Cells(lChanNum + 1, 1).Value <> ""
+            Call CFTextStream.WriteLine(lChanNum & Chr(9) & outputWS.Cells(lChanNum + 1, 2).Value & Chr(9) & outputWS.Cells(lChanNum + 1, 4).Value)
+            lChanNum = lChanNum + 1
+        Wend
+    End If
     
 End Function
 
@@ -276,7 +276,7 @@ End Function
 'Any channel that does not have drive is fully excluded (including when they are on an X or Y axis)
 'DOESN'T ACTUALLY DO ANYWHERE NEAR ALL THAT RIGHT NOW!!
 Function checkChannelsForDrive(objTTX As TTankX, xAxisEp As String, vXAxisKeys As Variant, yAxisEp As String, vYAxisKeys As Variant, stimStartEpoc As String, oDriveDetectionParams As DriveDetection, lNumOfChans As Long, dDrivenChanList As Variant, Optional outputWS As Worksheet, Optional vChannelMapper As Variant) As Boolean
-'    Stop
+
     Const fixAsValidAfterXAdjacentDetections = 3 'once this many sequential detections have turned up the channel it is 'locked' as driven
     Dim blnReturnVal As Boolean
     blnReturnVal = True
@@ -329,7 +329,7 @@ Function checkChannelsForDrive(objTTX As TTankX, xAxisEp As String, vXAxisKeys A
                 For lStimIter = 0 To UBound(vStimEpocs, 2)
                     aStimTimes(lStimIter) = vStimEpocs(1, lStimIter)
                 Next
-                'Stop
+
                 Call identifyDrivenChannels(objTTX, aStimTimes, oDriveDetectionParams, dTmpDrivenChanList, lNumOfChans)
                 
                 'check if there are previously identified entries not found this round
@@ -392,7 +392,7 @@ End Function
 
 'detects the 'noise floor' for each channel - i.e. the mean spike count per second of the non-acoustic period
 Function detectNoiseFloor(objTTX As TTankX, stimStartEpoc As String, oDriveDetectionParams As DriveDetection, lNumOfChans As Long, dNoiseFloorList As Variant, Optional outputWS As Worksheet, Optional vChannelMapper As Variant) As Boolean
-'    Stop
+
     Dim blnReturnVal As Boolean
     blnReturnVal = True
 
@@ -509,7 +509,6 @@ Sub bulkBuildTuningCurves()
     BulkImportFrom.Show
     
     If doImport Then
-'        Stop
         successfullyProcessedOffset = 25
         
         Dim objFS As FileSystemObject
@@ -758,7 +757,6 @@ End Sub
 
 Function processImport(importIntoSigmaplot As Boolean, Optional vDetectDriven As Variant, Optional vDrivenChans As Variant, Optional vSubtractNoiseFloor As Variant, Optional vNoiseFloorList As Variant, Optional vChannelMapper As Variant) As Boolean
     processImport = True
-'    Stop
     Dim lNumOfChans As Long
     Dim oDriveDetectionParams As DriveDetection
 
@@ -896,7 +894,6 @@ Function processImport(importIntoSigmaplot As Boolean, Optional vDetectDriven As
             'End If
         End If
     Else
-        Stop
         processImport = False
     End If
 End Function

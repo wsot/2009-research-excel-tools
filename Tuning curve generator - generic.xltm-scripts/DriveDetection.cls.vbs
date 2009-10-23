@@ -20,7 +20,7 @@ Attribute VB_Customizable = False
     Public Diff_ITI As Double 'Inter-tone interval (s; including the duration of the tone)
 
     Public Function readDriveDetection(srcWorksheet As Worksheet, strStartingAddress As String, Optional dstWorksheet As Variant) As Boolean
-'        Stop
+
         Dim drvDetReadOk As Boolean
         drvDetReadOk = True
         
