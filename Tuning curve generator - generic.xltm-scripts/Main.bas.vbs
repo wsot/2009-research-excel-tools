@@ -130,7 +130,9 @@ End Function
 Function findCF(objTTX As TTankX, lNumOfChans As Long, dDrivenChanList As Variant, inputWS As Worksheet, varsWS As Worksheet, outputWS As Worksheet, vChannelMapper As Variant) As Boolean
 
     If Not IsEmpty(CFTextStream) Then
-        Call CFTextStream.WriteLine("Channel" & Chr(9) & "CF (main)" & Chr(9) & "CF (secondary)")
+        If Not CFTextStream Is Nothing Then
+            Call CFTextStream.WriteLine("Channel" & Chr(9) & "CF (main)" & Chr(9) & "CF (secondary)")
+        End If
     End If
 
     Dim blnReturnVal As Boolean
@@ -247,26 +249,33 @@ Function findCF(objTTX As TTankX, lNumOfChans As Long, dDrivenChanList As Varian
                 
                 If bIsPeak Then
                     If frqVals(j) > frqVals(lSecondPeakFreq) Then
-                        If Abs(j - lPeakFreq) > 1 Then 'check it is not immediately adjacent to (or is) the main peak
+                        If Abs(j - lPeakFreq) > 2 Then 'check it is not immediately adjacent to (or is) the main peak
                             lSecondPeakFreq = j
                         End If
                     End If
                 End If
             Next
             
-            
-            outputWS.Cells(lChanNum + 1, 2).Value = inputWS.Cells(yPos + 1, xPos + lPeakFreq + 1).Value
-            outputWS.Cells(lChanNum + 1, 4).Value = inputWS.Cells(yPos + 1, xPos + lSecondPeakFreq + 1).Value
+            If lPeakFreq <> 0 Then
+                outputWS.Cells(lChanNum + 1, 2).Value = inputWS.Cells(yPos + 1, xPos + lPeakFreq + 1).Value
+                If lSecondPeakFreq <> 0 Then
+                    outputWS.Cells(lChanNum + 1, 4).Value = inputWS.Cells(yPos + 1, xPos + lSecondPeakFreq + 1).Value
+                End If
+            End If
+            lPeakFreq = 0
+            lSecondPeakFreq = 0
         End If
         yPos = yPos + zOffsetSize
     Wend
     
     If Not IsEmpty(CFTextStream) Then
-        lChanNum = 1
-        While outputWS.Cells(lChanNum + 1, 1).Value <> ""
-            Call CFTextStream.WriteLine(lChanNum & Chr(9) & outputWS.Cells(lChanNum + 1, 2).Value & Chr(9) & outputWS.Cells(lChanNum + 1, 4).Value)
-            lChanNum = lChanNum + 1
-        Wend
+        If Not CFTextStream Is Nothing Then
+            lChanNum = 1
+            While outputWS.Cells(lChanNum + 1, 1).Value <> ""
+                Call CFTextStream.WriteLine(lChanNum & Chr(9) & outputWS.Cells(lChanNum + 1, 2).Value & Chr(9) & outputWS.Cells(lChanNum + 1, 4).Value)
+                lChanNum = lChanNum + 1
+            Wend
+        End If
     End If
     
 End Function
@@ -647,7 +656,9 @@ Sub bulkBuildTuningCurves()
                 End If
                 thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 5).Value = "Processed"
                 If Not IsEmpty(CFTextStream) Then 'close the CF listing file
-                    Call CFTextStream.Close
+                    If Not CFTextStream Is Nothing Then
+                        Call CFTextStream.Close
+                    End If
                 End If
             Else
                 thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 5).Value = "Problem with import"
@@ -1302,6 +1313,10 @@ Sub Broadcast_It()
         iRet = oDynWrap.SendMessageA(lWindHandle, WM_COMMAND, MAKELPARAM(780, 0), 0&) 'send the 'close all notebooks' command
     Set oDynWrap = Nothing
 End Sub
+
+
+
+
 
 
 
