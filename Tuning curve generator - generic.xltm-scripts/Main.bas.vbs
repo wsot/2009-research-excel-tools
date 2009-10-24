@@ -592,6 +592,7 @@ Sub bulkBuildTuningCurves()
         
 '        Dim outputWorkbook As Workbook
         
+        Dim vArrExcl As Variant
         Dim strErr As String
         
         For i = LBound(theBlocks) To UBound(theBlocks)
@@ -603,10 +604,9 @@ Sub bulkBuildTuningCurves()
             theBlock = Right(theBlocks(i), Len(theBlocks(i)) - Len(theTank) - 1)
             theTank = bulkImportRootDir & "\" & theTank
             
-            strErr = ""
-            strErr = checkForMapExclusion(objFS.GetFolder(theTank))
-            If strErr <> "" Then
-                thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 1).Value = theBlocks(i) & " excluded: " & strErr
+            vArrExcl = checkForMapExclusion(objFS.GetFolder(theTank & "\" & theBlock))
+            If vArrExcl(0) = "generate" Then
+                thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 1).Value = theBlocks(i) & " excluded: " & vArrExcl(1)
             Else
                 thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 1).Value = theBlocks(i) & " processing"
             
@@ -639,13 +639,15 @@ Sub bulkBuildTuningCurves()
                 outputWorkbook.Worksheets("Settings").Range("B24").Value = blnPlotOnlyDriven
                 outputWorkbook.Worksheets("Settings").Range("B25").Value = blnSubtractNoiseFloor
                 
-                If writeTuningsToFile Then 'check if the CFs should be written to text files
+                If writeTuningsToFile And vArrExcl(0) <> "cf" Then 'check if the CFs should be written to text files
                     Dim strTxtFileName As String
                     strTxtFileName = objFS.GetFolder(theTank).ParentFolder.ParentFolder.Path & "\Map-" & Right(Replace(theTank, "\", "."), Len(theTank) - Len(bulkImportRootDir) - 1) & "_" & outputFilePrefix & theBlock & ".txt"
                     Set CFTextStream = objFS.CreateTextFile(strTxtFileName, True, False)
                     CFTextStream.WriteLine ("Generated: " & Chr(9) & Now())
                     CFTextStream.WriteLine ("Tank: " & Chr(9) & theTank)
                     CFTextStream.WriteLine ("Block: " & Chr(9) & theBlock)
+                Else
+                    Set CFTextStream = Nothing
                 End If
                 
                 strErr = ""
@@ -681,6 +683,7 @@ Sub bulkBuildTuningCurves()
                 If Not IsEmpty(CFTextStream) Then 'close the CF listing file
                     If Not CFTextStream Is Nothing Then
                         Call CFTextStream.Close
+                        Set CFTextStream = Nothing
                     End If
                 End If
             End If
@@ -1389,24 +1392,36 @@ Sub Broadcast_It()
     Set oDynWrap = Nothing
 End Sub
 
-Function checkForMapExclusion(objFolder As Folder) As String
+Function checkForMapExclusion(objFolder As Folder) As Variant
+    Dim arrExclArr(1) As Variant
     
-    checkForMapExclusion = ""
+    arrExclArr(0) = ""
     Dim Files As Files
     Dim objFile As File
 
     Set Files = objFolder.Files
 
     For Each objFile In Files
+        If LCase(objFile.Name) = "exclude from cf saving.txt" Then
+            arrExclArr(0) = "cf"
+            arrExclArr(1) = readCommentFromFile(objFile)
+            If arrExclArr(1) = "" Then
+                arrExclArr(1) = "No message"
+            End If
+            Exit For
+        End If
+
         If LCase(objFile.Name) = "exclude from map generation.txt" Then
-            checkForMapExclusion = readCommentFromFile(objFile)
-            If checkForMapExclusion = "" Then
-                checkForMapExclusion = "No message"
+            arrExclArr(0) = "generate"
+            arrExclArr(1) = readCommentFromFile(objFile)
+            If arrExclArr(1) = "" Then
+                arrExclArr(1) = "No message"
             End If
             Exit For
         End If
     Next
-
+    
+    checkForMapExclusion = arrExclArr
 End Function
 
 Function readCommentFromFile(objFile As File) As String
@@ -1415,6 +1430,10 @@ Function readCommentFromFile(objFile As File) As String
     readCommentFromFile = ts.ReadLine
     ts.Close
 End Function
+
+
+
+
 
 
 
