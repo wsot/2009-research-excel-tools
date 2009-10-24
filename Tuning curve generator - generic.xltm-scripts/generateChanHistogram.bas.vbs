@@ -40,7 +40,7 @@ Function generateChanHistograms( _
     'create bins based of provided configuration parameters to check for an onset spike
     'dblIgnoreFirstMsec = dblIgnoreFirstMsec
     'dblBinWidthSecs =
-    dblTotalWidthSecs = dblBinWidth
+    dblTotalWidthSecs = dblBinWidth * 2
         
     lHistoBinCount = calcBinCount(dblTotalWidthSecs - dblIgnoreFirstMsec, dblBinWidthSecsForHisto)
     
@@ -121,13 +121,13 @@ Function generateChanHistograms( _
             
             If bChartsInElectrodeArrangement Then
                 If lChanNum < 17 Then
-                    lChartTopPos = outputWS.Range(outputWS.Cells(lNumOfChans + 1 + (lChanNum - 1) * iChartHeight + 1, 1), outputWS.Cells(lNumOfChans + 1 + lChanNum * iChartHeight + 1, 1)).Top
-                    lChartHeight = outputWS.Range(outputWS.Cells(lNumOfChans + 1 + (lChanNum - 1) * iChartHeight + 1, 1), outputWS.Cells(lNumOfChans + 1 + lChanNum * iChartHeight + 1, 1)).Height
-                    lChartLeftPos = outputWS.Range(outputWS.Cells(lNumOfChans + 1 + (lChanNum - 1) * iChartHeight + 1, 1), outputWS.Cells(lNumOfChans + 1 + lChanNum * iChartHeight + 1, 1)).Left
+                    lChartTopPos = outputWS.Range(outputWS.Cells(lNumOfChans + 1 + (lChanNum - 1) * iChartHeight + 1, 1), outputWS.Cells(lNumOfChans + 1 + lChanNum * iChartHeight, 1)).Top
+                    lChartHeight = outputWS.Range(outputWS.Cells(lNumOfChans + 1 + (lChanNum - 1) * iChartHeight + 1, 1), outputWS.Cells(lNumOfChans + 1 + lChanNum * iChartHeight, 1)).Height
+                    lChartLeftPos = outputWS.Range(outputWS.Cells(lNumOfChans + 1 + (lChanNum - 1) * iChartHeight + 1, 1), outputWS.Cells(lNumOfChans + 1 + lChanNum * iChartHeight, 1)).Left
                 Else
-                    lChartTopPos = outputWS.Range(outputWS.Cells(lNumOfChans + 1 + (lChanNum - 17) * iChartHeight + 1, 1), outputWS.Cells(lNumOfChans + 1 + (lChanNum - 16) * iChartHeight + 1, 1)).Top
-                    lChartHeight = outputWS.Range(outputWS.Cells(lNumOfChans + 1 + (lChanNum - 17) * iChartHeight + 1, 1), outputWS.Cells(lNumOfChans + 1 + (lChanNum - 16) * iChartHeight + 1, 1)).Height
-                    lChartLeftPos = outputWS.Range(outputWS.Cells(lNumOfChans + 1 + (lChanNum - 17) * iChartHeight + 1, 1), outputWS.Cells(lNumOfChans + 1 + (lChanNum - 16) * iChartHeight + 1, 1)).Left + iChartWidth
+                    lChartTopPos = outputWS.Range(outputWS.Cells(lNumOfChans + 1 + (lChanNum - 17) * iChartHeight + 1, 1), outputWS.Cells(lNumOfChans + 1 + (lChanNum - 16) * iChartHeight, 1)).Top
+                    lChartHeight = outputWS.Range(outputWS.Cells(lNumOfChans + 1 + (lChanNum - 17) * iChartHeight + 1, 1), outputWS.Cells(lNumOfChans + 1 + (lChanNum - 16) * iChartHeight, 1)).Height
+                    lChartLeftPos = outputWS.Range(outputWS.Cells(lNumOfChans + 1 + (lChanNum - 17) * iChartHeight + 1, 1), outputWS.Cells(lNumOfChans + 1 + (lChanNum - 16) * iChartHeight, 1)).Left + iChartWidth
                 End If
             Else
                 lChartTopPos = outputWS.Range(outputWS.Cells(lRowNum + 2, 2), outputWS.Cells(lRowNum + iChartHeight, 2)).Top
@@ -154,14 +154,14 @@ Function generateChanHistograms( _
             myChart.Chart.SeriesCollection(1).XValues = outputWS.Range(outputWS.Cells(1, 2), outputWS.Cells(1, 2 + lHistoBinCount))
             myChart.Chart.SeriesCollection(1).Format.Line.Style = msoLineSingle
             myChart.Chart.SeriesCollection(1).Format.Line.Weight = 0.25
-            myChart.Chart.SeriesCollection(1).Format.Line.Visible = msoTrue
+            myChart.Chart.SeriesCollection(1).Format.Line.Visible = msoFalse
             If lCF = 0 Then
-                myChart.Chart.SeriesCollection(1).Format.Fill.ForeColor.RGB = RGB(118, 63, 63)
+                myChart.Chart.SeriesCollection(1).Format.Fill.ForeColor.RGB = RGB(230, 185, 184)
             Else
-                myChart.Chart.SeriesCollection(1).Format.Fill.ForeColor.RGB = RGB(0, 97, 0)
+                myChart.Chart.SeriesCollection(1).Format.Fill.ForeColor.RGB = RGB(54, 156, 73)
             End If
             myChart.Chart.Legend.Delete
-            myChart.Chart.ChartTitle.Characters.Font.Size = 8
+            myChart.Chart.ChartTitle.Characters.Font.Size = 7
             
             lChartNum = lChartNum + 1
         End If
@@ -169,4 +169,5 @@ Function generateChanHistograms( _
         lChanNum = lChanNum + 1
     Wend
 End Function
+
 

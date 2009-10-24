@@ -424,7 +424,7 @@ Function detectNoiseFloor(objTTX As TTankX, stimStartEpoc As String, oDriveDetec
     Dim lStimIter As Long
     Dim iStimNum As Long
     
-    Call objTTX.ResetFilters
+'    Call objTTX.ResetFilters
     vStimEpocs = objTTX.GetEpocsExV(stimStartEpoc, 0)
     If Not IsEmpty(vStimEpocs) Then
         ReDim aStimTimes(UBound(vStimEpocs, 2))
@@ -857,10 +857,25 @@ Function processImport(importIntoSigmaplot As Boolean, Optional vDetectDriven As
                     If vSubtractNoiseFloor = True Then
                         rngProcStartTime = Now()
                         rngProcTimings.Offset(rngProcTimingOffset, 0) = "Detect Noise Floor"
+                        
+                        Dim lArrIndex As Long
+                        Dim lMinAmp As Long
+                        For lArrIndex = 0 To UBound(vYAxisKeys)
+                            If lArrIndex = 0 Then
+                                lMinAmp = vYAxisKeys(lArrIndex)
+                            ElseIf vYAxisKeys(lArrIndex) < lMinAmp Then
+                                lMinAmp = vYAxisKeys(lArrIndex)
+                            End If
+                        Next
+                                                
+                        Call objTTX.ResetFilters
+                        Call objTTX.SetFilterWithDescEx(yAxisEp & " = " & lMinAmp)
+            
                         If Not detectNoiseFloor(objTTX, stimStartEpoc, oDriveDetectionParams, lNumOfChans, vNoiseFloorList, outputWorkbook.Worksheets("Noise Floor"), vChannelMapper) Then  'WARNING! this doesn't correctly support channel mappings etc yet!!
                             strTotalErrString = strTotalErrString & "Detect noise floor failed, "
                             'processImport = False
                         End If
+                        Call objTTX.ResetFilters
                         rngProcTimings.Offset(rngProcTimingOffset, 1) = (Now() - rngProcStartTime) * 3600 * 24
                         rngProcTimingOffset = rngProcTimingOffset + 1
                     End If
@@ -1400,7 +1415,6 @@ Function readCommentFromFile(objFile As File) As String
     readCommentFromFile = ts.ReadLine
     ts.Close
 End Function
-
 
 
 
