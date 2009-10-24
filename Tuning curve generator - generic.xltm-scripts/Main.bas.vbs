@@ -526,7 +526,7 @@ Sub bulkBuildTuningCurves()
     BulkImportFrom.Show
     
     If doImport Then
-        successfullyProcessedOffset = 25
+        successfullyProcessedOffset = 49
         
         Dim objFS As FileSystemObject
         Set objFS = New FileSystemObject
@@ -606,9 +606,9 @@ Sub bulkBuildTuningCurves()
             strErr = ""
             strErr = checkForMapExclusion(objFS.GetFolder(theTank))
             If strErr <> "" Then
-                thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 4).Value = theBlocks(i) & " excluded: " & strErr
+                thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 1).Value = theBlocks(i) & " excluded: " & strErr
             Else
-                thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 4).Value = theBlocks(i) & " processing"
+                thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 1).Value = theBlocks(i) & " processing"
             
                 If i = 0 Then
                     templatePath = getFilename(templatePath, theTank)
@@ -641,7 +641,7 @@ Sub bulkBuildTuningCurves()
                 
                 If writeTuningsToFile Then 'check if the CFs should be written to text files
                     Dim strTxtFileName As String
-                    strTxtFileName = objFS.GetFolder(theTank).ParentFolder.ParentFolder.Path & "\" & Right(Replace(theTank, "\", "."), Len(theTank) - Len(bulkImportRootDir) - 1) & "_" & outputFilePrefix & theBlock & ".txt"
+                    strTxtFileName = objFS.GetFolder(theTank).ParentFolder.ParentFolder.Path & "\Map-" & Right(Replace(theTank, "\", "."), Len(theTank) - Len(bulkImportRootDir) - 1) & "_" & outputFilePrefix & theBlock & ".txt"
                     Set CFTextStream = objFS.CreateTextFile(strTxtFileName, True, False)
                     CFTextStream.WriteLine ("Generated: " & Chr(9) & Now())
                     CFTextStream.WriteLine ("Tank: " & Chr(9) & theTank)
@@ -674,9 +674,9 @@ Sub bulkBuildTuningCurves()
                             Call outputWorkbook.Close
                         End If
                     End If
-                    thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 5).Value = "Processed"
+                    thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 2).Value = "Processed"
                 Else
-                    thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 5).Value = "Problem with import: " & strErr
+                    thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 2).Value = "Problem with import: " & strErr
                 End If
                 If Not IsEmpty(CFTextStream) Then 'close the CF listing file
                     If Not CFTextStream Is Nothing Then
@@ -963,7 +963,7 @@ Function processImport(importIntoSigmaplot As Boolean, Optional vDetectDriven As
             
             rngProcStartTime = Now()
             rngProcTimings.Offset(rngProcTimingOffset, 0) = "Generate histograms"
-            Call generateChanHistograms(objTTX, outputWorkbook.Worksheets("Channel Tuning"), outputWorkbook.Worksheets("Histograms"), xAxisEp, yAxisEp, vYAxisKeys, lNumOfChans, stimStartEpoc, vChannelMapper)
+            Call generateChanHistograms(objTTX, outputWorkbook.Worksheets("Channel Tuning"), outputWorkbook.Worksheets("Histograms"), xAxisEp, yAxisEp, vXAxisKeys, vYAxisKeys, lNumOfChans, stimStartEpoc, vChannelMapper)
             rngProcTimings.Offset(rngProcTimingOffset, 1) = (Now() - rngProcStartTime) * 3600 * 24
             rngProcTimingOffset = rngProcTimingOffset + 1
         

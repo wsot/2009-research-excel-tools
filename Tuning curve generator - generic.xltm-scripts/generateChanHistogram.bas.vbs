@@ -10,6 +10,7 @@ Function generateChanHistograms( _
         outputWS As Worksheet, _
         xAxisEp As String, _
         yAxisEp As String, _
+        vXAxisKeys As Variant, _
         vYAxisKeys As Variant, _
         lNumOfChans As Long, _
         stimStartEpoc As String, _
@@ -33,7 +34,6 @@ Function generateChanHistograms( _
     Dim histoSquares() As Variant
     Dim histoN As Long
     Dim lHistoBinCount As Long
-    
 
     Dim iStimNum As Integer
     
@@ -76,6 +76,9 @@ Function generateChanHistograms( _
         Next
     End If
     
+    Dim lFreqMidpoint As Long
+    lFreqMidpoint = vXAxisKeys(CInt(UBound(vXAxisKeys) / 2))
+    
     While cfWS.Cells(lChanNum + 1, 1).Value <> ""
         lCF = cfWS.Cells(lChanNum + 1, 2).Value
         
@@ -92,7 +95,7 @@ Function generateChanHistograms( _
         If lCF <> 0 Then
             sThisSearchString = yAxisEp & " = " & lMaxAmp & " and (" & xAxisEp & " = " & CStr(lCF) & " or " & xAxisEp & " = " & CStr(lCF - 1000) & " or " & xAxisEp & " = " & CStr(lCF + 1000) & ")"
         Else
-            sThisSearchString = yAxisEp & " = " & lMaxAmp & " and (" & xAxisEp & " = 22000 or " & xAxisEp & " = 21000 or " & xAxisEp & " = 23000)"
+            sThisSearchString = yAxisEp & " = " & lMaxAmp & " and (" & xAxisEp & " = " & CStr(lFreqMidpoint) & " or " & xAxisEp & " = " & CStr(lFreqMidpoint - 1000) & " or " & xAxisEp & " = " & CStr(lFreqMidpoint + 1000) & ")"
         End If
         
         If bBuildAllCharts Or lCF <> 0 Then
@@ -169,5 +172,7 @@ Function generateChanHistograms( _
         lChanNum = lChanNum + 1
     Wend
 End Function
+
+
 
 
