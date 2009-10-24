@@ -203,6 +203,7 @@ Sub reprocess(isTestRun As Boolean, onlyOne As Boolean)
                             End If
                             
                             workbookToProcess.Activate
+                            workbookToProcess.Worksheets("Variables (do not edit)").Range("B9").Value = objExpFolder.Path
                             workbookToProcess.Worksheets("Settings").Cells(5, 2).Value = maxAllowVariation
                             workbookToProcess.Worksheets("Settings").Cells(2, 2).Value = minAcceptableHR
                             workbookToProcess.Worksheets("Settings").Cells(3, 2).Value = maxAcceptableHR
