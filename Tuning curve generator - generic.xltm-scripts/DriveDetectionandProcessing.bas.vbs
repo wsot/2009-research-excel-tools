@@ -1,6 +1,8 @@
 Attribute VB_Name = "DriveDetectionandProcessing"
 Option Explicit
 
+'Const useHistoGenType = 1
+
 Const DriveDetect_Undriven = 0
 Const DriveDetect_MinimumSpikesCrossed = 1
 Const DriveDetect_OnsetDetected = 2
@@ -193,8 +195,17 @@ Function buildHistogramForStim( _
         ByRef dblTotalWidthSecs As Double, _
         ByRef dblBinWidthSecs As Double, _
         Optional dChannelRemapping As Variant, _
-        Optional dChannelsToArrayMapping As Variant _
+        Optional dChannelsToArrayMapping As Variant, _
+        Optional vHistoGenType As Variant _
         )
+    
+    Dim iHistoGenType As Integer
+    iHistoGenType = 0
+    If Not IsMissing(vHistoGenType) Then
+        If IsNumeric(vHistoGenType) Then
+            iHistoGenType = vHistoGenType
+        End If
+    End If
     
     Dim lHistoBinCount As Long
     lHistoBinCount = calcBinCount(dblTotalWidthSecs, dblBinWidthSecs)
@@ -210,7 +221,7 @@ Function buildHistogramForStim( _
     'Dim dCount As Dictionary
     'Set dCount = New Dictionary
     Dim arrCount() As Long
-    ReDim arrCount(200) 'because in reality redimming, especially with preserve, is a very expensive operation we're better off just starting off with a bigger number
+    ReDim arrCount(31) 'because in reality redimming, especially with preserve, is a very expensive operation we're better off just starting off with a bigger number
     Dim intArrCountUpperLimit As Integer
     intArrCountUpperLimit = UBound(arrCount)
 
@@ -243,33 +254,55 @@ Function buildHistogramForStim( _
 
     dblEndTime = dblStartTime + dblBinWidthSecs
     For lBinNum = 0 To lHistoBinCount
-            Do
-                lEvtCount = objTTX.ReadEventsV(100000, "CSPK", 0, 0, dblStartTime, dblEndTime, "ALL")
-                If lEvtCount = 0 Then
-                    Exit Do
-                End If
+            Select Case iHistoGenType
+                Case 0:
+                    Do
+                        lEvtCount = objTTX.ReadEventsV(100000, "CSPK", 0, 0, dblStartTime, dblEndTime, "ALL")
+                        If lEvtCount = 0 Then
+                            Exit Do
+                        End If
+                    
+                        varData = objTTX.ParseEvInfoV(0, lEvtCount, 4)
+                    
+                        For lEvtNum = 0 To lEvtCount - 1
+                            'count the number of events for each channel in the current bin
+                            If (varData(lEvtNum) - 1) > intArrCountUpperLimit Then 'maybe cheaper than actually doing a ubound every time? (but who really knows...)
+                                ReDim Preserve arrCount(varData(lEvtNum) - 1)
+                                intArrCountUpperLimit = UBound(arrCount)
+                            End If
+                            arrCount(varData(lEvtNum) - 1) = arrCount(varData(lEvtNum) - 1) + 1
+                        Next
             
-                varData = objTTX.ParseEvInfoV(0, lEvtCount, 4)
-            
-                For lEvtNum = 0 To lEvtCount - 1
-                    'count the number of events for each channel in the current bin
-                    If (varData(lEvtNum) - 1) > intArrCountUpperLimit Then 'maybe cheaper than actually doing a ubound every time? (but who really knows...)
-                        ReDim Preserve arrCount(varData(lEvtNum) - 1)
-                        intArrCountUpperLimit = UBound(arrCount)
-                    End If
-                    arrCount(varData(lEvtNum) - 1) = arrCount(varData(lEvtNum) - 1) + 1
-                Next
-    
-                'if the full 10000 was retrieved, there may be more to fetch, so try to fetch them
-                If lEvtCount < 100000 Then
-                    Exit Do
-                Else
-                    'get the time of the last event, and search forward from that - there is a risk this could miss events where the time is identical, however. That said, never got more than 10000 event yet
-                    MsgBox "Obtained 100000+ events!"
-                    varData = objTTX.ParseEvInfoV(lEvtCount - 1, 1, 6)
-                    dblStartTime = varData(0) + (1 / 100000)
-                End If
-            Loop
+                        'if the full 10000 was retrieved, there may be more to fetch, so try to fetch them
+                        If lEvtCount < 100000 Then
+                            Exit Do
+                        Else
+                            'get the time of the last event, and search forward from that - there is a risk this could miss events where the time is identical, however. That said, never got more than 10000 event yet
+                            MsgBox "Obtained 100000+ events!"
+                            varData = objTTX.ParseEvInfoV(lEvtCount - 1, 1, 6)
+                            dblStartTime = varData(0) + (1 / 100000)
+                        End If
+                    Loop
+                Case 1:
+                    For iChanNum = 1 To UBound(arrCount) + 3
+                        lEvtCount = objTTX.ReadEventsV(100000, "CSPK", iChanNum, 0, dblStartTime, dblEndTime, "ALL")
+                        If Not lEvtCount = 0 Then
+                            If (iChanNum - 1) > intArrCountUpperLimit Then 'maybe cheaper than actually doing a ubound every time? (but who really knows...)
+                                ReDim Preserve arrCount(iChanNum - 1)
+                                intArrCountUpperLimit = UBound(arrCount)
+                            End If
+                            arrCount(iChanNum - 1) = arrCount(iChanNum - 1) + lEvtCount
+                        
+                            'if the full 10000 was retrieved, there may be more to fetch, so try to fetch them
+                            If Not lEvtCount < 100000 Then
+                                'get the time of the last event, and search forward from that - there is a risk this could miss events where the time is identical, however. That said, never got more than 10000 event yet
+                                MsgBox "Obtained 100000+ events!"
+                                varData = objTTX.ParseEvInfoV(lEvtCount - 1, 1, 6)
+                                dblStartTime = varData(0) + (1 / 100000)
+                            End If
+                        End If
+                    Next
+            End Select
             
             'update the totals with the obtained number of events
             For iChanNum = 1 To UBound(arrCount) + 1
@@ -311,5 +344,7 @@ End Function
 Function calcBinCount(dblTotalWidthSecs As Double, dblBinWidthSecs As Double) As Long
     calcBinCount = CLng(dblTotalWidthSecs / dblBinWidthSecs)
 End Function
+
+
 
 

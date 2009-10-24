@@ -292,36 +292,49 @@ End Function
 
 
 'gives msg box with error if one occurred connecting to TDT. Returns True if an error occurred, false otherwise
-Function connectToTDTReportError(vReturnArr As Variant)
+Function connectToTDTReportError(vReturnArr As Variant, Optional vUseMessageBox As Variant) As String
 
     Dim strGenericErrAppend As String
     strGenericErrAppend = " (State: " & vReturnArr(0) & ":Msg " & vReturnArr(1) & ": Server '" & vReturnArr(2) & "': Tank '" & vReturnArr(3) & "': Block '" & vReturnArr(4) & "')"
 
+    Dim strErr As String
+    strErr = ""
+
     Select Case vReturnArr(0)
         Case TDT_Unknown:
-            MsgBox "TDT Connection is in an unknown state. (State: " & vReturnArr(0) & ":Msg " & vReturnArr(1)
-            connectToTDTReportError = True
+            strErr = "TDT Connection is in an unknown state. (State: " & vReturnArr(0) & ":Msg " & vReturnArr(1)
+            'connectToTDTReportError = True
         Case TDT_ConnectSuccess:
-            connectToTDTReportError = False
+            'connectToTDTReportError = False
         Case TDT_ServerConnectFail:
-            MsgBox "Connection to the Tank Server failed. " & strGenericErrAppend
-            connectToTDTReportError = True
+            strErr = "Connection to the Tank Server failed. " & strGenericErrAppend
+            'connectToTDTReportError = True
         Case TDT_TankNotProvided:
-            MsgBox "Insufficient tank details provided to locate tank. " & strGenericErrAppend
-            connectToTDTReportError = True
+            strErr = "Insufficient tank details provided to locate tank. " & strGenericErrAppend
+            'connectToTDTReportError = True
         Case TDT_TankInvalidMode:
-            MsgBox "Connecting with an invalid tank connection mode was attempted. " & strGenericErrAppend
-            connectToTDTReportError = True
+            strErr = "Connecting with an invalid tank connection mode was attempted. " & strGenericErrAppend
+            'connectToTDTReportError = True
         Case TDT_TankConnectFail:
-            MsgBox "The attempt to connect to the tank failed. " & strGenericErrAppend
-            connectToTDTReportError = True
+            strErr = "The attempt to connect to the tank failed. " & strGenericErrAppend
+            'connectToTDTReportError = True
         Case TDT_BlockNotProvided:
-            MsgBox "Insufficient block details provided to locate block. " & strGenericErrAppend
-            connectToTDTReportError = True
+            strErr = "Insufficient block details provided to locate block. " & strGenericErrAppend
+            'connectToTDTReportError = True
         Case TDT_BlockConnectFail:
-            MsgBox "The attempt to connect to the block failed. " & strGenericErrAppend
-            connectToTDTReportError = True
+            strErr = "The attempt to connect to the block failed. " & strGenericErrAppend
+            'connectToTDTReportError = True
     End Select
+    
+    connectToTDTReportError = strErr
+    
+    If Not IsMissing(vUseMessageBox) Then
+        If VarType(vUseMessageBox) = vbBoolean Then
+            If vUseMessageBox = True Then
+                MsgBox strErr
+            End If
+        End If
+    End If
 End Function
 
 

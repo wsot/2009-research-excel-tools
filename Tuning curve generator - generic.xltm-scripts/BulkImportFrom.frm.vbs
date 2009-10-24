@@ -1,5 +1,5 @@
 Attribute VB_Name = "BulkImportFrom"
-Attribute VB_Base = "0{DB324960-5311-4D2D-82EB-299458ECFD11}{5229D1C8-BF3A-49CB-9B3C-31C5B00B9E37}"
+Attribute VB_Base = "0{60D2F2E3-0D42-4635-97FE-B3F9CA88F864}{EA084FE5-4A1E-4554-8F32-0562DB3A2CA2}"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
@@ -71,11 +71,12 @@ Sub buildOptionLists(sServer As String, sTank As String, sBlock As String, usePr
     Const EVTYPE_STRON = &H101 'this is a strobe-on event type
     
     Dim objTTX As TTankX
+    Dim strErr As String
     'Set objTTX = CreateObject("TTank.X")
     Set objTTX = New TTankX 'don't know if this will work, but it'd be cute if it did
         
-    
-    If Not connectToTDTReportError(connectToTDT(objTTX, False, sServer, sTank, sBlock)) Then 'returns false if an error occurred
+    strErr = connectToTDTReportError(connectToTDT(objTTX, False, sServer, sTank, sBlock))
+    If strErr = "" Then 'if blank, then no error occurred connecting to TDT
         'build a list of all event codes
         Dim arrEventCodes() As Long
         
@@ -237,7 +238,7 @@ Private Sub UserForm_Activate()
             ReverseY.Value = False
         End If
     Else
-        Call connectToTDTReportError(vConnReturn)
+        Call connectToTDTReportError(vConnReturn, True)
         doImport = False
         Unload Me
     End If

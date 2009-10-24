@@ -35,6 +35,10 @@ Global CFTextStream As TextStream
 
 Global Const marginForGoodTuning = 1#
 
+Global rngProcTimings As Range
+Global rngProcTimingOffset As Integer
+Global rngProcStartTime As Double
+
 Dim successfullyProcessedOffset As Integer
 Dim vXAxisKeys As Variant
 Dim vYAxisKeys As Variant
@@ -525,6 +529,7 @@ Sub bulkBuildTuningCurves()
         successfullyProcessedOffset = 25
         
         Dim objFS As FileSystemObject
+        Set objFS = New FileSystemObject
         
         Dim specifiedOutputDir As String
         Dim outputDir As String
@@ -587,6 +592,8 @@ Sub bulkBuildTuningCurves()
         
 '        Dim outputWorkbook As Workbook
         
+        Dim strErr As String
+        
         For i = LBound(theBlocks) To UBound(theBlocks)
             'Call Worksheets("Totals").UsedRange.ClearContents
             'Call Worksheets("StdDev").UsedRange.ClearContents
@@ -596,79 +603,90 @@ Sub bulkBuildTuningCurves()
             theBlock = Right(theBlocks(i), Len(theBlocks(i)) - Len(theTank) - 1)
             theTank = bulkImportRootDir & "\" & theTank
             
-            thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 4).Value = theBlocks(i) & " processing"
-            
-            If i = 0 Then
-                templatePath = getFilename(templatePath, theTank)
-            End If
-            Set outputWorkbook = Workbooks.Open(templatePath)
-            
-            If specifiedOutputDir = "" Then
-                outputDir = getDirName("", theTank)
-                outputFilename = outputDir & "\" & outputFilePrefix & theBlock
+            strErr = ""
+            strErr = checkForMapExclusion(objFS.GetFolder(theTank))
+            If strErr <> "" Then
+                thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 4).Value = theBlocks(i) & " excluded: " & strErr
             Else
-                outputDir = getDirName(specifiedOutputDir, theTank)
-                If outputDir = "" Then
-                    MsgBox ("Output directory " & outputDir & " could not be found." & vbCrLf & "Please update the path and try again")
-                    Exit Sub
+                thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 4).Value = theBlocks(i) & " processing"
+            
+                If i = 0 Then
+                    templatePath = getFilename(templatePath, theTank)
                 End If
-                outputFilename = outputDir & "\" & Right(Replace(theTank, "\", "."), Len(theTank) - Len(bulkImportRootDir) - 1) & "_" & outputFilePrefix & theBlock
-            End If
-            
-            outputWorkbook.Worksheets("Variables (do not edit)").Range("B2").Value = theTank 'update the block on the worksheet
-            outputWorkbook.Worksheets("Variables (do not edit)").Range("B3").Value = theBlock 'update the block on the worksheet
-            'outputWorkbook.Worksheets("Settings").Range("B18").Value = thisWorkbook.Worksheets("Settings").Range("B18").Value
-            outputWorkbook.Worksheets("Variables (do not edit)").Range("E7").Value = thisWorkbook.Worksheets("Variables (do not edit)").Range("E7").Value
-            
-            outputWorkbook.Worksheets("Settings").Range("B6").Value = blnPlotOnlyCandidates
-            outputWorkbook.Worksheets("Settings").Range("B24").Value = blnPlotOnlyDriven
-            outputWorkbook.Worksheets("Settings").Range("B25").Value = blnSubtractNoiseFloor
-            
-            If writeTuningsToFile Then 'check if the CFs should be written to text files
-                Dim strTxtFileName As String
-                Set objFS = New FileSystemObject
-                strTxtFileName = objFS.GetFolder(theTank).ParentFolder.ParentFolder.Path & "\" & Right(Replace(theTank, "\", "."), Len(theTank) - Len(bulkImportRootDir) - 1) & "_" & outputFilePrefix & theBlock & ".txt"
-                Set CFTextStream = objFS.CreateTextFile(strTxtFileName, True, False)
-                CFTextStream.WriteLine ("Generated: " & Chr(9) & Now())
-                CFTextStream.WriteLine ("Tank: " & Chr(9) & theTank)
-                CFTextStream.WriteLine ("Block: " & Chr(9) & theBlock)
-                Set objFS = Nothing
-            End If
-            
-            If processImport(False, blnPlotOnlyDriven, dDrivenChans, blnSubtractNoiseFloor, dNoiseFloorList, vChannelMapper) Then
-                Call detectTunedSegments
-                Application.Calculation = xlCalculationAutomatic
-                Application.Calculation = xlCalculationManual
-                If blnAutosave Then
-                    Call outputWorkbook.SaveAs(outputFilename, 52)
-                    If blnAutoPlot Then
-                        If Not useSendKeys Then
-                            If IsNull(SigmaPlotHandle) Or SigmaPlotHandle = 0 Then
-                                Call findSigmplotWindow
+                Set outputWorkbook = Workbooks.Open(templatePath)
+                
+                Set rngProcTimings = outputWorkbook.Worksheets("Settings").Range("I1")
+                rngProcTimingOffset = 1
+                
+                If specifiedOutputDir = "" Then
+                    outputDir = getDirName("", theTank)
+                    outputFilename = outputDir & "\" & outputFilePrefix & theBlock
+                Else
+                    outputDir = getDirName(specifiedOutputDir, theTank)
+                    If outputDir = "" Then
+                        MsgBox ("Output directory " & outputDir & " could not be found." & vbCrLf & "Please update the path and try again")
+                        Exit Sub
+                    End If
+                    outputFilename = outputDir & "\" & Right(Replace(theTank, "\", "."), Len(theTank) - Len(bulkImportRootDir) - 1) & "_" & outputFilePrefix & theBlock
+                End If
+                
+                outputWorkbook.Worksheets("Variables (do not edit)").Range("B2").Value = theTank 'update the block on the worksheet
+                outputWorkbook.Worksheets("Variables (do not edit)").Range("B3").Value = theBlock 'update the block on the worksheet
+                'outputWorkbook.Worksheets("Settings").Range("B18").Value = thisWorkbook.Worksheets("Settings").Range("B18").Value
+                outputWorkbook.Worksheets("Variables (do not edit)").Range("E7").Value = thisWorkbook.Worksheets("Variables (do not edit)").Range("E7").Value
+                
+                outputWorkbook.Worksheets("Settings").Range("B6").Value = blnPlotOnlyCandidates
+                outputWorkbook.Worksheets("Settings").Range("B24").Value = blnPlotOnlyDriven
+                outputWorkbook.Worksheets("Settings").Range("B25").Value = blnSubtractNoiseFloor
+                
+                If writeTuningsToFile Then 'check if the CFs should be written to text files
+                    Dim strTxtFileName As String
+                    strTxtFileName = objFS.GetFolder(theTank).ParentFolder.ParentFolder.Path & "\" & Right(Replace(theTank, "\", "."), Len(theTank) - Len(bulkImportRootDir) - 1) & "_" & outputFilePrefix & theBlock & ".txt"
+                    Set CFTextStream = objFS.CreateTextFile(strTxtFileName, True, False)
+                    CFTextStream.WriteLine ("Generated: " & Chr(9) & Now())
+                    CFTextStream.WriteLine ("Tank: " & Chr(9) & theTank)
+                    CFTextStream.WriteLine ("Block: " & Chr(9) & theBlock)
+                End If
+                
+                strErr = ""
+                strErr = processImport(False, blnPlotOnlyDriven, dDrivenChans, blnSubtractNoiseFloor, dNoiseFloorList, vChannelMapper)
+                
+                If strErr = "" Then
+                    Call detectTunedSegments
+                    Application.Calculation = xlCalculationAutomatic
+                    Application.Calculation = xlCalculationManual
+                    If blnAutosave Then
+                        Call outputWorkbook.SaveAs(outputFilename, 52)
+                        If blnAutoPlot Then
+                            If Not useSendKeys Then
+                                If IsNull(SigmaPlotHandle) Or SigmaPlotHandle = 0 Then
+                                    Call findSigmplotWindow
+                                End If
+                            End If
+                            Set plotWorkbook = outputWorkbook
+                            If blnPlotOnlyCandidates Then
+                                Call transferCandidatesToSigmaplot(dDrivenChans, outputFilename & ".JNB", vChannelMapper)
+                            Else
+                                Call transferAllToSigmaplot(outputFilename & ".JNB")
                             End If
                         End If
-                        Set plotWorkbook = outputWorkbook
-                        If blnPlotOnlyCandidates Then
-                            Call transferCandidatesToSigmaplot(dDrivenChans, outputFilename & ".JNB", vChannelMapper)
-                        Else
-                            Call transferAllToSigmaplot(outputFilename & ".JNB")
+                        If blnAutoclose Then
+                            Call outputWorkbook.Close
                         End If
                     End If
-                    If blnAutoclose Then
-                        Call outputWorkbook.Close
-                    End If
+                    thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 5).Value = "Processed"
+                Else
+                    thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 5).Value = "Problem with import: " & strErr
                 End If
-                thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 5).Value = "Processed"
                 If Not IsEmpty(CFTextStream) Then 'close the CF listing file
                     If Not CFTextStream Is Nothing Then
                         Call CFTextStream.Close
                     End If
                 End If
-            Else
-                thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 5).Value = "Problem with import"
             End If
             successfullyProcessedOffset = successfullyProcessedOffset + 1
         Next
+        Set objFS = Nothing
         Application.DisplayAlerts = True
     End If
 End Sub
@@ -770,8 +788,10 @@ Sub buildTuningCurves()
 End Sub
 
 
-Function processImport(importIntoSigmaplot As Boolean, Optional vDetectDriven As Variant, Optional vDrivenChans As Variant, Optional vSubtractNoiseFloor As Variant, Optional vNoiseFloorList As Variant, Optional vChannelMapper As Variant) As Boolean
-    processImport = True
+Function processImport(importIntoSigmaplot As Boolean, Optional vDetectDriven As Variant, Optional vDrivenChans As Variant, Optional vSubtractNoiseFloor As Variant, Optional vNoiseFloorList As Variant, Optional vChannelMapper As Variant) As String
+'    processImport = True
+    Dim strTotalErrString As String
+    strTotalErrString = ""
     Dim lNumOfChans As Long
     Dim oDriveDetectionParams As DriveDetection
 
@@ -795,8 +815,9 @@ Function processImport(importIntoSigmaplot As Boolean, Optional vDetectDriven As
         'connect to the tank
         Dim objTTX As TTankX
         Set objTTX = New TTankX
-        
-        If Not connectToTDTReportError(connectToTDT(objTTX, False, theServer, theTank, theBlock)) Then 'returns false if an error occurred
+        Dim strErr As String
+        strErr = connectToTDTReportError(connectToTDT(objTTX, False, theServer, theTank, theBlock))
+        If strErr = "" Then 'if error occurred, then not blank
             'index epochs - required to use filters
             Call objTTX.CreateEpocIndexing
             
@@ -808,15 +829,25 @@ Function processImport(importIntoSigmaplot As Boolean, Optional vDetectDriven As
         '    Dim vXAxisKeys As Variant
         '    Dim vYAxisKeys As Variant
             
+            rngProcStartTime = Now()
+            rngProcTimings.Offset(rngProcTimingOffset, 0) = "Build Epoc List"
             vXAxisKeys = BuildEpocList(objTTX, xAxisEp, bReverseX)
             vYAxisKeys = BuildEpocList(objTTX, yAxisEp, bReverseY)
-                
+            rngProcTimings.Offset(rngProcTimingOffset, 1) = (Now() - rngProcStartTime) * 3600 * 24
+            rngProcTimingOffset = rngProcTimingOffset + 1
+            
+            
             If Not IsMissing(vDetectDriven) Or IsMissing(vDrivenChans) Then
                 If VarType(vDetectDriven) = vbBoolean Then
                     If vDetectDriven = True Then
+                        rngProcStartTime = Now()
+                        rngProcTimings.Offset(rngProcTimingOffset, 0) = "Check channels for drive"
                         If Not checkChannelsForDrive(objTTX, xAxisEp, vXAxisKeys, yAxisEp, vYAxisKeys, stimStartEpoc, oDriveDetectionParams, lNumOfChans, vDrivenChans, outputWorkbook.Worksheets("Drive detection output"), vChannelMapper) Then 'WARNING! this doesn't correctly support channel mappings etc yet!!
-                            processImport = False
+                            'processImport = False
+                            strTotalErrString = strTotalErrString & "Check channels for drive failed, "
                         End If
+                        rngProcTimings.Offset(rngProcTimingOffset, 1) = (Now() - rngProcStartTime) * 3600 * 24
+                        rngProcTimingOffset = rngProcTimingOffset + 1
                     End If
                 End If
             End If
@@ -824,9 +855,14 @@ Function processImport(importIntoSigmaplot As Boolean, Optional vDetectDriven As
             If Not IsMissing(vSubtractNoiseFloor) Or IsMissing(vNoiseFloorList) Then
                 If VarType(vSubtractNoiseFloor) = vbBoolean Then
                     If vSubtractNoiseFloor = True Then
+                        rngProcStartTime = Now()
+                        rngProcTimings.Offset(rngProcTimingOffset, 0) = "Detect Noise Floor"
                         If Not detectNoiseFloor(objTTX, stimStartEpoc, oDriveDetectionParams, lNumOfChans, vNoiseFloorList, outputWorkbook.Worksheets("Noise Floor"), vChannelMapper) Then  'WARNING! this doesn't correctly support channel mappings etc yet!!
-                            processImport = False
+                            strTotalErrString = strTotalErrString & "Detect noise floor failed, "
+                            'processImport = False
                         End If
+                        rngProcTimings.Offset(rngProcTimingOffset, 1) = (Now() - rngProcStartTime) * 3600 * 24
+                        rngProcTimingOffset = rngProcTimingOffset + 1
                     End If
                 End If
             End If
@@ -869,6 +905,8 @@ Function processImport(importIntoSigmaplot As Boolean, Optional vDetectDriven As
             Dim iChanNum As Integer
             iChanNum = 0
         
+            rngProcStartTime = Now()
+            rngProcTimings.Offset(rngProcTimingOffset, 0) = "Process search (the big job)"
             If UBound(arrOtherEp) <> -1 Then
                 For i = 0 To UBound(vXAxisKeys)
                     If xAxisEp = "Channel" Then
@@ -888,6 +926,9 @@ Function processImport(importIntoSigmaplot As Boolean, Optional vDetectDriven As
                     Next
                 Next
             End If
+            rngProcTimings.Offset(rngProcTimingOffset, 1) = (Now() - rngProcStartTime) * 3600 * 24
+            rngProcTimingOffset = rngProcTimingOffset + 1
+
         
         '    Call writeAxes(theWorksheets, vXAxisKeys, vYAxisKeys, iColOffset, iRowOffset)
         
@@ -898,9 +939,18 @@ Function processImport(importIntoSigmaplot As Boolean, Optional vDetectDriven As
             outputWorkbook.Worksheets("Variables (do not edit)").Range("H5").Value = iColOffset
             outputWorkbook.Worksheets("Variables (do not edit)").Range("H6").Value = iRowOffset
             outputWorkbook.Worksheets("Variables (do not edit)").Range("H7").Value = lMaxHistMeanHeight
-        
+            
+            rngProcStartTime = Now()
+            rngProcTimings.Offset(rngProcTimingOffset, 0) = "Find CF"
             Call findCF(objTTX, lNumOfChans, vDrivenChans, outputWorkbook.Worksheets("Means"), outputWorkbook.Worksheets("Variables (do not edit)"), outputWorkbook.Worksheets("Channel Tuning"), vChannelMapper)
-            Call generateChanHistograms(objTTX, outputWorkbook.Worksheets("Channel Tuning"), outputWorkbook.Worksheets("Histograms"), xAxisEp, lNumOfChans, stimStartEpoc, vChannelMapper)
+            rngProcTimings.Offset(rngProcTimingOffset, 1) = (Now() - rngProcStartTime) * 3600 * 24
+            rngProcTimingOffset = rngProcTimingOffset + 1
+            
+            rngProcStartTime = Now()
+            rngProcTimings.Offset(rngProcTimingOffset, 0) = "Generate histograms"
+            Call generateChanHistograms(objTTX, outputWorkbook.Worksheets("Channel Tuning"), outputWorkbook.Worksheets("Histograms"), xAxisEp, yAxisEp, vYAxisKeys, lNumOfChans, stimStartEpoc, vChannelMapper)
+            rngProcTimings.Offset(rngProcTimingOffset, 1) = (Now() - rngProcStartTime) * 3600 * 24
+            rngProcTimingOffset = rngProcTimingOffset + 1
         
             Call objTTX.CloseTank
             Call objTTX.ReleaseServer
@@ -908,10 +958,15 @@ Function processImport(importIntoSigmaplot As Boolean, Optional vDetectDriven As
             'If importIntoSigmaplot Then
                 'Call transferToSigmaplot(xCount, yCount, zOffsetSize, iColOffset, iRowOffset, lMaxHistHeight)
             'End If
+        Else
+            strTotalErrString = strTotalErrString & "TDT connection error: " & strErr & ", "
+            'processImport = False
         End If
     Else
-        processImport = False
+        'processImport = False
+        strTotalErrString = strTotalErrString & "Loading settings failed, "
     End If
+    processImport = strTotalErrString
 End Function
 
 Sub writeAxes(colLabels As Variant, rowLabels As Variant, iColOffset, iRowOffset, zOffset)
@@ -1319,14 +1374,32 @@ Sub Broadcast_It()
     Set oDynWrap = Nothing
 End Sub
 
+Function checkForMapExclusion(objFolder As Folder) As String
+    
+    checkForMapExclusion = ""
+    Dim Files As Files
+    Dim objFile As File
 
+    Set Files = objFolder.Files
 
+    For Each objFile In Files
+        If LCase(objFile.Name) = "exclude from map generation.txt" Then
+            checkForMapExclusion = readCommentFromFile(objFile)
+            If checkForMapExclusion = "" Then
+                checkForMapExclusion = "No message"
+            End If
+            Exit For
+        End If
+    Next
 
+End Function
 
-
-
-
-
+Function readCommentFromFile(objFile As File) As String
+    Dim ts As TextStream
+    Set ts = objFile.OpenAsTextStream
+    readCommentFromFile = ts.ReadLine
+    ts.Close
+End Function
 
 
 
