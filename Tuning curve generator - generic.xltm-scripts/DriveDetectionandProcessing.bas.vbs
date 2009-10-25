@@ -16,7 +16,7 @@ Function identifyDrivenChannels( _
         oDriveDetectionParams As DriveDetection, _
         ByRef dDrivenChanList As Variant, _
         Optional vChannelCount As Variant, _
-        Optional dChannelRemapping As Variant, _
+        Optional vChannelMapper As Variant, _
         Optional dChannelsToArrayMapping As Variant _
     )
 
@@ -64,7 +64,7 @@ Function identifyDrivenChannels( _
     Call setHistoArraySizes(histoSums, histoSquares, lHistoBinCount, CLng(vChannelCount))
     
     For iStimNum = 0 To UBound(arrStimTimes)
-        Call buildHistogramForStim(objTTX, arrStimTimes(iStimNum) + oDriveDetectionParams.IgnoreInitialTime, histoSums, histoSquares, dblTotalWidthSecs, dblBinWidthSecs, dChannelRemapping, dChannelsToArrayMapping)
+        Call buildHistogramForStim(objTTX, arrStimTimes(iStimNum) + oDriveDetectionParams.IgnoreInitialTime, histoSums, histoSquares, dblTotalWidthSecs, dblBinWidthSecs, vChannelMapper, dChannelsToArrayMapping)
     Next
     
     Dim blnChanIsDriven As Boolean
@@ -99,7 +99,7 @@ Function identifyDrivenChannels( _
     Call setHistoArraySizes(histoSums, histoSquares, lHistoBinCount, CLng(vChannelCount))
     
     For iStimNum = 0 To UBound(arrStimTimes)
-        Call buildHistogramForStim(objTTX, arrStimTimes(iStimNum) + oDriveDetectionParams.IgnoreInitialTime, histoSums, histoSquares, dblTotalWidthSecs, dblBinWidthSecs, dChannelRemapping, dChannelsToArrayMapping)
+        Call buildHistogramForStim(objTTX, arrStimTimes(iStimNum) + oDriveDetectionParams.IgnoreInitialTime, histoSums, histoSquares, dblTotalWidthSecs, dblBinWidthSecs, vChannelMapper, dChannelsToArrayMapping)
     Next
     
     'step through each channel
@@ -135,7 +135,7 @@ Function identifyDrivenChannels( _
     Call setHistoArraySizes(histoSums, histoSquares, lHistoBinCount, CLng(vChannelCount))
     
     For iStimNum = 0 To UBound(arrStimTimes)
-        Call buildHistogramForStim(objTTX, arrStimTimes(iStimNum) + oDriveDetectionParams.IgnoreInitialTime, histoSums, histoSquares, dblTotalWidthSecs, dblBinWidthSecs, dChannelRemapping, dChannelsToArrayMapping)
+        Call buildHistogramForStim(objTTX, arrStimTimes(iStimNum) + oDriveDetectionParams.IgnoreInitialTime, histoSums, histoSquares, dblTotalWidthSecs, dblBinWidthSecs, vChannelMapper, dChannelsToArrayMapping)
     Next
     
     'step through each channel
@@ -194,7 +194,7 @@ Function buildHistogramForStim( _
         ByRef histoSquares As Variant, _
         ByRef dblTotalWidthSecs As Double, _
         ByRef dblBinWidthSecs As Double, _
-        Optional dChannelRemapping As Variant, _
+        Optional vChannelMapper As Variant, _
         Optional dChannelsToArrayMapping As Variant, _
         Optional vHistoGenType As Variant _
         )
@@ -229,9 +229,9 @@ Function buildHistogramForStim( _
     'check if channel remapping is required
     'for the remapping table, the first value (key) needs to be the TDT CHANNEL RECORDED, and the second value the DESIRED NEW LABEL
     Dim blnRemapChannels As Boolean
-    If Not IsMissing(dChannelRemapping) Then
-        If Not IsObject(dChannelRemapping) Then
-            If Not (dChannelRemapping Is Nothing) Then
+    If Not IsMissing(vChannelMapper) Then
+        If IsObject(vChannelMapper) Then
+            If Not (vChannelMapper Is Nothing) Then
                 blnRemapChannels = True
             End If
         End If
@@ -308,11 +308,7 @@ Function buildHistogramForStim( _
             For iChanNum = 1 To UBound(arrCount) + 1
                 iWriteToChan = iChanNum
                 If blnRemapChannels Then
-                    If dChannelRemapping.Exists(iWriteToChan) Then
-                        iWriteToChan = dChannelRemapping(iWriteToChan)
-                    Else
-                        iWriteToChan = 0
-                    End If
+                    iWriteToChan = vChannelMapper.fwdLookup(CLng(iWriteToChan))
                 End If
                 
                 If blnRemapToArray Then

@@ -208,11 +208,11 @@ Sub transferCandidatesToSigmaplot(vDrivenChannels As Variant, saveFilename As St
         Dim vKeys As Variant
         vKeys = vDrivenChannels.Keys
         For iRow = 0 To UBound(vKeys)
-            If Not IsMissing(vChannelMapper) Then
-                lActualChanVal = vChannelMapper.fwdLookup(CLng(vKeys(iRow)))
-            Else
+'            If Not IsMissing(vChannelMapper) Then
+'                lActualChanVal = vChannelMapper.fwdLookup(CLng(vKeys(iRow)))
+'            Else
                 lActualChanVal = vKeys(iRow)
-            End If
+'            End If
             
             vTheThing = vDrivenChannels(lActualChanVal)
             

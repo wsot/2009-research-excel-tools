@@ -131,7 +131,15 @@ Function loadConfigParams( _
 End Function
 
 'Tries to detect the CF of each driven channel
-Function findCF(objTTX As TTankX, lNumOfChans As Long, dDrivenChanList As Variant, inputWS As Worksheet, varsWS As Worksheet, outputWS As Worksheet, vChannelMapper As Variant) As Boolean
+Function findCF( _
+    objTTX As TTankX, _
+    lNumOfChans As Long, _
+    dDrivenChanList As Variant, _
+    inputWS As Worksheet, _
+    varsWS As Worksheet, _
+    outputWS As Worksheet, _
+    vChannelMapper As Variant _
+    ) As Boolean
 
     If Not IsEmpty(CFTextStream) Then
         If Not CFTextStream Is Nothing Then
@@ -189,7 +197,7 @@ Function findCF(objTTX As TTankX, lNumOfChans As Long, dDrivenChanList As Varian
     While inputWS.Cells(yPos, xPos).Value <> ""
 
         lChanNum = CLng(Right(inputWS.Cells(yPos, xPos).Value, 2))
-        If dDrivenChanList.Exists(vChannelMapper.revLookup(lChanNum)) Then
+        If dDrivenChanList.Exists(lChanNum) Then
             processChannel = True
         Else
             processChannel = False
@@ -292,7 +300,18 @@ End Function
 'it will reflect drive with whatever grouping filter is currently in place when it is called (i.e. it does not reset filters)
 'Any channel that does not have drive is fully excluded (including when they are on an X or Y axis)
 'DOESN'T ACTUALLY DO ANYWHERE NEAR ALL THAT RIGHT NOW!!
-Function checkChannelsForDrive(objTTX As TTankX, xAxisEp As String, vXAxisKeys As Variant, yAxisEp As String, vYAxisKeys As Variant, stimStartEpoc As String, oDriveDetectionParams As DriveDetection, lNumOfChans As Long, dDrivenChanList As Variant, Optional outputWS As Worksheet, Optional vChannelMapper As Variant) As Boolean
+Function checkChannelsForDrive( _
+    objTTX As TTankX, _
+    xAxisEp As String, _
+    vXAxisKeys As Variant, _
+    yAxisEp As String, _
+    vYAxisKeys As Variant, _
+    stimStartEpoc As String, _
+    oDriveDetectionParams As DriveDetection, _
+    lNumOfChans As Long, _
+    dDrivenChanList As Variant, _
+    Optional outputWS As Worksheet, _
+    Optional vChannelMapper As Variant) As Boolean
 
     Const fixAsValidAfterXAdjacentDetections = 3 'once this many sequential detections have turned up the channel it is 'locked' as driven
     Dim blnReturnVal As Boolean
@@ -347,7 +366,7 @@ Function checkChannelsForDrive(objTTX As TTankX, xAxisEp As String, vXAxisKeys A
                     aStimTimes(lStimIter) = vStimEpocs(1, lStimIter)
                 Next
 
-                Call identifyDrivenChannels(objTTX, aStimTimes, oDriveDetectionParams, dTmpDrivenChanList, lNumOfChans)
+                Call identifyDrivenChannels(objTTX, aStimTimes, oDriveDetectionParams, dTmpDrivenChanList, lNumOfChans, vChannelMapper)
                 
                 'check if there are previously identified entries not found this round
                 vStrKeyArray = dFinalDrivenChanList.Keys
@@ -386,11 +405,11 @@ Function checkChannelsForDrive(objTTX As TTankX, xAxisEp As String, vXAxisKeys A
                         vStrKeyArray = dTmpDrivenChanList.Keys
                         For lStrKeyIndex = LBound(vStrKeyArray) To UBound(vStrKeyArray)
                             lThisKey = vStrKeyArray(lStrKeyIndex)
-                            If Not IsMissing(vChannelMapper) Then
-                                lThisDstKey = vChannelMapper.fwdLookup(lThisKey)
-                            Else
+'                            If Not IsMissing(vChannelMapper) Then
+'                                lThisDstKey = vChannelMapper.fwdLookup(lThisKey)
+'                            Else
                                 lThisDstKey = lThisKey
-                            End If
+'                            End If
                             outputWS.Cells(lThisDstKey + 1, 1).Value = lThisDstKey
                             outputWS.Cells(lThisDstKey + 1, 2 + i).Value = dTmpDrivenChanList(lThisKey)
                         Next
@@ -452,7 +471,7 @@ Function detectNoiseFloor(objTTX As TTankX, stimStartEpoc As String, oDriveDetec
             Call setHistoArraySizes(histoSums, histoSquares, lHistoBinCount, lNumOfChans)
             
             For iStimNum = 0 To UBound(aStimTimes)
-                Call buildHistogramForStim(objTTX, aStimTimes(iStimNum) + oDriveDetectionParams.Diff_StimDur, histoSums, histoSquares, dblTotalWidthSecs, dblBinWidthSecs)
+                Call buildHistogramForStim(objTTX, aStimTimes(iStimNum) + oDriveDetectionParams.Diff_StimDur, histoSums, histoSquares, dblTotalWidthSecs, dblBinWidthSecs, vChannelMapper)
             Next
             
             Dim dblSpikePerEpoc As Double
@@ -469,11 +488,11 @@ Function detectNoiseFloor(objTTX As TTankX, stimStartEpoc As String, oDriveDetec
                 If Not IsMissing(outputWS) Then
                     If IsObject(outputWS) Then
                         If Not outputWS Is Nothing Then
-                            If Not IsMissing(vChannelMapper) Then
-                                lDstChan = vChannelMapper.fwdLookup(lArrIndx + 1)
-                            Else
+'                            If Not IsMissing(vChannelMapper) Then
+'                                lDstChan = vChannelMapper.fwdLookup(lArrIndx + 1)
+'                            Else
                                 lDstChan = lArrIndx + 1
-                            End If
+'                            End If
                             outputWS.Cells(1, 1).Value = "Channel"
                             outputWS.Cells(1, 2).Value = "Sum"
                             outputWS.Cells(1, 3).Value = "Sum of squares"
@@ -1092,12 +1111,14 @@ Function processSearch(ByRef objTTX, ByRef arrOtherEp, ByRef arrOtherEpocKeys, i
         Else
             strAddedSearchString = strSearchString
             'strAddedTitle = strTitle & "Channel = " & CStr(arrOtherEpocKeys(iOtherEpocNum)(i)) & ", "
-            If IsMissing(vChannelMapper) Then
+            'If IsMissing(vChannelMapper) Then
                 strAddedTitle = strTitle & "Channel = " & CStr(arrOtherEpocKeys(iOtherEpocNum)(i)) & ", "
-            Else
-                strAddedTitle = strTitle & "Channel = " & vChannelMapper.fwdLookup(CInt(arrOtherEpocKeys(iOtherEpocNum)(i))) & ", "
+            'Else
+                'strAddedTitle = strTitle & "Channel = " & vChannelMapper.fwdLookup(CLng(arrOtherEpocKeys(iOtherEpocNum)(i))) & ", "
+            'End If
+            If Not IsMissing(vChannelMapper) Then
+                iChanNum = vChannelMapper.revLookup(CLng(arrOtherEpocKeys(iOtherEpocNum)(i)))
             End If
-            iChanNum = arrOtherEpocKeys(iOtherEpocNum)(i)
         End If
         If iOtherEpocNum < UBound(arrOtherEp) Then
             'there are still more epocs to add to the search
@@ -1149,11 +1170,18 @@ Function processSearch(ByRef objTTX, ByRef arrOtherEp, ByRef arrOtherEpocKeys, i
 
 End Function
 
-Sub writeResults(ByRef objTTX, xOffset, yOffset, zOffset, iChanNum, ByRef lMaxHistHeight, ByRef lMaxHistMeanHeight, Optional ByRef vNoiseFloorList As Variant, Optional ByRef vDrivenChans As Variant)
+Sub writeResults(ByRef objTTX, xOffset, yOffset, zOffset, iChanNum, ByRef lMaxHistHeight, ByRef lMaxHistMeanHeight, Optional ByRef vNoiseFloorList As Variant, Optional ByRef vDrivenChans As Variant, Optional ByRef vChannelMapper As Variant)
     Dim strTmpAddr As String
     Dim strTmpFormula As String
     Dim varReturn As Variant
     Dim varChanData As Variant
+    
+    Dim lMappedChan As Long
+    If Not IsMissing(vChannelMapper) Then
+        lMappedChan = vChannelMapper.fwdLookup(CLng(iChanNum))
+    Else
+        lMappedChan = CLng(iChanNum)
+    End If
     
     Dim dblStartTime As Double
     Dim dblEndTime As Double
@@ -1225,22 +1253,22 @@ Sub writeResults(ByRef objTTX, xOffset, yOffset, zOffset, iChanNum, ByRef lMaxHi
             If iChanNum <> 0 Then
                 If Not IsMissing(vNoiseFloorList) Then
                     
-                    outputWorkbook.Worksheets("Totals Noise Floor").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value = vNoiseFloorList(iChanNum)(0) * dblBinWidth * nSweps
-                    outputWorkbook.Worksheets("Means Noise Floor").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value = vNoiseFloorList(iChanNum)(0) * dblBinWidth
+                    outputWorkbook.Worksheets("Totals Noise Floor").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value = vNoiseFloorList(lMappedChan)(0) * dblBinWidth * nSweps
+                    outputWorkbook.Worksheets("Means Noise Floor").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value = vNoiseFloorList(lMappedChan)(0) * dblBinWidth
                     
                     'outputWorkbook.Worksheets("Totals Noise Floor").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value = (vNoiseFloorList(iChanNum)(1) / vNoiseFloorList(iChanNum)(3)) * dblBinWidth * nSweps * 2
                     'outputWorkbook.Worksheets("Means Noise Floor").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Value = (vNoiseFloorList(iChanNum)(1) / vNoiseFloorList(iChanNum)(3)) * dblBinWidth
                 
                     strTmpAddr = outputWorkbook.Worksheets("Totals").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Address
-                    strTmpFormula = "=IF('Totals'!" & strTmpAddr & "-(('Noise Floor'!F" & (iChanNum + 1) & " * 'Settings'!B1)*('N'!" & strTmpAddr & ")) < 0,0,'Totals'!" & strTmpAddr & "-(('Noise Floor'!F" & (iChanNum + 1) & " * 'Settings'!B1)*('N'!" & strTmpAddr & ")))"
+                    strTmpFormula = "=IF('Totals'!" & strTmpAddr & "-(('Noise Floor'!F" & (lMappedChan + 1) & " * 'Settings'!B1)*('N'!" & strTmpAddr & ")) < 0,0,'Totals'!" & strTmpAddr & "-(('Noise Floor'!F" & (lMappedChan + 1) & " * 'Settings'!B1)*('N'!" & strTmpAddr & ")))"
                     outputWorkbook.Worksheets("Noise-adjusted Totals").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Formula = strTmpFormula
-                    strTmpFormula = "=IF('Means'!" & strTmpAddr & "-('Noise Floor'!F" & (iChanNum + 1) & " * 'Settings'!B1) < 0,0,'Means'!" & strTmpAddr & "-('Noise Floor'!F" & (iChanNum + 1) & " * 'Settings'!B1))"
+                    strTmpFormula = "=IF('Means'!" & strTmpAddr & "-('Noise Floor'!F" & (lMappedChan + 1) & " * 'Settings'!B1) < 0,0,'Means'!" & strTmpAddr & "-('Noise Floor'!F" & (lMappedChan + 1) & " * 'Settings'!B1))"
                     outputWorkbook.Worksheets("Noise-adjusted Means").Cells(yOffset + iRowOffset + zOffset + 1, xOffset + iColOffset + 1).Formula = strTmpFormula
                 End If
             End If
         End If
         If Not IsMissing(vDrivenChans) Then
-            If vDrivenChans.Exists(iChanNum) Then
+            If vDrivenChans.Exists(lMappedChan) Then
                 If histMean > lMaxHistMeanHeight Then
                     lMaxHistMeanHeight = histMean
                 End If
@@ -1437,12 +1465,4 @@ Function readCommentFromFile(objFile As File) As String
     readCommentFromFile = ts.ReadLine
     ts.Close
 End Function
-
-
-
-
-
-
-
-
 

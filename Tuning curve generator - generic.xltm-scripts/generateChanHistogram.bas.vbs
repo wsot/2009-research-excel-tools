@@ -116,9 +116,9 @@ Function generateChanHistograms( _
             For lArrIndex = 0 To (lHistoBinCount - 1)
                 If Not bChartsInElectrodeArrangement Then
                     outputWS.Cells(lRowNum, lArrIndex + 2) = dblIgnoreFirstMsec + (dblBinWidthSecsForHisto * lArrIndex)
-                    outputWS.Cells(lRowNum + 1, lArrIndex + 2) = histoSums(vChannelMapper.revLookup(lChanNum) - 1)(lArrIndex) / UBound(aStimTimes)
+                    outputWS.Cells(lRowNum + 1, lArrIndex + 2) = histoSums(lChanNum - 1)(lArrIndex) / UBound(aStimTimes)
                 Else
-                    outputWS.Cells(lRowNum, lArrIndex + 2) = histoSums(vChannelMapper.revLookup(lChanNum) - 1)(lArrIndex) / UBound(aStimTimes)
+                    outputWS.Cells(lRowNum, lArrIndex + 2) = histoSums(lChanNum - 1)(lArrIndex) / UBound(aStimTimes)
                 End If
             Next
             
