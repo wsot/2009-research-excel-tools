@@ -70,6 +70,7 @@ Sub ExtractNeuralData()
         Exit Sub
     End If
     
+    
 'Don't need any of the 'actual volume' calculations because we are not comparing between frequencies - only need to use raw values to check same number of stim with same property
 '    Set dAtten = New Dictionary
 '    Set dOldAtten = New Dictionary
@@ -80,12 +81,17 @@ Sub ExtractNeuralData()
     Call loadIncludeChannelList
     
     vExclArr = checkForExclusion(Worksheets("Variables (do not edit)").Range("B9").Value)
-    
+        
     Dim dblTotalWidthSecs As Double
     Dim dblBinWidthSecs As Double
     Dim dblStartOffsetSecs As Double
     
     Call getParsingVariables(dblTotalWidthSecs, dblBinWidthSecs, dblStartOffsetSecs)
+    
+    Dim vChannelMapper As ChannelMapper
+    Set vChannelMapper = New ChannelMapper
+    
+    Call vChannelMapper.readMappingListsFromDirName(theTank & "\" & theBlock, 32)
     
     Call Worksheets("Neural Data").UsedRange.Clear
     Call Worksheets("Neural Data").UsedRange.ClearFormats
@@ -102,11 +108,12 @@ Sub ExtractNeuralData()
         Exit Sub
     End If
     
-    Call parseNeuralData(dblTotalWidthSecs, dblBinWidthSecs, dblStartOffsetSecs)
+    Call parseNeuralData(dblTotalWidthSecs, dblBinWidthSecs, dblStartOffsetSecs, vChannelMapper)
     Worksheets("Variables (do not edit)").Range("B7").Value = True
 '    Set dAtten = Nothing
 '    Set dOldAtten = Nothing
     
+    Set vChannelMapper = Nothing
     Set objTTX = Nothing
     
     'Application.Calculation = xlCalculationAutomatic
@@ -159,7 +166,7 @@ Function getParsingVariables(ByRef dblTotalWidthSecs As Double, ByRef dblBinWidt
     DriveDetect_MinIn2nd3rdForOnset = CLng(Worksheets("Settings").Range("B39").Value)
 End Function
 
-Function parseNeuralData(dblTotalWidthSecs As Double, dblBinWidthSecs As Double, dblStartOffsetSecs As Double)
+Function parseNeuralData(dblTotalWidthSecs As Double, dblBinWidthSecs As Double, dblStartOffsetSecs As Double, ByRef vChannelMapper As Variant)
     Dim iTrialNum As Integer
 
     Dim neuroWS As Worksheet
@@ -189,7 +196,7 @@ Function parseNeuralData(dblTotalWidthSecs As Double, dblBinWidthSecs As Double,
         
 '        Call objTTX.ResetFilters
         'find first trial actual start time
-        Call readTrialNeuralData(iTrialNum, neuroWS, trialDataWS, dblTotalWidthSecs, dblBinWidthSecs, dblStartOffsetSecs)
+        Call readTrialNeuralData(iTrialNum, neuroWS, trialDataWS, dblTotalWidthSecs, dblBinWidthSecs, dblStartOffsetSecs, vChannelMapper)
         
         iTrialNum = iTrialNum + 1
     Wend
@@ -204,7 +211,7 @@ Function stripTrailingHz(strInput) As String
         End If
 End Function
 
-Function readTrialNeuralData(iTrialNum As Integer, neuroWS As Worksheet, trialDataWS As Worksheet, dblTotalWidthSecs As Double, dblBinWidthSecs As Double, dblStartOffsetSecs As Double)
+Function readTrialNeuralData(iTrialNum As Integer, neuroWS As Worksheet, trialDataWS As Worksheet, dblTotalWidthSecs As Double, dblBinWidthSecs As Double, dblStartOffsetSecs As Double, ByRef vChannelMapper As Variant)
     Dim iTrialNumTDT As Integer
 
     Dim lStim1Freq As Long
@@ -288,7 +295,7 @@ Function readTrialNeuralData(iTrialNum As Integer, neuroWS As Worksheet, trialDa
         
         Dim dDrivenChanList As Dictionary
         Set dDrivenChanList = New Dictionary
-        Call identifyDrivenChannels(stimEpocs, dDrivenChanList)
+        Call identifyDrivenChannels(stimEpocs, dDrivenChanList, vChannelMapper)
         
         'Dim lHistoBin As Long
         
@@ -313,14 +320,15 @@ Function readTrialNeuralData(iTrialNum As Integer, neuroWS As Worksheet, trialDa
                 Next
                 
                 histoN = histoN + 1
-                Call buildHistogramForStimMethod1(stimEpocs(1, iStimNum), histoSums, histoSquares, histoBinCount, dblTotalWidthSecs, dblBinWidthSecs, dblStartOffsetSecs)
+                'Call buildHistogramForStimMethod1(stimEpocs(1, iStimNum), histoSums, histoSquares, histoBinCount, dblTotalWidthSecs, dblBinWidthSecs, dblStartOffsetSecs)
+                Call buildHistogramForStim(objTTX, stimEpocs(1, iStimNum) + dblStartOffsetSecs, histoSums, histoSquares, dblTotalWidthSecs, dblBinWidthSecs, vChannelMapper)
             End If
         Next
         'once it has gotten to this point, it has the histogram data for all channels, and all bins in the histoSums and histoSquares arrays
         
         Call renderAmpList(stimAmpCounts, stimAmp, intChartGap, iTrialNum, neuroWS)
          
-        Call outputResults(neuroWS, intChartGap, histoBinCount, iTrialNum, histoSums, histoSquares, histoN, 0, chartList, histoMaxTotal, histoMaxMean, dDrivenChanList)
+        Call outputResults(neuroWS, intChartGap, histoBinCount, iTrialNum, histoSums, histoSquares, histoN, 0, chartList, histoMaxTotal, histoMaxMean, dDrivenChanList, vChannelMapper)
         
         histoN = 0
         Call setHistoArraySizes(histoSums, histoSquares, histoBinCount) 'flush the histo data
@@ -356,7 +364,8 @@ Function readTrialNeuralData(iTrialNum As Integer, neuroWS As Worksheet, trialDa
                         stimAmpCounts(stimAmpStep) = stimAmpCounts(stimAmpStep) - 1
                         iMatchesLeft = iMatchesLeft - 1
                         histoN = histoN + 1
-                        Call buildHistogramForStimMethod1(returnVal(5, iStimNum), histoSums, histoSquares, histoBinCount, dblTotalWidthSecs, dblBinWidthSecs, dblStartOffsetSecs)
+                        'Call buildHistogramForStimMethod1(returnVal(5, iStimNum), histoSums, histoSquares, histoBinCount, dblTotalWidthSecs, dblBinWidthSecs, dblStartOffsetSecs)
+                        Call buildHistogramForStim(objTTX, returnVal(5, iStimNum) + dblStartOffsetSecs, histoSums, histoSquares, dblTotalWidthSecs, dblBinWidthSecs, vChannelMapper)
                     End If
                     Exit For
                 End If
@@ -386,7 +395,7 @@ Function readTrialNeuralData(iTrialNum As Integer, neuroWS As Worksheet, trialDa
     '        neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 4, 1).Font.Color = unmatchedStimCell.Font.Color
         End If
         
-        Call outputResults(neuroWS, intChartGap, histoBinCount, iTrialNum, histoSums, histoSquares, histoN, 1, chartList, histoMaxTotal, histoMaxMean, dDrivenChanList)
+        Call outputResults(neuroWS, intChartGap, histoBinCount, iTrialNum, histoSums, histoSquares, histoN, 1, chartList, histoMaxTotal, histoMaxMean, dDrivenChanList, vChannelMapper)
         
         If blnBuildCharts Then
             Call setChartScales(chartList, histoMaxTotal, histoMaxMean)
@@ -395,6 +404,154 @@ Function readTrialNeuralData(iTrialNum As Integer, neuroWS As Worksheet, trialDa
         Set dDrivenChanList = Nothing
     End If
     
+End Function
+
+Function buildHistogramForStim( _
+        objTTX As TTankX, _
+        ByVal dblStartTime As Double, _
+        ByRef histoSums As Variant, _
+        ByRef histoSquares As Variant, _
+        ByRef dblTotalWidthSecs As Double, _
+        ByRef dblBinWidthSecs As Double, _
+        Optional vChannelMapper As Variant, _
+        Optional dChannelsToArrayMapping As Variant, _
+        Optional vHistoGenType As Variant _
+        )
+    
+    Dim iHistoGenType As Integer
+    iHistoGenType = 0
+    If Not IsMissing(vHistoGenType) Then
+        If IsNumeric(vHistoGenType) Then
+            iHistoGenType = vHistoGenType
+        End If
+    End If
+    
+    Dim lHistoBinCount As Long
+    lHistoBinCount = calcBinCount(dblTotalWidthSecs, dblBinWidthSecs)
+    
+    Dim iChanNum As Integer 'used for iteration in generating histos for each channel
+    Dim lEvtCount As Long 'count of total events retrieved with the current search
+    Dim lEvtNum As Long 'iterator for stepping through retreived records
+    Dim lBinNum As Long 'the current bin being collected for
+    
+    Dim dblEndTime As Double 'the end time to search to
+    Dim varData As Variant 'data returned from ParseEvInfoV
+           
+    'Dim dCount As Dictionary
+    'Set dCount = New Dictionary
+    Dim arrCount() As Long
+    ReDim arrCount(31) 'because in reality redimming, especially with preserve, is a very expensive operation we're better off just starting off with a bigger number
+    Dim intArrCountUpperLimit As Integer
+    intArrCountUpperLimit = UBound(arrCount)
+
+
+    'check if channel remapping is required
+    'for the remapping table, the first value (key) needs to be the TDT CHANNEL RECORDED, and the second value the DESIRED NEW LABEL
+    Dim blnRemapChannels As Boolean
+    If Not IsMissing(vChannelMapper) Then
+        If IsObject(vChannelMapper) Then
+            If Not (vChannelMapper Is Nothing) Then
+                blnRemapChannels = True
+            End If
+        End If
+    Else
+        blnRemapChannels = False
+    End If
+
+    Dim blnRemapToArray As Boolean
+    If Not IsMissing(dChannelsToArrayMapping) Then
+        If IsObject(dChannelsToArrayMapping) Then
+            If Not (dChannelsToArrayMapping Is Nothing) Then
+                blnRemapToArray = True
+            End If
+        End If
+    Else
+        blnRemapToArray = False
+    End If
+
+    Dim iWriteToChan As Integer
+
+    dblEndTime = dblStartTime + dblBinWidthSecs
+    For lBinNum = 0 To lHistoBinCount
+            Select Case iHistoGenType
+                Case 0:
+                    Do
+                        lEvtCount = objTTX.ReadEventsV(100000, "CSPK", 0, 0, dblStartTime, dblEndTime, "ALL")
+                        If lEvtCount = 0 Then
+                            Exit Do
+                        End If
+                    
+                        varData = objTTX.ParseEvInfoV(0, lEvtCount, 4)
+                    
+                        For lEvtNum = 0 To lEvtCount - 1
+                            'count the number of events for each channel in the current bin
+                            If (varData(lEvtNum) - 1) > intArrCountUpperLimit Then 'maybe cheaper than actually doing a ubound every time? (but who really knows...)
+                                ReDim Preserve arrCount(varData(lEvtNum) - 1)
+                                intArrCountUpperLimit = UBound(arrCount)
+                            End If
+                            arrCount(varData(lEvtNum) - 1) = arrCount(varData(lEvtNum) - 1) + 1
+                        Next
+            
+                        'if the full 10000 was retrieved, there may be more to fetch, so try to fetch them
+                        If lEvtCount < 100000 Then
+                            Exit Do
+                        Else
+                            'get the time of the last event, and search forward from that - there is a risk this could miss events where the time is identical, however. That said, never got more than 10000 event yet
+                            MsgBox "Obtained 100000+ events!"
+                            varData = objTTX.ParseEvInfoV(lEvtCount - 1, 1, 6)
+                            dblStartTime = varData(0) + (1 / 100000)
+                        End If
+                    Loop
+                Case 1:
+                    For iChanNum = 1 To UBound(arrCount) + 3
+                        lEvtCount = objTTX.ReadEventsV(100000, "CSPK", iChanNum, 0, dblStartTime, dblEndTime, "ALL")
+                        If Not lEvtCount = 0 Then
+                            If (iChanNum - 1) > intArrCountUpperLimit Then 'maybe cheaper than actually doing a ubound every time? (but who really knows...)
+                                ReDim Preserve arrCount(iChanNum - 1)
+                                intArrCountUpperLimit = UBound(arrCount)
+                            End If
+                            arrCount(iChanNum - 1) = arrCount(iChanNum - 1) + lEvtCount
+                        
+                            'if the full 10000 was retrieved, there may be more to fetch, so try to fetch them
+                            If Not lEvtCount < 100000 Then
+                                'get the time of the last event, and search forward from that - there is a risk this could miss events where the time is identical, however. That said, never got more than 10000 event yet
+                                MsgBox "Obtained 100000+ events!"
+                                varData = objTTX.ParseEvInfoV(lEvtCount - 1, 1, 6)
+                                dblStartTime = varData(0) + (1 / 100000)
+                            End If
+                        End If
+                    Next
+            End Select
+            
+            'update the totals with the obtained number of events
+            For iChanNum = 1 To UBound(arrCount) + 1
+                iWriteToChan = iChanNum
+                If blnRemapChannels Then
+                    iWriteToChan = vChannelMapper.fwdLookup(CLng(iWriteToChan))
+                End If
+                
+                If blnRemapToArray Then
+                    If dChannelsToArrayMapping.Exists(iWriteToChan) Then
+                        iWriteToChan = dChannelsToArrayMapping(iWriteToChan) + 1 '-1 because the channel number has 1 subtracted from it to make it an array index later
+                    Else
+                        iWriteToChan = 0
+                    End If
+                End If
+                
+                If iWriteToChan > (UBound(histoSums, 1) + 1) Then 'if the channel number is higher than the array can actually support, then need to scrap it
+                    iWriteToChan = 0
+                End If
+                
+                If iWriteToChan <> 0 Then 'if iWriteToChan is 0, then the value will be ignored
+                    histoSums(iWriteToChan - 1)(lBinNum) = histoSums(iWriteToChan - 1)(lBinNum) + arrCount(iChanNum - 1)
+                    histoSquares(iWriteToChan - 1)(lBinNum) = histoSquares(iWriteToChan - 1)(lBinNum) + (arrCount(iChanNum - 1) ^ 2)
+                End If
+            Next
+            ReDim arrCount(intArrCountUpperLimit) 'clear the storage array, but keep it with the same number of channels
+
+            dblStartTime = dblEndTime
+            dblEndTime = dblStartTime + dblBinWidthSecs
+        Next
 End Function
 
 Function buildHistogramForStimMethod1(ByVal dblStartTime As Double, ByRef histoSums As Variant, ByRef histoSquares As Variant, lHistoBinCount As Long, dblTotalWidthSecs As Double, dblBinWidthSecs As Double, dblStartOffsetSecs As Double)
@@ -521,7 +678,7 @@ Function outputHeaders(neuroWS As Worksheet, intChartGap As Integer, histoBinCou
     Next
 End Function
 
-Function outputResults(neuroWS As Worksheet, intChartGap As Integer, histoBinCount As Long, iTrialNum As Integer, histoSums As Variant, histoSquares As Variant, histoN As Long, iOffset As Integer, ByRef chartList As clsLinkedList, ByRef histoMaxTotal As Long, ByRef histoMaxMean As Double, dDrivenChanList As Dictionary)
+Function outputResults(neuroWS As Worksheet, intChartGap As Integer, histoBinCount As Long, iTrialNum As Integer, histoSums As Variant, histoSquares As Variant, histoN As Long, iOffset As Integer, ByRef chartList As clsLinkedList, ByRef histoMaxTotal As Long, ByRef histoMaxMean As Double, dDrivenChanList As Dictionary, ByRef vChannelMapper As Variant)
     Dim myChart As ChartObject
     Dim iChartNum As Integer
     Dim lChartTopPos As Long
@@ -668,7 +825,7 @@ Function setChartScales(chartList As clsLinkedList, histoMaxTotal As Long, histo
     Next
 End Function
 
-Function identifyDrivenChannels(stimEpocs As Variant, dDrivenChanList As Dictionary)
+Function identifyDrivenChannels(stimEpocs As Variant, dDrivenChanList As Dictionary, ByRef vChannelMapper As Variant)
     'ByVal dblStartTime As Double, ByRef histoSums As Variant, ByRef histoSquares As Variant, lHistoBinCount As Long
 
     Dim dblTotalWidthSecs As Double
@@ -694,7 +851,8 @@ Function identifyDrivenChannels(stimEpocs As Variant, dDrivenChanList As Diction
     Call setHistoArraySizes(histoSums, histoSquares, histoBinCount)
     
     For iStimNum = 0 To 8 'only want to look at the first 9 stims, because after than the shock will be on, which could screw up the neural data
-        Call buildHistogramForStimMethod1(stimEpocs(1, iStimNum), histoSums, histoSquares, histoBinCount, dblTotalWidthSecs, dblBinWidthSecs, dblStartOffsetSecs)
+        'Call buildHistogramForStimMethod1(stimEpocs(1, iStimNum), histoSums, histoSquares, histoBinCount, dblTotalWidthSecs, dblBinWidthSecs, dblStartOffsetSecs)
+        Call buildHistogramForStim(objTTX, stimEpocs(1, iStimNum) + dblStartOffsetSecs, histoSums, histoSquares, dblTotalWidthSecs, dblBinWidthSecs, vChannelMapper)
     Next
     
     Dim vChanKey As Variant
@@ -725,7 +883,8 @@ Function identifyDrivenChannels(stimEpocs As Variant, dDrivenChanList As Diction
     Call setHistoArraySizes(histoSums, histoSquares, histoBinCount)
     
     For iStimNum = 0 To 8 'only want to look at the first 9 stims, because after than the shock will be on, which could screw up the neural data
-        Call buildHistogramForStimMethod1(stimEpocs(1, iStimNum), histoSums, histoSquares, histoBinCount, dblTotalWidthSecs, dblBinWidthSecs, dblStartOffsetSecs)
+        Call buildHistogramForStim(objTTX, stimEpocs(1, iStimNum) + dblStartOffsetSecs, histoSums, histoSquares, dblTotalWidthSecs, dblBinWidthSecs, vChannelMapper)
+        'Call buildHistogramForStimMethod1(stimEpocs(1, iStimNum), histoSums, histoSquares, histoBinCount, dblTotalWidthSecs, dblBinWidthSecs, dblStartOffsetSecs)
     Next
     
     'step through each channel
@@ -815,5 +974,11 @@ Function readCommentFromFile(objFile As File, ByRef exclusionInfo As Variant) As
     
     ts.Close
 End Function
+
+
+Function calcBinCount(dblTotalWidthSecs As Double, dblBinWidthSecs As Double) As Long
+    calcBinCount = CLng(dblTotalWidthSecs / dblBinWidthSecs)
+End Function
+
 
 
