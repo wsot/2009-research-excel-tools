@@ -89,7 +89,7 @@ Public Function readMappingLists(rFirstTDTEntry As Range, rFirstMappedEntry As R
 End Function
 
 
-Public Function readMappingListsFromFilename(sFilename As String, lNumOfChans As Long, Optional rFirstTDTEntry As Range, Optional rFirstMappedEntry As Range) As Boolean
+Public Function readMappingListsFromFilename(sFilename As String, lNumOfChans As Long, Optional rFirstTDTEntry As Variant, Optional rFirstMappedEntry As Variant) As Boolean
     Dim objFS As FileSystemObject
     Set objFS = New FileSystemObject
     
@@ -107,7 +107,7 @@ Public Function readMappingListsFromFilename(sFilename As String, lNumOfChans As
 
 End Function
 
-Public Function readMappingListsFromFile(objFile As File, lNumOfChans As Long, Optional rFirstTDTEntry As Range, Optional rFirstMappedEntry As Range) As Boolean
+Public Function readMappingListsFromFile(objFile As File, lNumOfChans As Long, Optional rFirstTDTEntry As Variant, Optional rFirstMappedEntry As Variant) As Boolean
     
     Dim lIter As Long
     readMappingListsFromFile = True
@@ -201,7 +201,7 @@ Public Function readMappingListsFromFile(objFile As File, lNumOfChans As Long, O
         
 End Function
 
-Public Function readMappingListsFromDirName(sDirName As String, lNumOfChans As Long, Optional rFirstTDTEntry As Range, Optional rFirstMappedEntry As Range) As Boolean
+Public Function readMappingListsFromDirName(sDirName As String, lNumOfChans As Long, Optional rFirstTDTEntry As Variant, Optional rFirstMappedEntry As Variant) As Boolean
     Dim objFS As FileSystemObject
     Set objFS = New FileSystemObject
     
