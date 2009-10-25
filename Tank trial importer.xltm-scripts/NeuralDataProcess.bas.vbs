@@ -23,6 +23,8 @@ Dim undrivenChanCell As Range
 Dim drivenChanOnsetDetectedCell As Range
 Dim drivenChanDifferenceDetectedCell As Range
 
+Dim vExclArr As Variant
+
 Const ConnectSuccess = 0
 Const ServerConnectFail = 1
 Const TankConnectFail = 2
@@ -39,8 +41,6 @@ Const DriveDetect_ActDiffDetected = 2
 Dim DriveDetect_ActivityDifferenceThreshold As Double
 Dim DriveDetect_AbsoluteMinimumSpikesInFirstBin As Long
 Dim DriveDetect_MinIn2nd3rdForOnset As Long
-
-
 
 Sub ExtractNeuralDataWithCharts()
     blnBuildCharts = True
@@ -63,14 +63,13 @@ Sub ExtractNeuralData()
     Set drivenChanDifferenceDetectedCell = Worksheets("Settings").Cells(31, 2)
     
     Set objTTX = CreateObject("TTank.X") 'establish connection to TDT Tank engine
-    
+        
     If Not connectToTDT Then
         MsgBox "Connection to TDT could not be established."
         Set objTTX = Nothing
         Exit Sub
     End If
     
-
 'Don't need any of the 'actual volume' calculations because we are not comparing between frequencies - only need to use raw values to check same number of stim with same property
 '    Set dAtten = New Dictionary
 '    Set dOldAtten = New Dictionary
@@ -79,6 +78,8 @@ Sub ExtractNeuralData()
 '    Call loadAttenList(dOldAtten, "Attenuations (incorrect)")
     
     Call loadIncludeChannelList
+    
+    vExclArr = checkForExclusion(Worksheets("Variables (do not edit)").Range("B9").Value)
     
     Dim dblTotalWidthSecs As Double
     Dim dblBinWidthSecs As Double
@@ -209,177 +210,190 @@ Function readTrialNeuralData(iTrialNum As Integer, neuroWS As Worksheet, trialDa
     Dim lStim1Freq As Long
     Dim strStim1Filter As String
     
-    'get the trial number with reference to TDT for the current trial
-    iTrialNumTDT = CInt(trialDataWS.Range("B" & (iTrialNum + 1)).Value)
-    'get the frequency of the 'continued' stimulus for this trial from the existing trial data
-    lStim1Freq = CLng(stripTrailingHz(trialDataWS.Range("F" & (iTrialNum + 1)).Value))
-    'build a filter to get this frequency in the given trial
-    strStim1Filter = "TriS = " & iTrialNumTDT & " AND AFrq = " & lStim1Freq
-        
-    Call objTTX.ResetFilters
-    Call objTTX.SetFilterWithDescEx(strStim1Filter)
-        
-    'find the sweep times within the 'alternating' period of the given for this frequency
-    Dim stimEpocs As Variant
-    stimEpocs = objTTX.GetEpocsExV("SweS", 0)
-
-    'if none found, something is very wrong
-    If Not IsArray(stimEpocs) Then
-        MsgBox "Could not obtain Sweeps for search string: " & strStim1Filter
-        Exit Function
-    End If
-    
-    'intChartGap is used to give extra space in the output for charts
-    Dim intChartGap As Integer
-    If blnBuildCharts Then
-        intChartGap = 21
-    Else
-        intChartGap = 0
-    End If
-
-    Dim returnVal As Variant
-    Dim isAtten As Boolean 'true if the read value is an attenuation, false if it is an (incorrect) absolute amplitude (which needs to be corrected based on 'Attenuations (incorrect)' and 'Attenuations'
-    Dim iStimNum As Long
-    Dim k As Long
-    
-    'dim variables used to store output of the histogram generation
-    Dim histoSums() As Variant
-    Dim histoSquares() As Variant
-    Dim histoN As Long
-    Dim histoBinCount As Long
-    Dim histoMaxTotal As Long
-    Dim histoMaxMean As Double
-    
-    'create a linked list for links to charts, later used to update the scales
-    Dim chartList As clsLinkedList
-    Set chartList = New clsLinkedList
-    
-    histoN = 0
-    'calculate the total number of bin (always has one extra at the end, but not having that seems to lead to array overrun problems...)
-    histoBinCount = CInt(dblTotalWidthSecs / dblBinWidthSecs)
-    'set the arrays to fit the data to go into them
-    Call setHistoArraySizes(histoSums, histoSquares, histoBinCount)
-    Call outputHeaders(neuroWS, intChartGap, histoBinCount, iTrialNum, lStim1Freq, dblTotalWidthSecs, dblBinWidthSecs, dblStartOffsetSecs) 'write out the headings for the current block of histograms
-    
-    'arrays used to store frequency/values of amplitudes
-    Dim stimAmp(2) As Integer 'this is used to store the individual frequencies for matching
-    Dim stimAmpCounts(2) As Integer 'this is used to count the frequency of each amplitude of a given stimulation, to ensure even numbers between in-trial and pre-trial
-    Dim stimAmpStep As Integer
-    
-    returnVal = objTTX.QryEpocAtV("Attn", stimEpocs(1, 0), 0) 'returnVal/stimEpocs offset 5 is time of event
-    If IsEmpty(returnVal) Then
-        isAtten = False
-    Else
-        isAtten = True
-    End If
-    
-    Dim dDrivenChanList As Dictionary
-    Set dDrivenChanList = New Dictionary
-    Call identifyDrivenChannels(stimEpocs, dDrivenChanList)
-    
-    'Dim lHistoBin As Long
-    
-    For iStimNum = 0 To 8 'only want to look at the first 9 stims, because after than the shock will be on, which could screw up the neural data
-        If isAtten Then
-            returnVal = objTTX.QryEpocAtV("Attn", stimEpocs(1, iStimNum), 0) 'get the attenuation epoc at the stim time
-        Else
-            returnVal = objTTX.QryEpocAtV("Ampl", stimEpocs(1, iStimNum), 0) 'get the amplitude epoc at the stim time (which we don't actually need to correct because we are not looking at differences...)
+    Dim bInExclusion As Boolean
+    bInExclusion = False
+    'Check if the trial is to be excluded
+    If vExclArr(0) = "all" Then
+        bInExclusion = True
+    ElseIf vExclArr(0) = "partial" Then
+        If trialDataWS.Range("D" & (iTrialNum + 1)).Value >= vExclArr(1) Then
+            bInExclusion = True
         End If
-        If IsEmpty(returnVal) Then
-            MsgBox "SweS epoc occurred without paired Attn or Ampl epoc at time:" & stimEpocs(1, iStimNum)
+    End If
+    
+    If Not bInExclusion Then
+        'get the trial number with reference to TDT for the current trial
+        iTrialNumTDT = CInt(trialDataWS.Range("B" & (iTrialNum + 1)).Value)
+        'get the frequency of the 'continued' stimulus for this trial from the existing trial data
+        lStim1Freq = CLng(stripTrailingHz(trialDataWS.Range("F" & (iTrialNum + 1)).Value))
+        'build a filter to get this frequency in the given trial
+        strStim1Filter = "TriS = " & iTrialNumTDT & " AND AFrq = " & lStim1Freq
+            
+        Call objTTX.ResetFilters
+        Call objTTX.SetFilterWithDescEx(strStim1Filter)
+            
+        'find the sweep times within the 'alternating' period of the given for this frequency
+        Dim stimEpocs As Variant
+        stimEpocs = objTTX.GetEpocsExV("SweS", 0)
+    
+        'if none found, something is very wrong
+        If Not IsArray(stimEpocs) Then
+            MsgBox "Could not obtain Sweeps for search string: " & strStim1Filter
+            Exit Function
+        End If
+        
+        'intChartGap is used to give extra space in the output for charts
+        Dim intChartGap As Integer
+        If blnBuildCharts Then
+            intChartGap = 21
         Else
+            intChartGap = 0
+        End If
+    
+        Dim returnVal As Variant
+        Dim isAtten As Boolean 'true if the read value is an attenuation, false if it is an (incorrect) absolute amplitude (which needs to be corrected based on 'Attenuations (incorrect)' and 'Attenuations'
+        Dim iStimNum As Long
+        Dim k As Long
+        
+        'dim variables used to store output of the histogram generation
+        Dim histoSums() As Variant
+        Dim histoSquares() As Variant
+        Dim histoN As Long
+        Dim histoBinCount As Long
+        Dim histoMaxTotal As Long
+        Dim histoMaxMean As Double
+        
+        'create a linked list for links to charts, later used to update the scales
+        Dim chartList As clsLinkedList
+        Set chartList = New clsLinkedList
+        
+        histoN = 0
+        'calculate the total number of bin (always has one extra at the end, but not having that seems to lead to array overrun problems...)
+        histoBinCount = CInt(dblTotalWidthSecs / dblBinWidthSecs)
+        'set the arrays to fit the data to go into them
+        Call setHistoArraySizes(histoSums, histoSquares, histoBinCount)
+        Call outputHeaders(neuroWS, intChartGap, histoBinCount, iTrialNum, lStim1Freq, dblTotalWidthSecs, dblBinWidthSecs, dblStartOffsetSecs) 'write out the headings for the current block of histograms
+        
+        'arrays used to store frequency/values of amplitudes
+        Dim stimAmp(2) As Integer 'this is used to store the individual frequencies for matching
+        Dim stimAmpCounts(2) As Integer 'this is used to count the frequency of each amplitude of a given stimulation, to ensure even numbers between in-trial and pre-trial
+        Dim stimAmpStep As Integer
+        
+        returnVal = objTTX.QryEpocAtV("Attn", stimEpocs(1, 0), 0) 'returnVal/stimEpocs offset 5 is time of event
+        If IsEmpty(returnVal) Then
+            isAtten = False
+        Else
+            isAtten = True
+        End If
+        
+        Dim dDrivenChanList As Dictionary
+        Set dDrivenChanList = New Dictionary
+        Call identifyDrivenChannels(stimEpocs, dDrivenChanList)
+        
+        'Dim lHistoBin As Long
+        
+        For iStimNum = 0 To 8 'only want to look at the first 9 stims, because after than the shock will be on, which could screw up the neural data
+            If isAtten Then
+                returnVal = objTTX.QryEpocAtV("Attn", stimEpocs(1, iStimNum), 0) 'get the attenuation epoc at the stim time
+            Else
+                returnVal = objTTX.QryEpocAtV("Ampl", stimEpocs(1, iStimNum), 0) 'get the amplitude epoc at the stim time (which we don't actually need to correct because we are not looking at differences...)
+            End If
+            If IsEmpty(returnVal) Then
+                MsgBox "SweS epoc occurred without paired Attn or Ampl epoc at time:" & stimEpocs(1, iStimNum)
+            Else
+                For stimAmpStep = 0 To 2
+                    If CInt(returnVal) = stimAmp(stimAmpStep) Then
+                        stimAmpCounts(stimAmpStep) = stimAmpCounts(stimAmpStep) + 1
+                        Exit For
+                    ElseIf stimAmp(stimAmpStep) = 0 Then
+                        stimAmpCounts(stimAmpStep) = stimAmpCounts(stimAmpStep) + 1
+                        stimAmp(stimAmpStep) = Int(returnVal)
+                        Exit For
+                    End If
+                Next
+                
+                histoN = histoN + 1
+                Call buildHistogramForStimMethod1(stimEpocs(1, iStimNum), histoSums, histoSquares, histoBinCount, dblTotalWidthSecs, dblBinWidthSecs, dblStartOffsetSecs)
+            End If
+        Next
+        'once it has gotten to this point, it has the histogram data for all channels, and all bins in the histoSums and histoSquares arrays
+        
+        Call renderAmpList(stimAmpCounts, stimAmp, intChartGap, iTrialNum, neuroWS)
+         
+        Call outputResults(neuroWS, intChartGap, histoBinCount, iTrialNum, histoSums, histoSquares, histoN, 0, chartList, histoMaxTotal, histoMaxMean, dDrivenChanList)
+        
+        histoN = 0
+        Call setHistoArraySizes(histoSums, histoSquares, histoBinCount) 'flush the histo data
+        Call objTTX.ResetFilters
+        Call objTTX.SetFilterWithDescEx("TriS = " & iTrialNumTDT)
+            
+        Dim vTrialsList As Variant
+        Dim dblTrialStart As Double
+        vTrialsList = objTTX.GetEpocsExV("TriS", 0)
+        dblTrialStart = vTrialsList(1, 0)
+        
+        Dim iMatchesLeft As Integer
+        iMatchesLeft = 9 'check we match all the stim
+        Dim iPrevStimCount As Integer
+        If isAtten Then
+            iPrevStimCount = objTTX.ReadEventsV(10000, "Attn", 0, 0, dblTrialStart - 60, dblTrialStart, "ALL") 'look for previous 60s for the stimulus
+        Else
+            iPrevStimCount = objTTX.ReadEventsV(10000, "Ampl", 0, 0, dblTrialStart - 60, dblTrialStart, "ALL") 'look for previous 60s for the stimulus
+        End If
+        
+        If iPrevStimCount = 0 Then
+            MsgBox "Couldn't find any previous stim??"
+            Exit Function
+        End If
+        
+        returnVal = objTTX.ParseEvInfoV(0, iPrevStimCount, 0)
+        
+        For iStimNum = (iPrevStimCount - 1) To 0 Step -1
             For stimAmpStep = 0 To 2
-                If CInt(returnVal) = stimAmp(stimAmpStep) Then
-                    stimAmpCounts(stimAmpStep) = stimAmpCounts(stimAmpStep) + 1
-                    Exit For
-                ElseIf stimAmp(stimAmpStep) = 0 Then
-                    stimAmpCounts(stimAmpStep) = stimAmpCounts(stimAmpStep) + 1
-                    stimAmp(stimAmpStep) = Int(returnVal)
+                If CInt(returnVal(6, iStimNum)) = stimAmp(stimAmpStep) Then
+                    If stimAmpCounts(stimAmpStep) > 0 Then 'check if we want a stim of this amplitude
+                        'yes - let's process it =)
+                        stimAmpCounts(stimAmpStep) = stimAmpCounts(stimAmpStep) - 1
+                        iMatchesLeft = iMatchesLeft - 1
+                        histoN = histoN + 1
+                        Call buildHistogramForStimMethod1(returnVal(5, iStimNum), histoSums, histoSquares, histoBinCount, dblTotalWidthSecs, dblBinWidthSecs, dblStartOffsetSecs)
+                    End If
                     Exit For
                 End If
             Next
-            
-            histoN = histoN + 1
-            Call buildHistogramForStimMethod1(stimEpocs(1, iStimNum), histoSums, histoSquares, histoBinCount, dblTotalWidthSecs, dblBinWidthSecs, dblStartOffsetSecs)
-        End If
-    Next
-    'once it has gotten to this point, it has the histogram data for all channels, and all bins in the histoSums and histoSquares arrays
-    
-    Call renderAmpList(stimAmpCounts, stimAmp, intChartGap, iTrialNum, neuroWS)
-     
-    Call outputResults(neuroWS, intChartGap, histoBinCount, iTrialNum, histoSums, histoSquares, histoN, 0, chartList, histoMaxTotal, histoMaxMean, dDrivenChanList)
-    
-    histoN = 0
-    Call setHistoArraySizes(histoSums, histoSquares, histoBinCount) 'flush the histo data
-    Call objTTX.ResetFilters
-    Call objTTX.SetFilterWithDescEx("TriS = " & iTrialNumTDT)
-        
-    Dim vTrialsList As Variant
-    Dim dblTrialStart As Double
-    vTrialsList = objTTX.GetEpocsExV("TriS", 0)
-    dblTrialStart = vTrialsList(1, 0)
-    
-    Dim iMatchesLeft As Integer
-    iMatchesLeft = 9 'check we match all the stim
-    Dim iPrevStimCount As Integer
-    If isAtten Then
-        iPrevStimCount = objTTX.ReadEventsV(10000, "Attn", 0, 0, dblTrialStart - 60, dblTrialStart, "ALL") 'look for previous 60s for the stimulus
-    Else
-        iPrevStimCount = objTTX.ReadEventsV(10000, "Ampl", 0, 0, dblTrialStart - 60, dblTrialStart, "ALL") 'look for previous 60s for the stimulus
-    End If
-    
-    If iPrevStimCount = 0 Then
-        MsgBox "Couldn't find any previous stim??"
-        Exit Function
-    End If
-    
-    returnVal = objTTX.ParseEvInfoV(0, iPrevStimCount, 0)
-    
-    For iStimNum = (iPrevStimCount - 1) To 0 Step -1
-        For stimAmpStep = 0 To 2
-            If CInt(returnVal(6, iStimNum)) = stimAmp(stimAmpStep) Then
-                If stimAmpCounts(stimAmpStep) > 0 Then 'check if we want a stim of this amplitude
-                    'yes - let's process it =)
-                    stimAmpCounts(stimAmpStep) = stimAmpCounts(stimAmpStep) - 1
-                    iMatchesLeft = iMatchesLeft - 1
-                    histoN = histoN + 1
-                    Call buildHistogramForStimMethod1(returnVal(5, iStimNum), histoSums, histoSquares, histoBinCount, dblTotalWidthSecs, dblBinWidthSecs, dblStartOffsetSecs)
-                End If
+            If iMatchesLeft = 0 Then
                 Exit For
             End If
         Next
+    
+        For stimAmpStep = 0 To 2
+            neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 9 + stimAmpStep * 4, 2).Value = stimAmpCounts(stimAmpStep)
+    '        If stimAmpCounts(stimAmpStep) > 0 Then 'check if we didn't find all instances of this stim
+    '            neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 9 + stimAmpStep * 4, 2).Interior.Color = unmatchedStimCell.Interior.Color
+    '            neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 9 + stimAmpStep * 4, 2).Font.Color = unmatchedStimCell.Font.Color
+    '        End If
+        Next
+        
         If iMatchesLeft = 0 Then
-            Exit For
+            neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 4, 1).Value = "Pre-trial span (s):"
+            neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 4, 2).Value = Round(dblTrialStart - returnVal(5, iStimNum), 2)
+        Else
+            neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 4, 1).Value = "No match made"
+            neuroWS.Range(neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 1, 1), neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + dictOnlyIncludeChannels.Count * 2 + 3, histoBinCount * 3 + 5)).Interior.Color = unmatchedStimCell.Interior.Color
+            neuroWS.Range(neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 1, 1), neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + dictOnlyIncludeChannels.Count * 2 + 3, histoBinCount * 3 + 5)).Font.Color = unmatchedStimCell.Font.Color
+    
+    '        neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 4, 1).Interior.Color = unmatchedStimCell.Interior.Color
+    '        neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 4, 1).Font.Color = unmatchedStimCell.Font.Color
         End If
-    Next
-
-    For stimAmpStep = 0 To 2
-        neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 9 + stimAmpStep * 4, 2).Value = stimAmpCounts(stimAmpStep)
-'        If stimAmpCounts(stimAmpStep) > 0 Then 'check if we didn't find all instances of this stim
-'            neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 9 + stimAmpStep * 4, 2).Interior.Color = unmatchedStimCell.Interior.Color
-'            neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 9 + stimAmpStep * 4, 2).Font.Color = unmatchedStimCell.Font.Color
-'        End If
-    Next
-    
-    If iMatchesLeft = 0 Then
-        neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 4, 1).Value = "Pre-trial span (s):"
-        neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 4, 2).Value = Round(dblTrialStart - returnVal(5, iStimNum), 2)
-    Else
-        neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 4, 1).Value = "No match made"
-        neuroWS.Range(neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 1, 1), neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + dictOnlyIncludeChannels.Count * 2 + 3, histoBinCount * 3 + 5)).Interior.Color = unmatchedStimCell.Interior.Color
-        neuroWS.Range(neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 1, 1), neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + dictOnlyIncludeChannels.Count * 2 + 3, histoBinCount * 3 + 5)).Font.Color = unmatchedStimCell.Font.Color
-
-'        neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 4, 1).Interior.Color = unmatchedStimCell.Interior.Color
-'        neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 4, 1).Font.Color = unmatchedStimCell.Font.Color
+        
+        Call outputResults(neuroWS, intChartGap, histoBinCount, iTrialNum, histoSums, histoSquares, histoN, 1, chartList, histoMaxTotal, histoMaxMean, dDrivenChanList)
+        
+        If blnBuildCharts Then
+            Call setChartScales(chartList, histoMaxTotal, histoMaxMean)
+        End If
+        
+        Set dDrivenChanList = Nothing
     End If
-    
-    Call outputResults(neuroWS, intChartGap, histoBinCount, iTrialNum, histoSums, histoSquares, histoN, 1, chartList, histoMaxTotal, histoMaxMean, dDrivenChanList)
-    
-    If blnBuildCharts Then
-        Call setChartScales(chartList, histoMaxTotal, histoMaxMean)
-    End If
-    
-    Set dDrivenChanList = Nothing
     
 End Function
 
@@ -622,7 +636,6 @@ Function renderAmpList(stimAmpCounts As Variant, stimAmp As Variant, intChartGap
     Next
 End Function
 
-
 Function containsSnips()
     containsSnips = False
     Dim lCounter As Long
@@ -732,6 +745,75 @@ Function identifyDrivenChannels(stimEpocs As Variant, dDrivenChanList As Diction
         End If
     Next
     
+End Function
+
+
+Function checkForExclusion(strPath As String) As Variant
+    Dim objFS As FileSystemObject
+    Set objFS = New FileSystemObject
+    
+    Dim objFolder As Folder
+    Set objFolder = objFS.GetFolder(strPath)
+
+    Dim exclusionInfo(2) As Variant
+    
+    exclusionInfo(0) = ""
+    checkForExclusion = False
+    Dim Files As Files
+    Dim objFile As File
+
+    Set Files = objFolder.Files
+
+    Dim tmpStr1 As String
+    Dim tmpStr2 As String
+    Dim iLenOfPrefix As Integer
+    iLenOfPrefix = Len("exclude from neural data - ")
+
+    For Each objFile In Files
+        If LCase(objFile.Name) = "exclude from neural data.txt" Then
+            exclusionInfo(0) = "folder"
+            Exit For
+        ElseIf LCase(Left(objFile.Name, iLenOfPrefix)) = "exclude from neural data - " Then
+            'exclude from results aggregration - all.txt
+            tmpStr1 = Right(LCase(objFile.Name), Len(objFile.Name) - iLenOfPrefix)
+            tmpStr2 = Left(tmpStr1, Len(tmpStr1) - 4)
+            Select Case tmpStr2
+                Case "all":
+                    exclusionInfo(0) = "all"
+                    Call readCommentFromFile(objFile, exclusionInfo)
+                Case "partial":
+                    exclusionInfo(0) = "partial"
+                    Call readCommentFromFile(objFile, exclusionInfo)
+            End Select
+            Exit For
+        End If
+    Next
+    
+    Set objFolder = Nothing
+    Set objFS = Nothing
+    
+    checkForExclusion = exclusionInfo
+
+End Function
+
+Function readCommentFromFile(objFile As File, ByRef exclusionInfo As Variant) As String
+    Dim ts As TextStream
+    Dim sLine As String
+    Set ts = objFile.OpenAsTextStream
+    While Not ts.AtEndOfStream
+        sLine = ts.ReadLine
+        If Left(LCase(sLine), Len("Exclude after:")) = "exclude after:" Then
+            exclusionInfo(1) = CDbl(Right(sLine, Len(sLine) - Len("Exclude after:")))
+        Else
+            If exclusionInfo(2) <> "" Then
+                exclusionInfo(2) = exclusionInfo(1) & Chr(10) & sLine
+            Else
+                exclusionInfo(2) = sLine
+            End If
+        End If
+    Wend
+    
+    ts.Close
 End Function
 
 
