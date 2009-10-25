@@ -526,7 +526,12 @@ Sub bulkBuildTuningCurves()
     BulkImportFrom.Show
     
     If doImport Then
-        successfullyProcessedOffset = 49
+        
+        If thisWorkbook.Worksheets("Variables (do not edit)").Range("E9").Value = "" Then
+            successfullyProcessedOffset = 49
+        Else
+            successfullyProcessedOffset = thisWorkbook.Worksheets("Variables (do not edit)").Range("E9").Value
+        End If
         
         Dim objFS As FileSystemObject
         Set objFS = New FileSystemObject
@@ -606,7 +611,8 @@ Sub bulkBuildTuningCurves()
             
             vArrExcl = checkForMapExclusion(objFS.GetFolder(theTank & "\" & theBlock))
             If vArrExcl(0) = "generate" Then
-                thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 1).Value = theBlocks(i) & " excluded: " & vArrExcl(1)
+                thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 1).Value = theBlocks(i) & " excluded"
+                thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 2).Value = theBlocks(i) & " Excluded: " & vArrExcl(1)
             Else
                 thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 1).Value = theBlocks(i) & " processing"
             
@@ -688,6 +694,7 @@ Sub bulkBuildTuningCurves()
                 End If
             End If
             successfullyProcessedOffset = successfullyProcessedOffset + 1
+            thisWorkbook.Worksheets("Variables (do not edit)").Range("D10").Value = successfullyProcessedOffset
         Next
         Set objFS = Nothing
         Application.DisplayAlerts = True
@@ -1430,6 +1437,8 @@ Function readCommentFromFile(objFile As File) As String
     readCommentFromFile = ts.ReadLine
     ts.Close
 End Function
+
+
 
 
 
