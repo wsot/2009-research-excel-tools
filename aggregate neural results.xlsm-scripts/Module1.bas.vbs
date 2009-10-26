@@ -442,14 +442,6 @@ Sub outputTrials(theDict As Dictionary, thisAnimalWorksheet As Worksheet, thisAn
         Set dictSublevel = theDict(arrChannels(iChanNum))
         arrSubLevels = dictSublevel.Keys
         For iSubLevelNum = 0 To UBound(arrSubLevels)
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1) = "'" & arrChannels(iChanNum) & ": " & CStr(arrSubLevels(iSubLevelNum))
-            If Not arrSubLevels(iSubLevelNum) = "Acclimatisation" And Not arrSubLevels(iSubLevelNum) = "Trials" Then
-                If InStr(1, thisAnimalWorksheet.Cells(iExcelOffset, 1).Value, "acclimatisation", vbTextCompare) > 0 Then
-                    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1) = thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1) & ": Acclimatisation"
-                Else
-                    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1) = thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1) & ": Trials"
-                End If
-            End If
             'thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1).Style.Name = "Normal"
 
             thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1).Font.Bold = True
@@ -489,6 +481,14 @@ Sub outputTrials(theDict As Dictionary, thisAnimalWorksheet As Worksheet, thisAn
                             
             For lTrialNum = 0 To UBound(arrTrials)
                 lRowNum = arrTrials(lTrialNum)
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1) = "'" & arrChannels(iChanNum) & ": " & CStr(arrSubLevels(iSubLevelNum))
+                If Not arrSubLevels(iSubLevelNum) = "Acclimatisation" And Not arrSubLevels(iSubLevelNum) = "Trials" Then
+                    If InStr(1, sourceWorksheet.Range("E" & lRowNum).Value, "acclimatisation", vbTextCompare) > 0 Then
+                        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1) = thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1) & ": Acclimatisation"
+                    Else
+                        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1) = thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1) & ": Trials"
+                    End If
+                End If
                 thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = sourceWorksheet.Range("E" & lRowNum).Value
                 thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = sourceWorksheet.Range("J" & lRowNum).Value
                 thisAnimalWorksheet.Cells(iExcelOffset, 3).Value = sourceWorksheet.Range("D" & lRowNum).Value
