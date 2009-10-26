@@ -331,7 +331,6 @@ Function checkChannelsForDrive( _
     
     Dim vStrKeyArray As Variant
     Dim lThisKey As Long
-    Dim lThisDstKey As Long
     Dim lStrKeyIndex As Integer
     
     Dim lStimIter As Long
@@ -350,17 +349,19 @@ Function checkChannelsForDrive( _
             End If
         End If
     End If
-
+    Dim tmpArr As Variant
     
     If Not xAxisEp = "Channel" Then
         sStableSearchString = yAxisEp & " = " & CStr(vYAxisKeys(0))
         Dim i
         For i = 0 To UBound(vXAxisKeys)
+            Set dTmpDrivenChanList = Nothing
             sThisSearchString = sStableSearchString & " and " & xAxisEp & " = " & CStr(vXAxisKeys(i))
             Call objTTX.ResetFilters
             Call objTTX.SetFilterWithDescEx(sThisSearchString)
             vStimEpocs = objTTX.GetEpocsExV(stimStartEpoc, 0)
             If Not IsEmpty(vStimEpocs) Then
+                Set dTmpDrivenChanList = Nothing
                 ReDim aStimTimes(UBound(vStimEpocs, 2))
                 For lStimIter = 0 To UBound(vStimEpocs, 2)
                     aStimTimes(lStimIter) = vStimEpocs(1, lStimIter)
@@ -374,10 +375,10 @@ Function checkChannelsForDrive( _
                     lThisKey = vStrKeyArray(lStrKeyIndex)
                     If Not dTmpDrivenChanList.Exists(lThisKey) Then 'wasn't detected on this pass
                         If dFinalDrivenChanList(lThisKey)(1) < fixAsValidAfterXAdjacentDetections Then 'if didn't detect and isn't already above the 'keeping' threshold, drop the channel
-                            If dFinalDrivenChanList(lThisKey)(1) < 1 Then
-                                dFinalDrivenChanList(lThisKey) = Nothing
+                            'If dFinalDrivenChanList(lThisKey)(1) < 1 Then
+'                                Set dFinalDrivenChanList(lThisKey) = Nothing
                                 Call dFinalDrivenChanList.Remove(lThisKey)
-                            End If
+                            'End If
                            'dFinalDrivenChanList.Remove (lThisKey)
                            'dFinalDrivenChanList(lThisKey) = Nothing
                            'dFinalDrivenChanList.Remove (lThisKey)
@@ -396,8 +397,10 @@ Function checkChannelsForDrive( _
                         If Not dFinalDrivenChanList.Exists(lThisKey) Then
                             Call dFinalDrivenChanList.Add(lThisKey, Array(dTmpDrivenChanList(lThisKey), 1))
                         Else
-                            dFinalDrivenChanList(lThisKey)(0) = dFinalDrivenChanList(lThisKey)(0) And dTmpDrivenChanList(lThisKey)
-                            dFinalDrivenChanList(lThisKey)(1) = dFinalDrivenChanList(lThisKey)(1) + 1
+                            tmpArr = dFinalDrivenChanList(lThisKey)
+                            tmpArr(0) = tmpArr(0) And dTmpDrivenChanList(lThisKey)
+                            tmpArr(1) = tmpArr(1) + 1
+                            dFinalDrivenChanList(lThisKey) = tmpArr
                         End If
                     Next
                     
@@ -405,13 +408,8 @@ Function checkChannelsForDrive( _
                         vStrKeyArray = dTmpDrivenChanList.Keys
                         For lStrKeyIndex = LBound(vStrKeyArray) To UBound(vStrKeyArray)
                             lThisKey = vStrKeyArray(lStrKeyIndex)
-'                            If Not IsMissing(vChannelMapper) Then
-'                                lThisDstKey = vChannelMapper.fwdLookup(lThisKey)
-'                            Else
-                                lThisDstKey = lThisKey
-'                            End If
-                            outputWS.Cells(lThisDstKey + 1, 1).Value = lThisDstKey
-                            outputWS.Cells(lThisDstKey + 1, 2 + i).Value = dTmpDrivenChanList(lThisKey)
+                            outputWS.Cells(lThisKey + 1, 1).Value = lThisKey
+                            outputWS.Cells(lThisKey + 1, 4 + i).Value = dTmpDrivenChanList(lThisKey)
                         Next
                     End If
                 End If
@@ -421,6 +419,14 @@ Function checkChannelsForDrive( _
         Next
     End If
     
+    If blnOutputToWorksheet Then
+        vStrKeyArray = dFinalDrivenChanList.Keys
+        For lStrKeyIndex = LBound(vStrKeyArray) To UBound(vStrKeyArray)
+            lThisKey = vStrKeyArray(lStrKeyIndex)
+            outputWS.Cells(lThisKey + 1, 1).Value = lThisKey
+            outputWS.Cells(lThisKey + 1, 2).Value = dFinalDrivenChanList(lThisKey)
+        Next
+    End If
     Set dDrivenChanList = dFinalDrivenChanList
     checkChannelsForDrive = blnReturnVal
 
@@ -705,11 +711,11 @@ Sub bulkBuildTuningCurves()
                 Else
                     thisWorkbook.Worksheets("Settings").Cells(successfullyProcessedOffset, 2).Value = "Problem with import: " & strErr
                 End If
-                If Not IsEmpty(CFTextStream) Then 'close the CF listing file
-                    If Not CFTextStream Is Nothing Then
-                        Call CFTextStream.Close
-                        Set CFTextStream = Nothing
-                    End If
+            End If
+            If Not IsEmpty(CFTextStream) Then 'close the CF listing file
+                If Not CFTextStream Is Nothing Then
+                    Call CFTextStream.Close
+                    Set CFTextStream = Nothing
                 End If
             End If
             successfullyProcessedOffset = successfullyProcessedOffset + 1
@@ -1465,4 +1471,6 @@ Function readCommentFromFile(objFile As File) As String
     readCommentFromFile = ts.ReadLine
     ts.Close
 End Function
+
+
 

@@ -105,6 +105,7 @@ Function identifyDrivenChannels( _
     'step through each channel
     For lArrIndx = 0 To (UBound(histoSums))
         If dDrivenChanList.Exists(lArrIndx + 1) Then 'if this doesn't exist, the intital onset drive has not been detected, so can not be counted to have drive
+            blnChanIsDriven = True
             dblSpikePerEpoc = 0#
             'do the actual check - check if the first 10ms bin is greater than each of the four subsequent bins
             For lComparisonBin = 1 To 1 + oDriveDetectionParams.Onset_NumComparBins
@@ -115,7 +116,7 @@ Function identifyDrivenChannels( _
                 dblSpikePerEpoc = dblSpikePerEpoc + histoSums(lArrIndx)(lComparisonBin)
             Next
             If blnChanIsDriven Then
-                If dblSpikePerEpoc / (UBound(arrStimTimes) + 1) > oDriveDetectionParams.Onset_MinSpikesPerEpocInComparBins Then
+                If (dblSpikePerEpoc / oDriveDetectionParams.Onset_NumComparBins) > oDriveDetectionParams.Onset_MinSpikesPerEpocInComparBins Then
                     dDrivenChanList(lArrIndx + 1) = dDrivenChanList(lArrIndx + 1) Or DriveDetect_OnsetDetected
                 Else
                     blnChanIsDriven = False
@@ -141,8 +142,10 @@ Function identifyDrivenChannels( _
     'step through each channel
     For lArrIndx = 0 To (UBound(histoSums))
         If dDrivenChanList.Exists(lArrIndx + 1) Then 'if this doesn't exist, the intital onset drive has not been detected, so can not be counted to have drive
-            If histoSums(lArrIndx)(0) > (histoSums(lArrIndx)(1) * oDriveDetectionParams.Diff_Threshold) Then
-                dDrivenChanList(lArrIndx + 1) = dDrivenChanList(lArrIndx + 1) Or DriveDetect_ActDiffDetected
+            If Not (dDrivenChanList(lArrIndx + 1) And DriveDetect_OnsetDetected) Then
+                If histoSums(lArrIndx)(0) > (histoSums(lArrIndx)(1) * oDriveDetectionParams.Diff_Threshold) Then
+                    dDrivenChanList(lArrIndx + 1) = dDrivenChanList(lArrIndx + 1) Or DriveDetect_ActDiffDetected
+                End If
             End If
         End If
     Next
