@@ -40,17 +40,20 @@ Sub processImport()
     Dim strSChnName As String
     
     Dim i As Long
-    i = 0
-    Do
-        If Worksheets("Site mappings").Range("A" & (i + 2)).Value <> "" Then
-            If Not dChannelMappings.Exists(Worksheets("Site mappings").Range("A" & (i + 2)).Value) Then
-                Call dChannelMappings.Add(CStr(Worksheets("Site mappings").Range("A" & (i + 2)).Value), Worksheets("Site mappings").Range("B" & (i + 2)).Value)
-            End If
-            i = i + 1
-        Else
-            Exit Do
-        End If
-    Loop
+
+    Call getMappings(dChannelMappings)
+    
+'    i = 0
+'    Do
+'        If Worksheets("Site mappings").Range("A" & (i + 2)).Value <> "" Then
+'            If Not dChannelMappings.Exists(Worksheets("Site mappings").Range("A" & (i + 2)).Value) Then
+'                Call dChannelMappings.Add(CStr(Worksheets("Site mappings").Range("A" & (i + 2)).Value), Worksheets("Site mappings").Range("B" & (i + 2)).Value)
+'            End If
+'            i = i + 1
+'        Else
+'            Exit Do
+'        End If
+'    Loop
 
     Dim arrBlocks()
     Dim arrTrials()
@@ -227,6 +230,7 @@ Sub processImport()
             arrTrials(iTrialOffset)(4) = "Electrical"
             returnVal = objTTX.ParseEvInfoV(0, i, 0)
             arrTrials(iTrialOffset)(5) = CStr(returnVal(6, 0))
+            arrTrials(iTrialOffset)(6) = CStr(returnVal(6, 1))
             
             strStim1Filter = "TriS = " & arrTrials(iTrialOffset)(1) & " AND " & strSChnName & " = " & returnVal(6, 0)
             strStim2Filter = "TriS = " & arrTrials(iTrialOffset)(1) & " AND " & strSChnName & " = " & returnVal(6, 1)
@@ -234,13 +238,12 @@ Sub processImport()
             If dChannelMappings.Exists(arrTrials(iTrialOffset)(5)) Then 'process channel mapping
                 arrTrials(iTrialOffset)(5) = dChannelMappings(arrTrials(iTrialOffset)(5))
             Else
-                arrTrials(iTrialOffset)(5) = arrTrials(iTrialOffset)(5) & "*"
+                arrTrials(iTrialOffset)(5) = CStr(arrTrials(iTrialOffset)(5)) & "*"
             End If
-            'arrTrials(iTrialOffset)(6) = CStr(returnVal(6, 1))
-            If dChannelMappings.Exists(CStr(returnVal(6, 1))) Then 'process channel mapping
-                arrTrials(iTrialOffset)(6) = dChannelMappings(CStr(returnVal(6, 1)))
+            If dChannelMappings.Exists(arrTrials(iTrialOffset)(6)) Then 'process channel mapping
+                arrTrials(iTrialOffset)(6) = dChannelMappings(arrTrials(iTrialOffset)(6))
             Else
-                arrTrials(iTrialOffset)(6) = CStr(CStr(returnVal(6, 1))) & "*"
+                arrTrials(iTrialOffset)(6) = CStr(arrTrials(iTrialOffset)(6)) & "*"
             End If
             
             'first two RefC epochs will contain the reference channels
@@ -421,4 +424,54 @@ Sub readAcousticAttens(objTTX, arrTrials, iTrialOffset, iWhichTone As Integer, s
             
             Call objTTX.ResetFilters
 End Sub
+
+Sub getMappings(ByRef dChannelMappings As Dictionary)
+
+    Dim objFS As FileSystemObject
+    Set objFS = New FileSystemObject
+    Dim i As Integer
+    
+    Dim strFilename As String
+    
+    i = 0
+    If objFS.FolderExists(theTank) Then
+        strFilename = objFS.GetParentFolderName(theTank) & "\Stim mappings.txt"
+        If objFS.FileExists(objFS.GetParentFolderName(theTank) & "\Stim mappings.txt") Then
+            Call Worksheets("Site mappings").UsedRange.Clear
+            
+            Dim objTxt As TextStream
+            Set objTxt = objFS.OpenTextFile(strFilename, ForReading, False)
+            Dim strLine As String
+            Dim vSplitLine As Variant
+            
+            
+            Do
+                If objTxt.AtEndOfStream Then
+                    Exit Do
+                End If
+                strLine = objTxt.ReadLine
+                vSplitLine = Split(strLine, Chr(9), , vbTextCompare)
+                If Not UBound(vSplitLine) = 1 Then
+                    Exit Do
+                End If
+                Worksheets("Site mappings").Range("A" & (i + 1)).Value = vSplitLine(0)
+                Worksheets("Site mappings").Range("B" & (i + 1)).Value = vSplitLine(1)
+                i = i + 1
+            Loop
+        End If
+    End If
+    
+    i = 0
+    Do
+        If Worksheets("Site mappings").Range("A" & (i + 2)).Value <> "" Then
+            If Not dChannelMappings.Exists(Worksheets("Site mappings").Range("A" & (i + 2)).Value) Then
+                Call dChannelMappings.Add(CStr(Worksheets("Site mappings").Range("A" & (i + 2)).Value), Worksheets("Site mappings").Range("B" & (i + 2)).Value)
+            End If
+            i = i + 1
+        Else
+            Exit Do
+        End If
+    Loop
+End Sub
+
 

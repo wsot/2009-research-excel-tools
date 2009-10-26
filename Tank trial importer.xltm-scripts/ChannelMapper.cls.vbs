@@ -45,7 +45,6 @@ Public Function Add(fwdVal As Variant, revVal As Variant) As Boolean
         Call revLookupDict.Add(revVal, fwdVal)
         Add = True
     End If
-
 End Function
 
 Public Function readMappingLists(rFirstTDTEntry As Range, rFirstMappedEntry As Range, lNumOfChans As Long) As Boolean
