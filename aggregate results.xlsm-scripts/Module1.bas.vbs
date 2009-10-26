@@ -100,7 +100,7 @@ Sub aggregrate_results()
             For Each objExpFolder In experimentFolders 'go through the experiments within an animal folder
                 blnCurrFolderIsTrial = False
                 exclusionInfo = checkForExclusion(objExpFolder)
-                If exclusionInfo(1) <> "" Or exclusionInfo(0) <> "all" Then 'check if the exclusion includes a message, or is only for some types of trial
+                If exclusionInfo(1) <> "" Or exclusionInfo(0) <> "all" Or exclusionInfo(2) <> "" Then 'check if the exclusion includes a message, or is only for some types of trial
                     experimentDate = Left(objExpFolder.Name, 10)
                     experimentTag = objExpFolder.Name
                     blnCurrFolderIsTrial = False 'assume until file detected this is not an experiment
@@ -163,6 +163,7 @@ Function copyTrials(workbookToProcess As Workbook, experimentDate As String, exp
         thisAnimalWorksheet.Cells(thisAnimalTrialsRow, 5).Value = experimentTag
         thisAnimalWorksheet.Cells(thisAnimalTrialsRow, 6).Value = exclusionInfo(0)
         thisAnimalWorksheet.Cells(thisAnimalTrialsRow, 7).Value = exclusionInfo(1)
+        thisAnimalWorksheet.Cells(thisAnimalTrialsRow, 8).Value = exclusionInfo(2)
         thisAnimalWorksheet.Range(thisAnimalWorksheet.Cells(thisAnimalTrialsRow, 9), thisAnimalWorksheet.Cells(thisAnimalTrialsRow, 22)).Value = workbookToProcess.Worksheets("Output").Range("A" & iSourceRow & ":N" & iSourceRow).Value
         thisAnimalWorksheet.Range(thisAnimalWorksheet.Cells(thisAnimalTrialsRow, 24), thisAnimalWorksheet.Cells(thisAnimalTrialsRow, 94)).Value = workbookToProcess.Worksheets("HR detection").Range("A" & iSourceRow + 1 & ":BS" & iSourceRow + 1).Value
         thisAnimalWorksheet.Range(thisAnimalWorksheet.Cells(thisAnimalTrialsRow, 102), thisAnimalWorksheet.Cells(thisAnimalTrialsRow, 232)).Value = workbookToProcess.Worksheets("HRLine").Range("B" & iSourceRow & ":EB" & iSourceRow).Value
@@ -183,10 +184,8 @@ Function copyTrials(workbookToProcess As Workbook, experimentDate As String, exp
         If exclusionReason <> "" Then
             thisAnimalWorksheet.Cells(thisAnimalTrialsRow, 99).Value = exclusionReason
         End If
-        
-        iSourceRow = iSourceRow + 1
         thisAnimalTrialsRow = thisAnimalTrialsRow + 1
-        
+        iSourceRow = iSourceRow + 1
     Wend
 End Function
 
@@ -505,6 +504,8 @@ Function parseTrials(sourceWorksheet As Worksheet)
     Dim param1str As String
     Dim param2str As String
     
+    Dim blnExcludeThis As Boolean
+    
     Dim trialArr
     Dim paramArr
     
@@ -516,7 +517,7 @@ Function parseTrials(sourceWorksheet As Worksheet)
         If sourceWorksheet.Range("M" & i).Value <> "" Then
             experimentDate = sourceWorksheet.Range("D" & i).Value
             experimentTag = sourceWorksheet.Range("E" & i).Value
-            exclusionInfo = Array(sourceWorksheet.Range("F" & i).Value, sourceWorksheet.Range("G" & i).Value)
+            exclusionInfo = Array(sourceWorksheet.Range("F" & i).Value, sourceWorksheet.Range("G" & i).Value, sourceWorksheet.Range("H" & i).Value)
             
             param1composite = ""
             param2composite = ""
@@ -594,10 +595,17 @@ Function parseTrials(sourceWorksheet As Worksheet)
             If sourceWorksheet.Range("M" & i).Value = "Acoustic" Then
                 If Not ((exclusionInfo(0) = "Acoustic" Or exclusionInfo(0) = "all") And exclusionInfo(1) = "") Then
                      If (exclusionInfo(0) = "Acoustic" Or exclusionInfo(0) = "all") And exclusionInfo(1) <> "" Then
-                        trialArr(7) = exclusionInfo(1)
+                        If exclusionInfo(2) = "" Then
+                            trialArr(7) = exclusionInfo(1)
+                        ElseIf CDbl(exclusionInfo(2)) <= sourceWorksheet.Range("K" & i).Value Then  'check if there is a time cutoff which has been passed
+                            trialArr(7) = exclusionInfo(1)
+                        Else
+                            trialArr(7) = ""
+                        End If
                      Else
                         trialArr(7) = ""
                      End If
+
                      'acoustic trial - drop the last 2 letters to remove the Hz
                      If LCase(Right(param1, 2)) = "hz" Then
                          param1composite = Left(param1, Len(param1) - 2)
@@ -645,10 +653,17 @@ Function parseTrials(sourceWorksheet As Worksheet)
             Else 'electrical trial
                 If Not ((exclusionInfo(0) = "Electrical" Or exclusionInfo(0) = "all") And exclusionInfo(1) = "") Then
                      If (exclusionInfo(0) = "Electrical" Or exclusionInfo(0) = "all") And exclusionInfo(1) <> "" Then
-                        trialArr(7) = exclusionInfo(1)
+                        If exclusionInfo(2) = "" Then
+                            trialArr(7) = exclusionInfo(1)
+                        ElseIf CDbl(exclusionInfo(2)) <= sourceWorksheet.Range("K" & i).Value Then  'check if there is a time cutoff which has been passed
+                            trialArr(7) = exclusionInfo(1)
+                        Else
+                            trialArr(7) = ""
+                        End If
                      Else
                         trialArr(7) = ""
                      End If
+                     
                     param1arr = Split(param1, " ")
                     param2arr = Split(param2, " ")
                     
@@ -1580,7 +1595,12 @@ Function readAmpArrays(ByRef acoAmps, ByRef elAmps, param1 As String, param2 As 
         Exit Function
     End If
     While sourceWorksheet.Range("E" & iRow).Value = experimentTag And sourceWorksheet.Range("I" & iRow).Value = iCurrBlockNum And sourceWorksheet.Range("I" & iRow).Value <> ""
-        If sourceWorksheet.Range("N" & iRow).Value = param1 Then
+        If sourceWorksheet.Range("O" & iRow).Value = "" Or sourceWorksheet.Range("P" & iRow).Value = "" Or sourceWorksheet.Range("S" & iRow).Value = "" Or sourceWorksheet.Range("T" & iRow).Value = "" Then
+            param1LowerAmp = 0
+            param1UpperAmp = 0
+            param2LowerAmp = 0
+            param1UpperAmp = 0
+        ElseIf sourceWorksheet.Range("N" & iRow).Value = param1 Then
             param1LowerAmp = CDbl(trimAmpTrailingChars(sourceWorksheet.Range("O" & iRow).Value))
             param1UpperAmp = CDbl(trimAmpTrailingChars(sourceWorksheet.Range("P" & iRow).Value))
             param2LowerAmp = CDbl(trimAmpTrailingChars(sourceWorksheet.Range("S" & iRow).Value))
@@ -1646,7 +1666,7 @@ Function trimAmpTrailingChars(strToTrim As String) As String
     End If
 End Function
 Function checkForExclusion(objFolder As Folder) As Variant
-    Dim exclusionInfo(1) As String
+    Dim exclusionInfo(2) As String
     
     exclusionInfo(0) = ""
     checkForExclusion = False
@@ -1668,6 +1688,12 @@ Function checkForExclusion(objFolder As Folder) As Variant
             'exclude from results aggregration - all.txt
             tmpStr1 = Right(LCase(objFile.Name), Len(objFile.Name) - iLenOfPrefix)
             tmpStr2 = Left(tmpStr1, Len(tmpStr1) - 4)
+            
+            If LCase(Left(tmpStr2, Len("partial"))) = "partial" Then
+               exclusionInfo(2) = readPartialFromFile(objFile)
+               tmpStr2 = Right(tmpStr2, Len(tmpStr2) - Len("partial") - 1)
+            End If
+            
             Select Case tmpStr2
                 Case "all":
                     exclusionInfo(0) = "all"
@@ -1684,6 +1710,7 @@ Function checkForExclusion(objFolder As Folder) As Variant
                 Case "electrical with message":
                     exclusionInfo(0) = "Electrical"
                     exclusionInfo(1) = readCommentFromFile(objFile)
+                'exclude from results aggregration - partial electrical with message.txt
             End Select
             Exit For
         End If
@@ -1696,7 +1723,41 @@ End Function
 Function readCommentFromFile(objFile As File) As String
     Dim ts As TextStream
     Set ts = objFile.OpenAsTextStream
-    readCommentFromFile = ts.ReadLine
+    Dim strBuffer As String
+    
+    Do
+        If ts.AtEndOfStream Then
+            Exit Do
+        End If
+        
+        strBuffer = ts.ReadLine
+        
+        If Not LCase(Left(strBuffer, Len("exclude after:"))) = "exclude after:" Then
+            readCommentFromFile = strBuffer
+            Exit Do
+        End If
+    Loop
+    ts.Close
+End Function
+
+Function readPartialFromFile(objFile As File) As String
+    Dim ts As TextStream
+    Set ts = objFile.OpenAsTextStream
+    Dim strBuffer As String
+    
+    Do
+        If ts.AtEndOfStream Then
+            Exit Do
+        End If
+        
+        strBuffer = ts.ReadLine
+        
+        If LCase(Left(strBuffer, Len("exclude after:"))) = "exclude after:" Then
+            'While not Exclude after: 4800
+            readPartialFromFile = Right(strBuffer, Len(strBuffer) - Len("exclude after:"))
+            Exit Do
+        End If
+    Loop
     ts.Close
 End Function
 
