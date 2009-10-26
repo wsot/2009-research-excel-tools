@@ -1,8 +1,8 @@
 Attribute VB_Name = "Module1"
 Option Explicit
 
-Global maxPreTrialTime As Double
-Global minSpikes As Double
+'Global maxPreTrialTime As Double
+'Global minSpikes As Double
     
 'Global exIntCountGT As Integer
 'Global exIntBeatsGT As Integer
@@ -63,9 +63,9 @@ Sub aggregrate_results()
         
     Set thisWorkbook = ActiveWorkbook
     
-    maxPercOfBeatsInt = thisWorkbook.Worksheets("Controller").Cells(3, 2).Value
-    maxSingleIntSamples = thisWorkbook.Worksheets("Controller").Cells(4, 2).Value
-    maxSingleIntBeats = thisWorkbook.Worksheets("Controller").Cells(5, 2).Value
+'    maxPercOfBeatsInt = thisWorkbook.Worksheets("Controller").Cells(3, 2).Value
+'    maxSingleIntSamples = thisWorkbook.Worksheets("Controller").Cells(4, 2).Value
+'    maxSingleIntBeats = thisWorkbook.Worksheets("Controller").Cells(5, 2).Value
 
     Set objFS = CreateObject("Scripting.FileSystemObject")
     
@@ -184,35 +184,43 @@ Function copyTrials(workbookToProcess As Workbook, experimentDate As String, exp
                         'freq
                         thisAnimalWorksheet.Range("X" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("D" & lNeuroSourceRow).Value
                         'attn 1
-                        thisAnimalWorksheet.Range("Y" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("B" & lNeuroSourceRow + 6).Value
-                        'attn 1 count
-                        thisAnimalWorksheet.Range("Z" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("B" & lNeuroSourceRow + 7).Value
+                        thisAnimalWorksheet.Range("Y" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("B" & lNeuroSourceRow + 5).Value
+                        'attn 1 1-4 count
+                        thisAnimalWorksheet.Range("Z" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("B" & lNeuroSourceRow + 6).Value
+                        'attn 1 5-8 count
+                        thisAnimalWorksheet.Range("AA" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("B" & lNeuroSourceRow + 7).Value
+                        
                         'attn 2
-                        thisAnimalWorksheet.Range("AA" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("B" & lNeuroSourceRow + 10).Value
-                        'attn 2 count
-                        thisAnimalWorksheet.Range("AB" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("B" & lNeuroSourceRow + 11).Value
+                        thisAnimalWorksheet.Range("AB" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("B" & lNeuroSourceRow + 10).Value
+                        'attn 2 1-4 count
+                        thisAnimalWorksheet.Range("AC" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("B" & lNeuroSourceRow + 11).Value
+                        'attn 2 5-8 count
+                        thisAnimalWorksheet.Range("AD" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("B" & lNeuroSourceRow + 12).Value
+                        
                         'attn 3
-                        thisAnimalWorksheet.Range("AC" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("B" & lNeuroSourceRow + 14).Value
-                        'attn 3 count
-                        thisAnimalWorksheet.Range("AD" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("B" & lNeuroSourceRow + 15).Value
-                        'pre-span
-                        thisAnimalWorksheet.Range("AE" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("B" & lNeuroSourceRow + 3).Value
+                        thisAnimalWorksheet.Range("AE" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("B" & lNeuroSourceRow + 14).Value
+                        'attn 3 1-4 count
+                        thisAnimalWorksheet.Range("AF" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("B" & lNeuroSourceRow + 15).Value
+                        'attn 3 5-8 count
+                        thisAnimalWorksheet.Range("AG" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("B" & lNeuroSourceRow + 16).Value
+                        
                         'channel
-                        thisAnimalWorksheet.Range("AG" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("D" & lNeuroSourceRow + 2 + (lNeuroOffset * 2)).Value
+                        thisAnimalWorksheet.Range("AJ" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("D" & lNeuroSourceRow + 2 + (lNeuroOffset * 2)).Value
+                        
                         'pre total
-                        thisAnimalWorksheet.Range("AH" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("E" & lNeuroSourceRow + 2 + (lNeuroOffset * 2)).Value
+                        thisAnimalWorksheet.Range("AK" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("E" & lNeuroSourceRow + 2 + (lNeuroOffset * 2)).Value
                         'post total
-                        thisAnimalWorksheet.Range("AI" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("E" & lNeuroSourceRow + 2 + (lNeuroOffset * 2) + 1).Value
+                        thisAnimalWorksheet.Range("AL" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("E" & lNeuroSourceRow + 2 + (lNeuroOffset * 2) + 1).Value
     
                         'pre mean
-                        thisAnimalWorksheet.Range("AJ" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("H" & lNeuroSourceRow + 2 + (lNeuroOffset * 2)).Value
+                        thisAnimalWorksheet.Range("AM" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("H" & lNeuroSourceRow + 2 + (lNeuroOffset * 2)).Value
                         'post mean
-                        thisAnimalWorksheet.Range("AK" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("H" & lNeuroSourceRow + 2 + (lNeuroOffset * 2) + 1).Value
+                        thisAnimalWorksheet.Range("AN" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("H" & lNeuroSourceRow + 2 + (lNeuroOffset * 2) + 1).Value
     
                         'pre stddev
-                        thisAnimalWorksheet.Range("AL" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("K" & lNeuroSourceRow + 2 + (lNeuroOffset * 2)).Value
+                        thisAnimalWorksheet.Range("AO" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("K" & lNeuroSourceRow + 2 + (lNeuroOffset * 2)).Value
                         'post mean
-                        thisAnimalWorksheet.Range("AM" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("K" & lNeuroSourceRow + 2 + (lNeuroOffset * 2) + 1).Value
+                        thisAnimalWorksheet.Range("AP" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("K" & lNeuroSourceRow + 2 + (lNeuroOffset * 2) + 1).Value
     
                         
                         'thisAnimalWorksheet.Range(thisAnimalWorksheet.Cells(thisAnimalTrialsRow, 9), thisAnimalWorksheet.Cells(thisAnimalTrialsRow, 22)).Value = workbookToProcess.Worksheets("Output").Range("A" & lSourceRow & ":N" & lSourceRow).Value
@@ -265,8 +273,8 @@ Sub processTrials()
 '    Set rootFolder = objFS.GetFolder(pathToData)
 
     
-    maxPreTrialTime = thisWorkbook.Worksheets("Controller").Cells(2, 2).Value
-    minSpikes = thisWorkbook.Worksheets("Controller").Cells(3, 2).Value
+'    maxPreTrialTime = thisWorkbook.Worksheets("Controller").Cells(2, 2).Value
+'    minSpikes = thisWorkbook.Worksheets("Controller").Cells(3, 2).Value
     
     Set pLess05FC = thisWorkbook.Worksheets("Controller").Range("B11").FormatConditions(1)
     Set pLess10FC = thisWorkbook.Worksheets("Controller").Range("B12").FormatConditions(1)
