@@ -1,6 +1,11 @@
 Attribute VB_Name = "Module1"
 Option Explicit
 
+Dim VBAEditor As VBIDE.VBE
+Dim VBProj As VBIDE.VBProject
+Dim VBComp As VBIDE.VBComponent
+Dim CodeMod As VBIDE.CodeModule
+
 
 Sub reprocess(isTestRun As Boolean, onlyOne As Boolean)
     
@@ -199,7 +204,17 @@ Sub reprocess(isTestRun As Boolean, onlyOne As Boolean)
 
                                 Set workbookToProcess = newWorkbook
                             Else
+                                Set newWorkbook = Workbooks.Open(templateFilename)
                                 Set workbookToProcess = Workbooks.Open(strExcelPathname)
+                                For Each VBComp In newWorkbook.VBProject.VBComponents
+                                    Call CopyModule(VBComp.Name, newWorkbook.VBProject, workbookToProcess.VBProject, True)
+'CopyModule(ModuleName As String, _
+    FromVBProject As VBIDE.VBProject, _
+    ToVBProject As VBIDE.VBProject, _
+    OverwriteExisting As Boolean
+                                'Set VBComp = ActiveWorkbook.VBProject.VBComponents
+                                Next
+                                Call newWorkbook.Close(False)
                             End If
                             
                             workbookToProcess.Activate
