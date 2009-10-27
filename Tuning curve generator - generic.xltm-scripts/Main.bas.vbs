@@ -419,6 +419,23 @@ Function checkChannelsForDrive( _
         Next
     End If
     
+        
+    'check if there are channels insufficiently complete to keep
+    vStrKeyArray = dFinalDrivenChanList.Keys
+    For lStrKeyIndex = LBound(vStrKeyArray) To UBound(vStrKeyArray)
+        lThisKey = vStrKeyArray(lStrKeyIndex)
+        
+            If dFinalDrivenChanList(lThisKey)(1) < fixAsValidAfterXAdjacentDetections Then 'if didn't detect and isn't already above the 'keeping' threshold, drop the channel
+                'If dFinalDrivenChanList(lThisKey)(1) < 1 Then
+'                                Set dFinalDrivenChanList(lThisKey) = Nothing
+                    Call dFinalDrivenChanList.Remove(lThisKey)
+                'End If
+               'dFinalDrivenChanList.Remove (lThisKey)
+               'dFinalDrivenChanList(lThisKey) = Nothing
+               'dFinalDrivenChanList.Remove (lThisKey)
+            End If
+    Next
+    
     If blnOutputToWorksheet Then
         vStrKeyArray = dFinalDrivenChanList.Keys
         For lStrKeyIndex = LBound(vStrKeyArray) To UBound(vStrKeyArray)
@@ -1152,15 +1169,15 @@ Function processSearch(ByRef objTTX, ByRef arrOtherEp, ByRef arrOtherEpocKeys, i
 
             If Not IsMissing(vNoiseFloorList) Then
                 If Not IsMissing(vDrivenChans) Then
-                    Call writeResults(objTTX, xOffset, yOffset, i * zOffset, iChanNum, lMaxHistHeight, lMaxHistMeanHeight, vNoiseFloorList, vDrivenChans)
+                    Call writeResults(objTTX, xOffset, yOffset, i * zOffset, iChanNum, lMaxHistHeight, lMaxHistMeanHeight, vNoiseFloorList, vDrivenChans, vChannelMapper)
                 Else
-                    Call writeResults(objTTX, xOffset, yOffset, i * zOffset, iChanNum, lMaxHistHeight, lMaxHistMeanHeight, vNoiseFloorList)
+                    Call writeResults(objTTX, xOffset, yOffset, i * zOffset, iChanNum, lMaxHistHeight, lMaxHistMeanHeight, vNoiseFloorList, , vChannelMapper)
                 End If
             Else
                 If Not IsMissing(vDrivenChans) Then
-                    Call writeResults(objTTX, xOffset, yOffset, i * zOffset, iChanNum, lMaxHistHeight, lMaxHistMeanHeight, , vDrivenChans)
+                    Call writeResults(objTTX, xOffset, yOffset, i * zOffset, iChanNum, lMaxHistHeight, lMaxHistMeanHeight, , vDrivenChans, vChannelMapper)
                 Else
-                    Call writeResults(objTTX, xOffset, yOffset, i * zOffset, iChanNum, lMaxHistHeight, lMaxHistMeanHeight)
+                    Call writeResults(objTTX, xOffset, yOffset, i * zOffset, iChanNum, lMaxHistHeight, lMaxHistMeanHeight, , , vChannelMapper)
                 End If
             End If
             
