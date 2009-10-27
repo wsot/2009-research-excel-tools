@@ -237,7 +237,10 @@ Function readTrialNeuralData(iTrialNum As Integer, neuroWS As Worksheet, trialDa
     '        bInExclusion = True
     '    End If
     'End If
-    
+    Dim ampTotals1() As Double
+    Dim ampTotals2() As Double
+    Dim ampTotals3() As Double
+    Dim icounter As Integer
 '    If Not bInExclusion Then
     If Not vExclArr(0) = "all" Then
         'get the trial number with reference to TDT for the current trial
@@ -274,6 +277,8 @@ Function readTrialNeuralData(iTrialNum As Integer, neuroWS As Worksheet, trialDa
         Dim k As Long
         
         'dim variables used to store output of the histogram generation
+        Dim histoSumsB() As Variant
+        Dim histoSquaresB() As Variant
         Dim histoSums() As Variant
         Dim histoSquares() As Variant
         Dim histoN As Long
@@ -308,30 +313,35 @@ Function readTrialNeuralData(iTrialNum As Integer, neuroWS As Worksheet, trialDa
         Dim dDrivenChanList As Dictionary
         Set dDrivenChanList = New Dictionary
         
-        If dChanCFs Is Nothing Then
+'        Call identifyDrivenChannels(stimEpocs, dDrivenChanList, vChannelMapper)
+'        If dChanCFs Is Nothing Then
             Call identifyDrivenChannels(stimEpocs, dDrivenChanList, vChannelMapper)
-        Else
-            Dim lKey As Variant
-            For Each lKey In dChanCFs.Keys
-                If dChanCFs(lKey)(0) <> "" Then
-                    If Abs(CLng(dChanCFs(lKey)(0)) - lStim1Freq) < includeChanIfWithinXHz Then
-                        Call dDrivenChanList.Add(lKey, DriveDetect_Tuned)
-                    ElseIf dChanCFs(lKey)(1) <> "" Then
-                        If Abs(CLng(dChanCFs(lKey)(1)) - lStim1Freq) < includeChanIfWithinXHz Then
-                            Call dDrivenChanList.Add(lKey, DriveDetect_Tuned)
-                        Else
-                            Call dDrivenChanList.Add(lKey, DriveDetect_Undriven)
-                        End If
-                    Else
-                        Call dDrivenChanList.Add(lKey, DriveDetect_Undriven)
-                    End If
-                Else
-                    Call dDrivenChanList.Add(lKey, DriveDetect_Undriven)
-                End If
-            Next
-        End If
+'        Else
+'            Dim lKey As Variant
+'            For Each lKey In dChanCFs.Keys
+'                If dChanCFs(lKey)(0) <> "" Then
+'                    If Abs(CLng(dChanCFs(lKey)(0)) - lStim1Freq) < includeChanIfWithinXHz Then
+'                        Call dDrivenChanList.Add(lKey, DriveDetect_Tuned)
+'                    ElseIf dChanCFs(lKey)(1) <> "" Then
+'                        If Abs(CLng(dChanCFs(lKey)(1)) - lStim1Freq) < includeChanIfWithinXHz Then
+'                            Call dDrivenChanList.Add(lKey, DriveDetect_Tuned)
+'                        Else
+'                            Call dDrivenChanList.Add(lKey, DriveDetect_Undriven)
+'                        End If
+'                    Else
+'                        Call dDrivenChanList.Add(lKey, DriveDetect_Undriven)
+'                    End If
+'                Else
+'                    Call dDrivenChanList.Add(lKey, DriveDetect_Undriven)
+'                End If
+'            Next
+'        End If
         
         'Dim lHistoBin As Long
+        
+        ReDim ampTotals1(31)
+        ReDim ampTotals2(31)
+        ReDim ampTotals3(31)
         
         For iStimNum = 5 To 8 'only want to look at the first 9 stims, because after than the shock will be on, which could screw up the neural data
             If isAtten Then
@@ -355,14 +365,31 @@ Function readTrialNeuralData(iTrialNum As Integer, neuroWS As Worksheet, trialDa
                 
                 histoN = histoN + 1
                 'Call buildHistogramForStimMethod1(stimEpocs(1, iStimNum), histoSums, histoSquares, histoBinCount, dblTotalWidthSecs, dblBinWidthSecs, dblStartOffsetSecs)
-                Call buildHistogramForStim(objTTX, stimEpocs(1, iStimNum) + dblStartOffsetSecs, histoSums, histoSquares, dblTotalWidthSecs, dblBinWidthSecs, vChannelMapper)
+                Call setHistoArraySizes(histoSumsB, histoSquaresB, histoBinCount) 'flush the histo data
+                Call buildHistogramForStim(objTTX, stimEpocs(1, iStimNum) + dblStartOffsetSecs, histoSumsB, histoSquaresB, dblTotalWidthSecs, dblBinWidthSecs, vChannelMapper)
+                For icounter = 0 To 31
+                    histoSums(icounter)(0) = histoSums(icounter)(0) + histoSumsB(icounter)(0)
+                    histoSquares(icounter)(0) = histoSquares(icounter)(0) + histoSquaresB(icounter)(0)
+                    Select Case stimAmpStep:
+                        Case 0:
+                            ampTotals1(icounter) = ampTotals1(icounter) + histoSumsB(icounter)(0)
+                        Case 1:
+                            ampTotals2(icounter) = ampTotals2(icounter) + histoSumsB(icounter)(0)
+                        Case 2:
+                            ampTotals3(icounter) = ampTotals3(icounter) + histoSumsB(icounter)(0)
+                    End Select
+                Next
             End If
         Next
         'once it has gotten to this point, it has the histogram data for all channels, and all bins in the histoSums and histoSquares arrays
         
         Call renderAmpList(stimAmpCounts, stimAmp, intChartGap, iTrialNum, neuroWS, 1)
          
-        Call outputResults(neuroWS, intChartGap, histoBinCount, iTrialNum, histoSums, histoSquares, histoN, 0, chartList, histoMaxTotal, histoMaxMean, dDrivenChanList, vChannelMapper, dChanCFs)
+        Call outputResults(neuroWS, intChartGap, histoBinCount, iTrialNum, histoSums, histoSquares, histoN, 0, chartList, histoMaxTotal, histoMaxMean, dDrivenChanList, vChannelMapper, dChanCFs, ampTotals1, ampTotals2, ampTotals3)
+        
+        ReDim ampTotals1(31)
+        ReDim ampTotals2(31)
+        ReDim ampTotals3(31)
         
         histoN = 0
         Call setHistoArraySizes(histoSums, histoSquares, histoBinCount) 'flush the histo data
@@ -442,7 +469,20 @@ Function readTrialNeuralData(iTrialNum As Integer, neuroWS As Worksheet, trialDa
                 
                 histoN = histoN + 1
                 'Call buildHistogramForStimMethod1(stimEpocs(1, iStimNum), histoSums, histoSquares, histoBinCount, dblTotalWidthSecs, dblBinWidthSecs, dblStartOffsetSecs)
-                Call buildHistogramForStim(objTTX, stimEpocs(1, iStimNum) + dblStartOffsetSecs, histoSums, histoSquares, dblTotalWidthSecs, dblBinWidthSecs, vChannelMapper)
+                Call setHistoArraySizes(histoSumsB, histoSquaresB, histoBinCount) 'flush the histo data
+                Call buildHistogramForStim(objTTX, stimEpocs(1, iStimNum) + dblStartOffsetSecs, histoSumsB, histoSquaresB, dblTotalWidthSecs, dblBinWidthSecs, vChannelMapper)
+                For icounter = 0 To 31
+                    histoSums(icounter)(0) = histoSums(icounter)(0) + histoSumsB(icounter)(0)
+                    histoSquares(icounter)(0) = histoSquares(icounter)(0) + histoSquaresB(icounter)(0)
+                    Select Case stimAmpStep:
+                        Case 0:
+                            ampTotals1(icounter) = ampTotals1(icounter) + histoSumsB(icounter)(0)
+                        Case 1:
+                            ampTotals2(icounter) = ampTotals2(icounter) + histoSumsB(icounter)(0)
+                        Case 2:
+                            ampTotals3(icounter) = ampTotals3(icounter) + histoSumsB(icounter)(0)
+                    End Select
+                Next
             End If
         Next
         
@@ -464,7 +504,7 @@ Function readTrialNeuralData(iTrialNum As Integer, neuroWS As Worksheet, trialDa
     '        neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 4, 1).Font.Color = unmatchedStimCell.Font.Color
         'End If
         
-        Call outputResults(neuroWS, intChartGap, histoBinCount, iTrialNum, histoSums, histoSquares, histoN, 1, chartList, histoMaxTotal, histoMaxMean, dDrivenChanList, vChannelMapper, dChanCFs)
+        Call outputResults(neuroWS, intChartGap, histoBinCount, iTrialNum, histoSums, histoSquares, histoN, 1, chartList, histoMaxTotal, histoMaxMean, dDrivenChanList, vChannelMapper, dChanCFs, ampTotals1, ampTotals2, ampTotals3)
         
         If blnBuildCharts Then
             Call setChartScales(chartList, histoMaxTotal, histoMaxMean)
@@ -681,22 +721,22 @@ End Function
 
 'load the list of channels to include from the spreadsheet - if none specified then all channels (up to the number provided in B23) included
 Function loadIncludeChannelList()
-    Dim iCounter As Integer
+    Dim icounter As Integer
     Dim iChanCount As Integer
     iChanCount = Worksheets("Settings").Range("B23").Value
     
     Set dictOnlyIncludeChannels = New Dictionary
     
     If Worksheets("Settings").Range("B25") = "" Then
-        For iCounter = 1 To iChanCount
-            Call dictOnlyIncludeChannels.Add(iCounter, iCounter)
+        For icounter = 1 To iChanCount
+            Call dictOnlyIncludeChannels.Add(icounter, icounter)
         Next
     Else
         Dim arrElements As Variant
         arrElements = Split(Worksheets("Settings").Range("B25"), ",", , vbTextCompare)
-        For iCounter = 0 To UBound(arrElements)
-            If Not dictOnlyIncludeChannels.Exists(arrElements(iCounter)) Then
-                Call dictOnlyIncludeChannels.Add(arrElements(iCounter), iCounter)
+        For icounter = 0 To UBound(arrElements)
+            If Not dictOnlyIncludeChannels.Exists(arrElements(icounter)) Then
+                Call dictOnlyIncludeChannels.Add(arrElements(icounter), icounter)
             End If
         Next
     End If
@@ -750,7 +790,7 @@ Function outputHeaders(trialDataWS As Worksheet, neuroWS As Worksheet, intChartG
     Next
 End Function
 
-Function outputResults(neuroWS As Worksheet, intChartGap As Integer, histoBinCount As Long, iTrialNum As Integer, histoSums As Variant, histoSquares As Variant, histoN As Long, iOffset As Integer, ByRef chartList As clsLinkedList, ByRef histoMaxTotal As Long, ByRef histoMaxMean As Double, dDrivenChanList As Dictionary, ByRef vChannelMapper As Variant, ByRef dChanCFs As Dictionary)
+Function outputResults(neuroWS As Worksheet, intChartGap As Integer, histoBinCount As Long, iTrialNum As Integer, histoSums As Variant, histoSquares As Variant, histoN As Long, iOffset As Integer, ByRef chartList As clsLinkedList, ByRef histoMaxTotal As Long, ByRef histoMaxMean As Double, dDrivenChanList As Dictionary, ByRef vChannelMapper As Variant, ByRef dChanCFs As Dictionary, ampTotals1, ampTotals2, ampTotals3)
     Dim myChart As ChartObject
     Dim iChartNum As Integer
     Dim lChartTopPos As Long
@@ -784,9 +824,13 @@ Function outputResults(neuroWS As Worksheet, intChartGap As Integer, histoBinCou
         If iOffset = 0 Then
             neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + ((dictOnlyIncludeChannels(vChanKey) - 1) * 2) + 1 + 2, 4).Value = vChanKey
         End If
+        neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + ((dictOnlyIncludeChannels(vChanKey) - 1) * 2) + 1 + 2 + iOffset, 25).Value = ampTotals1(dictOnlyIncludeChannels(vChanKey) - 1)
+        neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + ((dictOnlyIncludeChannels(vChanKey) - 1) * 2) + 1 + 2 + iOffset, 27).Value = ampTotals2(dictOnlyIncludeChannels(vChanKey) - 1)
+        neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + ((dictOnlyIncludeChannels(vChanKey) - 1) * 2) + 1 + 2 + iOffset, 29).Value = ampTotals3(dictOnlyIncludeChannels(vChanKey) - 1)
         For lHistoBin = 0 To histoBinCount
             'totals
             neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + ((dictOnlyIncludeChannels(vChanKey) - 1) * 2) + 1 + 2 + iOffset, 5 + lHistoBin).Value = histoSums(dictOnlyIncludeChannels(vChanKey) - 1)(lHistoBin)
+            'ampTotals1, ampTotals2, ampTotals3
             
             If dDrivenChanList(vChanKey) <> DriveDetect_Undriven Then
                 If histoSums(dictOnlyIncludeChannels(vChanKey) - 1)(lHistoBin) > histoMaxTotal Then histoMaxTotal = histoSums(dictOnlyIncludeChannels(vChanKey) - 1)(lHistoBin)
@@ -838,7 +882,11 @@ Function outputResults(neuroWS As Worksheet, intChartGap As Integer, histoBinCou
                 If dDrivenChanList(vChanKey) = DriveDetect_Tuned Then
                     myChart.Chart.SeriesCollection(1).Name = "Chan " & vChanKey & " (" & dChanCFs(vChanKey)(0) & "," & dChanCFs(vChanKey)(1) & ") " & sTitleAdjustment
                 Else
-                    myChart.Chart.SeriesCollection(1).Name = "Chan " & vChanKey & " " & sTitleAdjustment
+                    If Not dChanCFs Is Nothing Then
+                        myChart.Chart.SeriesCollection(1).Name = "Chan " & vChanKey & " (" & dChanCFs(vChanKey) & ")" & sTitleAdjustment
+                    Else
+                        myChart.Chart.SeriesCollection(1).Name = "Chan " & vChanKey & " "" & sTitleAdjustment"
+                    End If
                 End If
                 myChart.Chart.SeriesCollection(1).XValues = neuroWS.Range(neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 2, 5), neuroWS.Cells((iTrialNum - 1) * (dictOnlyIncludeChannels.Count * 2 + 5 + intChartGap * 2) + 2, 5 + histoBinCount))
                 myChart.Chart.SeriesCollection(1).Format.Line.Style = msoLineSingle
@@ -1132,6 +1180,8 @@ Function getCFs(ByRef dChanCFs As Dictionary) As Boolean
     Set objFolder = Nothing
     Set objFS = Nothing
 End Function
+
+
 
 
 
