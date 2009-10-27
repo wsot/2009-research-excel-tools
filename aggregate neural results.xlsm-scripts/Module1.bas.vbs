@@ -13,6 +13,7 @@ Global pLess05FC As FormatCondition
 Global pLess10FC As FormatCondition
 Global excludedTrialCell As Range
 
+Dim neuralByClass As Dictionary
 Dim neuralByDate As Dictionary
 Dim neuralByAcclim As Dictionary
 
@@ -279,6 +280,7 @@ Sub processTrials()
  
     Dim outputByDate As Workbook
     Dim outputByAcclim As Workbook
+    Dim outputByClass As Workbook
     
     Dim iColHeadersForHRLine As Integer
         
@@ -286,6 +288,7 @@ Sub processTrials()
             If thisWorkbook.Worksheets(iSourceWorksheetOffset).Name <> "Controller" And thisWorkbook.Worksheets(iSourceWorksheetOffset).Name <> "Trials" Then 'check if this is actually a data sheet
                 Set sourceWorksheet = thisWorkbook.Worksheets(iSourceWorksheetOffset)
                 
+                Set neuralByClass = New Dictionary
                 Set neuralByDate = New Dictionary
                 Set neuralByAcclim = New Dictionary
 
@@ -294,8 +297,8 @@ Sub processTrials()
                 Set thisAnimalSummarySheet = Nothing
                 animalID = sourceWorksheet.Name
                 
-                Call parseTrials(sourceWorksheet)
-                For iPass = 0 To 1
+                Call parseTrials(sourceWorksheet, animalID)
+                For iPass = 0 To 2
                     thisAnimalSummarySheetRow = 2
                     Select Case iPass
                         Case 0:
@@ -314,6 +317,14 @@ Sub processTrials()
                             End If
                             Set outputWorkbook = outputByDate
                             Set theDict = neuralByDate
+                        Case 2:
+                            'clusterByStimParams = False
+                            'clusterByDate = True
+                            If outputByClass Is Nothing Then
+                                Set outputByClass = Workbooks.Open(templateFilename)
+                            End If
+                            Set outputWorkbook = outputByClass
+                            Set theDict = neuralByClass
                     End Select
 
                     Call outputWorkbook.Worksheets("Summary template").Copy(, outputWorkbook.Worksheets("Output template"))
@@ -338,13 +349,18 @@ Sub processTrials()
                 Next
             End If
         Next
+        If Not outputByClass Is Nothing Then
+            outputFilename = pathToData & "\neural aggregate by class.xlsx"
+            Call outputByClass.SaveAs(outputFilename)
+            Call outputByClass.Close
+        End If
         If Not outputByDate Is Nothing Then
             outputFilename = pathToData & "\neural aggregate by date.xlsx"
             Call outputByDate.SaveAs(outputFilename)
             Call outputByDate.Close
         End If
         If Not outputByAcclim Is Nothing Then
-            outputFilename = pathToData & "\aggregate by acclim.xlsx"
+            outputFilename = pathToData & "\neural aggregate by acclim.xlsx"
             Call outputByAcclim.SaveAs(outputFilename)
             Call outputByAcclim.Close
         End If
@@ -357,7 +373,7 @@ Sub processTrials()
 End Sub
 
 'Function parseTrials(outputDict As Dictionary, sourceWorksheet As Workbook, experimentDate As String, experimentTag As String, exclusionInfo As Variant)
-Function parseTrials(sourceWorksheet As Worksheet)
+Function parseTrials(sourceWorksheet As Worksheet, strAnimal As String)
     Dim experimentDate As String
     Dim experimentTag As String
     Dim iChannel As Integer
@@ -379,8 +395,39 @@ Function parseTrials(sourceWorksheet As Worksheet)
             neuralByAcclimInfo = "Trials"
         End If
         
-        Call addToDict(neuralByDate, experimentDate, iChannel, i)
-        Call addToDict(neuralByAcclim, neuralByAcclimInfo, iChannel, i)
+        Select Case strAnimal
+            Case "111_140":
+                Call addToDict(neuralByClass, experimentDate, "DCN", i)
+            Case "111_141":
+                Select Case iChannel:
+                    Case 4, 5, 6, 7, 8, 9, 25:
+                        Call addToDict(neuralByClass, experimentDate, "VCN", i)
+                    Case 10, 11, 12, 13, 14, 15, 25:
+                        Call addToDict(neuralByClass, experimentDate, "DCN", i)
+                    Case 26, 27, 28, 29, 30, 31, 32:
+                        Call addToDict(neuralByClass, experimentDate, "Octopus", i)
+                End Select
+            Case "112_1024":
+                Select Case iChannel:
+                    Case 17, 18, 19, 20, 21, 22, 23, 8, 9, 10, 11, 12, 13, 14, 15, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32:
+                        Call addToDict(neuralByClass, experimentDate, "VCN", i)
+                End Select
+            Case "123_1164":
+                Select Case iChannel:
+                    Case 21:
+                        Call addToDict(neuralByClass, experimentDate, "DCN", i)
+                    Case 7, 15:
+                        Call addToDict(neuralByClass, experimentDate, "AVCN", i)
+                    Case 5, 6, 8, 9, 10, 11, 13:
+                        Call addToDict(neuralByClass, experimentDate, "VCN", i)
+                End Select
+                'Call addToDict(neuralByClass, experimentDate, "DCN", i)
+                'Call addToDict(neuralByClass, experimentDate, "VCN", i)
+                'Call addToDict(neuralByClass, experimentDate, "Octopus", i)
+        End Select
+        
+        Call addToDict(neuralByDate, experimentDate, CStr(iChannel), i)
+        Call addToDict(neuralByAcclim, neuralByAcclimInfo, CStr(iChannel), i)
         i = i + 1
     Wend
 End Function
@@ -806,7 +853,7 @@ Function readPartialFromFile(objFile As File) As String
     ts.Close
 End Function
 
-Function addToDict(ByRef objDict As Dictionary, entryInfo As String, chanNum As Integer, iRow As Integer)
+Function addToDict(ByRef objDict As Dictionary, entryInfo As String, chanNum As String, iRow As Integer)
     Dim paramArr As Variant
     Dim iParamOffset As Integer
     
