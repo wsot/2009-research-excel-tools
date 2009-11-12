@@ -1061,7 +1061,8 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                 
                 If nInMeanSoFar > 1 Then
                     HRChangeVar = HRChangeVar / (nInMeanSoFar - 1)
-                    tStat = meanHRChange / ((HRChangeVar / nInMeanSoFar) ^ 0.5)
+                    'tStat = meanHRChange / ((HRChangeVar / nInMeanSoFar) ^ 0.5)
+                    tStat = meanHRChange / ((HRChangeVar ^ 0.5) / (nInMeanSoFar ^ 0.5))
                 End If
                 
                 iExcelOffset = iExcelOffset + 1
