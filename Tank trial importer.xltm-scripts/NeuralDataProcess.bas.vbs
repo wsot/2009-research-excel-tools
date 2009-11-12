@@ -182,11 +182,17 @@ Function parseNeuralData(dblTotalWidthSecs As Double, dblBinWidthSecs As Double,
     Dim neuroWS As Worksheet
     Set neuroWS = Worksheets("Neural Data")
     
+    Dim neuroWS2 As Worksheet
+    Set neuroWS2 = Worksheets("Neural Data (2)")
+    
     Dim trialDataWS As Worksheet
     Set trialDataWS = Worksheets("Output")
     
     Call objTTX.CreateEpocIndexing
 
+
+    Dim outputCounters(5) As Long 'for output row in neural data (2) worksheet; 1-4 20db, 1-4 25db, 1-4 30db, 5-8 20db, 5-8 25db, 5-8 30db
+    
     iTrialNum = 1
     While trialDataWS.Cells(iTrialNum + 1, 1) <> "" 'iterate through all trials
 '        iTrialNumTDT = CInt(trialDataWS.Range("B" & (iTrialNum + 1)).Value)
@@ -206,7 +212,7 @@ Function parseNeuralData(dblTotalWidthSecs As Double, dblBinWidthSecs As Double,
         
 '        Call objTTX.ResetFilters
         'find first trial actual start time
-        Call readTrialNeuralData(iTrialNum, neuroWS, trialDataWS, dblTotalWidthSecs, dblBinWidthSecs, dblStartOffsetSecs, vChannelMapper, dChanCFs)
+        Call readTrialNeuralData(iTrialNum, neuroWS, neuroWS2, trialDataWS, dblTotalWidthSecs, dblBinWidthSecs, dblStartOffsetSecs, vChannelMapper, dChanCFs, outputCounters)
         
         iTrialNum = iTrialNum + 1
     Wend
@@ -221,7 +227,7 @@ Function stripTrailingHz(strInput) As String
         End If
 End Function
 
-Function readTrialNeuralData(iTrialNum As Integer, neuroWS As Worksheet, trialDataWS As Worksheet, dblTotalWidthSecs As Double, dblBinWidthSecs As Double, dblStartOffsetSecs As Double, ByRef vChannelMapper As Variant, ByRef dChanCFs As Dictionary)
+Function readTrialNeuralData(iTrialNum As Integer, neuroWS As Worksheet, neuroWS2 As Worksheet, trialDataWS As Worksheet, dblTotalWidthSecs As Double, dblBinWidthSecs As Double, dblStartOffsetSecs As Double, ByRef vChannelMapper As Variant, ByRef dChanCFs As Dictionary, ByRef outputCounters As Variant)
     Dim iTrialNumTDT As Integer
 
     Dim lStim1Freq As Long
@@ -314,28 +320,43 @@ Function readTrialNeuralData(iTrialNum As Integer, neuroWS As Worksheet, trialDa
         Set dDrivenChanList = New Dictionary
         
 '        Call identifyDrivenChannels(stimEpocs, dDrivenChanList, vChannelMapper)
-'        If dChanCFs Is Nothing Then
+        If dChanCFs Is Nothing Then
             Call identifyDrivenChannels(stimEpocs, dDrivenChanList, vChannelMapper)
-'        Else
-'            Dim lKey As Variant
-'            For Each lKey In dChanCFs.Keys
-'                If dChanCFs(lKey)(0) <> "" Then
-'                    If Abs(CLng(dChanCFs(lKey)(0)) - lStim1Freq) < includeChanIfWithinXHz Then
-'                        Call dDrivenChanList.Add(lKey, DriveDetect_Tuned)
-'                    ElseIf dChanCFs(lKey)(1) <> "" Then
-'                        If Abs(CLng(dChanCFs(lKey)(1)) - lStim1Freq) < includeChanIfWithinXHz Then
-'                            Call dDrivenChanList.Add(lKey, DriveDetect_Tuned)
-'                        Else
-'                            Call dDrivenChanList.Add(lKey, DriveDetect_Undriven)
-'                        End If
-'                    Else
-'                        Call dDrivenChanList.Add(lKey, DriveDetect_Undriven)
-'                    End If
-'                Else
-'                    Call dDrivenChanList.Add(lKey, DriveDetect_Undriven)
-'                End If
-'            Next
-'        End If
+        Else
+            Dim lKey As Variant
+            For Each lKey In dChanCFs.Keys
+                If dChanCFs(lKey)(0) <> "" Then
+                    If Abs(CLng(dChanCFs(lKey)(0)) - lStim1Freq) < includeChanIfWithinXHz Then
+                        If dDrivenChanList.Exists(lKey) Then
+                            dDrivenChanList(lKey) = DriveDetect_Tuned
+                        Else
+                            Call dDrivenChanList.Add(lKey, DriveDetect_Tuned)
+                        End If
+                    ElseIf dChanCFs(lKey)(1) <> "" Then
+                        If Abs(CLng(dChanCFs(lKey)(1)) - lStim1Freq) < includeChanIfWithinXHz Then
+                            If dDrivenChanList.Exists(lKey) Then
+                                dDrivenChanList(lKey) = DriveDetect_Tuned
+                            Else
+                                Call dDrivenChanList.Add(lKey, DriveDetect_Tuned)
+                            End If
+                            'Call dDrivenChanList.Add(lKey, DriveDetect_Tuned)
+                        Else
+                            If Not dDrivenChanList.Exists(lKey) Then
+                                Call dDrivenChanList.Add(lKey, DriveDetect_Undriven)
+                            End If
+                        End If
+                    Else
+                        If Not dDrivenChanList.Exists(lKey) Then
+                            Call dDrivenChanList.Add(lKey, DriveDetect_Undriven)
+                        End If
+                    End If
+                Else
+                    If Not dDrivenChanList.Exists(lKey) Then
+                        Call dDrivenChanList.Add(lKey, DriveDetect_Undriven)
+                    End If
+                End If
+            Next
+        End If
         
         'Dim lHistoBin As Long
         
@@ -370,8 +391,34 @@ Function readTrialNeuralData(iTrialNum As Integer, neuroWS As Worksheet, trialDa
                 For icounter = 0 To 31
                     histoSums(icounter)(0) = histoSums(icounter)(0) + histoSumsB(icounter)(0)
                     histoSquares(icounter)(0) = histoSquares(icounter)(0) + histoSquaresB(icounter)(0)
+                    If histoSumsB(icounter)(0) > 0 Then
+                        Select Case stimAmp(stimAmpStep)
+                            Case 20:
+                                neuroWS2.Range("S" & CStr(outputCounters(3) + 3)).Value = icounter + 1
+                                neuroWS2.Range("T" & CStr(outputCounters(3) + 3)).Value = histoSumsB(icounter)(0)
+                                neuroWS2.Range("U" & CStr(outputCounters(3) + 3)).Value = iStimNum
+                                neuroWS2.Range("V" & CStr(outputCounters(3) + 3)).Value = stimEpocs(1, iStimNum)
+                                neuroWS2.Range("W" & CStr(outputCounters(3) + 3)).Value = iTrialNumTDT
+                                outputCounters(3) = outputCounters(3) + 1
+                            Case 25:
+                                neuroWS2.Range("Y" & CStr(outputCounters(4) + 3)).Value = icounter + 1
+                                neuroWS2.Range("Z" & CStr(outputCounters(4) + 3)).Value = histoSumsB(icounter)(0)
+                                neuroWS2.Range("AA" & CStr(outputCounters(4) + 3)).Value = iStimNum
+                                neuroWS2.Range("AB" & CStr(outputCounters(4) + 3)).Value = stimEpocs(1, iStimNum)
+                                neuroWS2.Range("AC" & CStr(outputCounters(4) + 3)).Value = iTrialNumTDT
+                                outputCounters(4) = outputCounters(4) + 1
+                            Case 30:
+                                neuroWS2.Range("AE" & CStr(outputCounters(5) + 3)).Value = icounter + 1
+                                neuroWS2.Range("AF" & CStr(outputCounters(5) + 3)).Value = histoSumsB(icounter)(0)
+                                neuroWS2.Range("AG" & CStr(outputCounters(5) + 3)).Value = iStimNum
+                                neuroWS2.Range("AH" & CStr(outputCounters(5) + 3)).Value = stimEpocs(1, iStimNum)
+                                neuroWS2.Range("AI" & CStr(outputCounters(5) + 3)).Value = iTrialNumTDT
+                                outputCounters(5) = outputCounters(5) + 1
+                        End Select
+                    End If
                     Select Case stimAmpStep:
                         Case 0:
+
                             ampTotals1(icounter) = ampTotals1(icounter) + histoSumsB(icounter)(0)
                         Case 1:
                             ampTotals2(icounter) = ampTotals2(icounter) + histoSumsB(icounter)(0)
@@ -474,6 +521,31 @@ Function readTrialNeuralData(iTrialNum As Integer, neuroWS As Worksheet, trialDa
                 For icounter = 0 To 31
                     histoSums(icounter)(0) = histoSums(icounter)(0) + histoSumsB(icounter)(0)
                     histoSquares(icounter)(0) = histoSquares(icounter)(0) + histoSquaresB(icounter)(0)
+                    If histoSumsB(icounter)(0) > 0 Then
+                        Select Case stimAmp(stimAmpStep)
+                            Case 20:
+                                neuroWS2.Range("A" & CStr(outputCounters(0) + 3)).Value = icounter + 1
+                                neuroWS2.Range("B" & CStr(outputCounters(0) + 3)).Value = histoSumsB(icounter)(0)
+                                neuroWS2.Range("C" & CStr(outputCounters(0) + 3)).Value = iStimNum
+                                neuroWS2.Range("D" & CStr(outputCounters(0) + 3)).Value = stimEpocs(1, iStimNum)
+                                neuroWS2.Range("E" & CStr(outputCounters(0) + 3)).Value = iTrialNumTDT
+                                outputCounters(0) = outputCounters(0) + 1
+                            Case 25:
+                                neuroWS2.Range("H" & CStr(outputCounters(1) + 3)).Value = icounter + 1
+                                neuroWS2.Range("H" & CStr(outputCounters(1) + 3)).Value = histoSumsB(icounter)(0)
+                                neuroWS2.Range("I" & CStr(outputCounters(1) + 3)).Value = iStimNum
+                                neuroWS2.Range("J" & CStr(outputCounters(1) + 3)).Value = stimEpocs(1, iStimNum)
+                                neuroWS2.Range("K" & CStr(outputCounters(1) + 3)).Value = iTrialNumTDT
+                                outputCounters(1) = outputCounters(1) + 1
+                            Case 30:
+                                neuroWS2.Range("M" & CStr(outputCounters(2) + 3)).Value = icounter + 1
+                                neuroWS2.Range("N" & CStr(outputCounters(2) + 3)).Value = histoSumsB(icounter)(0)
+                                neuroWS2.Range("O" & CStr(outputCounters(2) + 3)).Value = iStimNum
+                                neuroWS2.Range("P" & CStr(outputCounters(2) + 3)).Value = stimEpocs(1, iStimNum)
+                                neuroWS2.Range("Q" & CStr(outputCounters(2) + 3)).Value = iTrialNumTDT
+                                outputCounters(2) = outputCounters(2) + 1
+                        End Select
+                    End If
                     Select Case stimAmpStep:
                         Case 0:
                             ampTotals1(icounter) = ampTotals1(icounter) + histoSumsB(icounter)(0)
@@ -883,7 +955,7 @@ Function outputResults(neuroWS As Worksheet, intChartGap As Integer, histoBinCou
                     myChart.Chart.SeriesCollection(1).Name = "Chan " & vChanKey & " (" & dChanCFs(vChanKey)(0) & "," & dChanCFs(vChanKey)(1) & ") " & sTitleAdjustment
                 Else
                     If Not dChanCFs Is Nothing Then
-                        myChart.Chart.SeriesCollection(1).Name = "Chan " & vChanKey & " (" & dChanCFs(vChanKey) & ")" & sTitleAdjustment
+                        myChart.Chart.SeriesCollection(1).Name = "Chan " & vChanKey & " (" & dChanCFs(vChanKey)(0) & ")" & sTitleAdjustment
                     Else
                         myChart.Chart.SeriesCollection(1).Name = "Chan " & vChanKey & " "" & sTitleAdjustment"
                     End If
@@ -1180,15 +1252,3 @@ Function getCFs(ByRef dChanCFs As Dictionary) As Boolean
     Set objFolder = Nothing
     Set objFS = Nothing
 End Function
-
-
-
-
-
-
-
-
-
-
-
-
