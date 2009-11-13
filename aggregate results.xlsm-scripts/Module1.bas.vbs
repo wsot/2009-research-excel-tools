@@ -341,21 +341,25 @@ Sub processTrials()
                 Call trialTypesByDate.Add("Acclimatisation", New Dictionary)
                 Call trialTypesByDate.Add("Acoustic", New Dictionary)
                 Call trialTypesByDate.Add("Electrical", New Dictionary)
+                Call trialTypesByDate.Add("No Stim", New Dictionary)
                 
                 Set trialTypesByStimParamsFull = New Dictionary
                 Call trialTypesByStimParamsFull.Add("Acclimatisation", New Dictionary)
                 Call trialTypesByStimParamsFull.Add("Acoustic", New Dictionary)
                 Call trialTypesByStimParamsFull.Add("Electrical", New Dictionary)
+                Call trialTypesByStimParamsFull.Add("No Stim", New Dictionary)
 
                 Set trialTypesByDateStimParamsFull = New Dictionary
                 Call trialTypesByDateStimParamsFull.Add("Acclimatisation", New Dictionary)
                 Call trialTypesByDateStimParamsFull.Add("Acoustic", New Dictionary)
                 Call trialTypesByDateStimParamsFull.Add("Electrical", New Dictionary)
+                Call trialTypesByDateStimParamsFull.Add("No Stim", New Dictionary)
 
                 Set trialTypesByStimParamsNoAmp = New Dictionary
                 Call trialTypesByStimParamsNoAmp.Add("Acclimatisation", New Dictionary)
                 Call trialTypesByStimParamsNoAmp.Add("Acoustic", New Dictionary)
                 Call trialTypesByStimParamsNoAmp.Add("Electrical", New Dictionary)
+                Call trialTypesByStimParamsNoAmp.Add("No Stim", New Dictionary)
                 
                 
                 validTrialCount = 0
@@ -454,6 +458,12 @@ Sub processTrials()
                             Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
                             thisAnimalWorksheet.Name = animalID & " Electrical"
                             Call outputTrials(trialTypes, "Electrical", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow, sourceWorksheet)
+                        End If
+                        If trialTypes("No Stim").Count > 0 Then
+                            Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
+                            Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
+                            thisAnimalWorksheet.Name = animalID & " No Stim"
+                            Call outputTrials(trialTypes, "No Stim", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow, sourceWorksheet)
                         End If
                     End If
 '                    Call outputWorkbook.SaveAs(outputFilename)
@@ -777,10 +787,17 @@ Function parseTrials(sourceWorksheet As Worksheet)
                     ReDim Preserve allTrials(UBound(allTrials) + 1)
                     allTrials(UBound(allTrials)) = trialArr
                     
-                    Call addToDict(trialTypesByDate, trialInfoByDate, "Electrical", UBound(allTrials))
-                    Call addToDict(trialTypesByStimParamsFull, trialInfoByStimParamsFull, "Electrical", UBound(allTrials))
-                    Call addToDict(trialTypesByDateStimParamsFull, trialInfoByDateStimParamsFull, "Electrical", UBound(allTrials))
-                    Call addToDict(trialTypesByStimParamsNoAmp, trialInfoByStimParamsNoAmp, "Electrical", UBound(allTrials))
+                    If param1str = "No stimulation" Then
+                        Call addToDict(trialTypesByDate, trialInfoByDate, "No Stim", UBound(allTrials))
+                        Call addToDict(trialTypesByStimParamsFull, trialInfoByStimParamsFull, "No Stim", UBound(allTrials))
+                        Call addToDict(trialTypesByDateStimParamsFull, trialInfoByDateStimParamsFull, "No Stim", UBound(allTrials))
+                        Call addToDict(trialTypesByStimParamsNoAmp, trialInfoByStimParamsNoAmp, "No Stim", UBound(allTrials))
+                    Else
+                        Call addToDict(trialTypesByDate, trialInfoByDate, "Electrical", UBound(allTrials))
+                        Call addToDict(trialTypesByStimParamsFull, trialInfoByStimParamsFull, "Electrical", UBound(allTrials))
+                        Call addToDict(trialTypesByDateStimParamsFull, trialInfoByDateStimParamsFull, "Electrical", UBound(allTrials))
+                        Call addToDict(trialTypesByStimParamsNoAmp, trialInfoByStimParamsNoAmp, "Electrical", UBound(allTrials))
+                    End If
                 End If
             End If
         End If
@@ -861,9 +878,9 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
     Dim noStimPooledHRChNExcl As Long
     Dim noStimPooledHRChNDec As Long
         
-    Dim noStimPooledVarMean(2) As Long
-    Dim noStimPooledVarCum(2) As Double
-    Dim noStimPooledVarN(2) As Double
+    Dim noStimPooledVarMean As Variant
+    Dim noStimPooledVarCum As Variant
+    Dim noStimPooledVarN As Variant
         
     Dim currPooledVarMean As Variant
     Dim currPooledVarCum As Variant
@@ -1016,15 +1033,15 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                         diff = arrTrial(5) - arrTrial(3)
                         meanHRChange = meanHRChange + ((diff - meanHRChange) / CDbl(nInMeanSoFar))
                         
-                        If Not arrParamSets(iParamSetNum) = "No stimulation, No stimulation" Then
+                        'If Not arrParamSets(iParamSetNum) = "No stimulation, No stimulation" Then
                             currPooledHRChN = currPooledHRChN + 1
                             currPooledHRChMean = currPooledHRChMean + ((diff - currPooledHRChMean) / CDbl(currPooledHRChN))
                             currPooledHRChCum = currPooledHRChCum + (diff ^ 2)
-                        Else
-                            noStimPooledHRChN = noStimPooledHRChN + 1
-                            noStimPooledHRChMean = noStimPooledHRChMean + ((diff - noStimPooledHRChMean) / CDbl(noStimPooledHRChN))
-                            noStimPooledHRChCum = noStimPooledHRChCum + (diff ^ 2)
-                        End If
+                        'Else
+                        '    noStimPooledHRChN = noStimPooledHRChN + 1
+                        '    noStimPooledHRChMean = noStimPooledHRChMean + ((diff - noStimPooledHRChMean) / CDbl(noStimPooledHRChN))
+                        '    noStimPooledHRChCum = noStimPooledHRChCum + (diff ^ 2)
+                        'End If
                         
                         'check if HR rose or fell
                         If diff < 0 Then
@@ -1040,45 +1057,45 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                         nInMeanStdDevSoFar(0) = nInMeanStdDevSoFar(0) + 1
                         meanStdDev(0) = meanStdDev(0) + ((arrTrial(8) - meanStdDev(0)) / CDbl(nInMeanStdDevSoFar(0)))
                         
-                        If Not arrParamSets(iParamSetNum) = "No stimulation, No stimulation" Then
+                        'If Not arrParamSets(iParamSetNum) = "No stimulation, No stimulation" Then
                             currPooledVarN(0) = currPooledVarN(0) + 1
                             currPooledVarMean(0) = currPooledVarMean(0) + CDbl(((arrTrial(8) - currPooledVarMean(0)) / CDbl(currPooledVarN(0))))
                             currPooledVarCum(0) = currPooledVarCum(0) + CDbl((arrTrial(8)) ^ 2)
-                        Else
-                            noStimPooledVarN(0) = noStimPooledVarN(0) + 1
-                            noStimPooledVarMean(0) = noStimPooledVarMean(0) + CDbl(((arrTrial(8) - noStimPooledVarMean(0)) / CDbl(noStimPooledVarN(0))))
-                            noStimPooledVarCum(0) = noStimPooledVarCum(0) + CDbl((arrTrial(8)) ^ 2)
-                        End If
+                        'Else
+                        '    noStimPooledVarN(0) = noStimPooledVarN(0) + 1
+                        '    noStimPooledVarMean(0) = noStimPooledVarMean(0) + CDbl(((arrTrial(8) - noStimPooledVarMean(0)) / CDbl(noStimPooledVarN(0))))
+                        '    noStimPooledVarCum(0) = noStimPooledVarCum(0) + CDbl((arrTrial(8)) ^ 2)
+                        'End If
                     End If
                     
                     If arrTrial(4) = "" And arrTrial(7) = "" Then
                         nInMeanStdDevSoFar(1) = nInMeanStdDevSoFar(1) + 1
                         meanStdDev(1) = meanStdDev(1) + ((arrTrial(9) - meanStdDev(1)) / CDbl(nInMeanStdDevSoFar(1)))
                         
-                        If Not arrParamSets(iParamSetNum) = "No stimulation, No stimulation" Then
+                        'If Not arrParamSets(iParamSetNum) = "No stimulation, No stimulation" Then
                             currPooledVarN(1) = currPooledVarN(1) + 1
                             currPooledVarMean(1) = currPooledVarMean(1) + CDbl(((arrTrial(9) - currPooledVarMean(1)) / CDbl(currPooledVarN(1))))
                             currPooledVarCum(1) = currPooledVarCum(1) + CDbl((arrTrial(9)) ^ 2)
-                        Else
-                            noStimPooledVarN(1) = noStimPooledVarN(1) + 1
-                            noStimPooledVarMean(1) = noStimPooledVarMean(1) + CDbl(((arrTrial(9) - noStimPooledVarMean(1)) / CDbl(noStimPooledVarN(1))))
-                            noStimPooledVarCum(1) = noStimPooledVarCum(1) + CDbl((arrTrial(9)) ^ 2)
-                        End If
+                        'Else
+                        '    noStimPooledVarN(1) = noStimPooledVarN(1) + 1
+                        '    noStimPooledVarMean(1) = noStimPooledVarMean(1) + CDbl(((arrTrial(9) - noStimPooledVarMean(1)) / CDbl(noStimPooledVarN(1))))
+                        '    noStimPooledVarCum(1) = noStimPooledVarCum(1) + CDbl((arrTrial(9)) ^ 2)
+                        'End If
                     End If
                     
                     If arrTrial(6) = "" And arrTrial(7) = "" Then
                         nInMeanStdDevSoFar(2) = nInMeanStdDevSoFar(2) + 1
                         meanStdDev(2) = meanStdDev(2) + ((arrTrial(9) - meanStdDev(2)) / CDbl(nInMeanStdDevSoFar(2)))
                         
-                        If Not arrParamSets(iParamSetNum) = "No stimulation, No stimulation" Then
+                        'If Not arrParamSets(iParamSetNum) = "No stimulation, No stimulation" Then
                             currPooledVarN(2) = currPooledVarN(2) + 1
                             currPooledVarMean(2) = currPooledVarMean(2) + CDbl(((arrTrial(10) - currPooledVarMean(2)) / CDbl(currPooledVarN(2))))
                             currPooledVarCum(2) = currPooledVarCum(2) + CDbl((arrTrial(10)) ^ 2)
-                        Else
-                            noStimPooledVarN(2) = noStimPooledVarN(2) + 1
-                            noStimPooledVarMean(2) = noStimPooledVarMean(2) + CDbl(((arrTrial(10) - noStimPooledVarMean(2)) / CDbl(noStimPooledVarN(2))))
-                            noStimPooledVarCum(2) = noStimPooledVarCum(2) + CDbl((arrTrial(10)) ^ 2)
-                        End If
+                        'Else
+                        '    noStimPooledVarN(2) = noStimPooledVarN(2) + 1
+                        '    noStimPooledVarMean(2) = noStimPooledVarMean(2) + CDbl(((arrTrial(10) - noStimPooledVarMean(2)) / CDbl(noStimPooledVarN(2))))
+                        '    noStimPooledVarCum(2) = noStimPooledVarCum(2) + CDbl((arrTrial(10)) ^ 2)
+                        'End If
                     End If
                 Next
                 
@@ -1297,13 +1314,13 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                 End If
                 
                 If arrTrialTypes(iTrialTypeNum) = "Electrical" Then
-                    If Not arrParamSets(iParamSetNum) = "No stimulation, No stimulation" Then
+                    'If Not arrParamSets(iParamSetNum) = "No stimulation, No stimulation" Then
                         currPooledHRChNExcl = currPooledHRChNExcl + nExcluded
                         currPooledHRChNDec = currPooledHRChNDec + HRDecTrials
-                    Else
-                        noStimPooledHRChNExcl = noStimPooledHRChNExcl + nExcluded
-                        noStimPooledHRChNDec = noStimPooledHRChNDec + HRDecTrials
-                    End If
+                    'Else
+                    '    noStimPooledHRChNExcl = noStimPooledHRChNExcl + nExcluded
+                    '    noStimPooledHRChNDec = noStimPooledHRChNDec + HRDecTrials
+                    'End If
                 End If
                                 
                 If iMaxExcelOffset > iExcelOffset Then
@@ -1349,8 +1366,8 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                 myChart.Chart.ChartTitle.Characters.Font.Size = 12
                 'myChart.Chart.Axes(xlValue).MinimumScale = 0.85
                 'myChart.Chart.Axes(xlValue).MaximumScale = 1.15
-                myChart.Chart.Axes(xlValue).MinimumScale = -15
-                myChart.Chart.Axes(xlValue).MaximumScale = 15
+                myChart.Chart.Axes(xlValue).MinimumScale = -50
+                myChart.Chart.Axes(xlValue).MaximumScale = 50
                 
                 thisAnimalSummarySheetRow = thisAnimalSummarySheetRow + 1
             Next
@@ -1388,6 +1405,16 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                 ElPooledVarMean = currPooledVarMean
                 ElPooledVarCum = currPooledVarCum
                 ElPooledVarN = currPooledVarN
+            Case "No Stim":
+                noStimPooledHRChN = currPooledHRChN
+                noStimPooledHRChMean = currPooledHRChMean
+                noStimPooledHRChCum = currPooledHRChCum
+                noStimPooledHRChNExcl = currPooledHRChNExcl
+                noStimPooledHRChNDec = currPooledHRChNDec
+                
+                noStimPooledVarMean = currPooledVarMean
+                noStimPooledVarCum = currPooledVarCum
+                noStimPooledVarN = currPooledVarN
         End Select
     Next
     
@@ -1540,52 +1567,50 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
         End If
     End If
     
-    If trialType = "Electrical" Or trialType = "" Then 'no stimulation trials
-        If noStimPooledHRChN > 0 Then
-            thisAnimalSummarySheetRow = thisAnimalSummarySheetRow + 2
-                
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1).Value = "No Stimulation"
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1).Font.Bold = True
+    If trialType = "No Stim" Or trialType = "" Then 'no stimulation trials
+        thisAnimalSummarySheetRow = thisAnimalSummarySheetRow + 2
             
-            For iVarCycling = 0 To 2
-                Select Case iVarCycling
-                    Case 0:
-                        iSummaryCol = 10
-                    Case 1:
-                        iSummaryCol = 13
-                    Case 2:
-                        iSummaryCol = 16
-                End Select
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1).Value = "No Stimulation"
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1).Font.Bold = True
         
-                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol) = noStimPooledVarN(iVarCycling)
-                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol + 1) = noStimPooledVarMean(iVarCycling)
-                If noStimPooledVarN(iVarCycling) > 1 Then
-                    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol + 2) = ((noStimPooledVarCum(iVarCycling) - ((noStimPooledVarMean(iVarCycling) * CDbl(noStimPooledVarN(iVarCycling)) ^ 2) / CDbl(noStimPooledVarN(iVarCycling)))) / CDbl(noStimPooledVarN(iVarCycling) - 1)) ^ 0.5
-                End If
-            Next
-        
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 2).Value = noStimPooledHRChN
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 3).Value = noStimPooledHRChNExcl
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).Value = (noStimPooledHRChNDec / noStimPooledHRChN)
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).Style = "Percent"
-            Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions.Delete
-            Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions.Add(xlCellValue, xlNotBetween, ".15", ".85")
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Font.Color = percOutside1585FC.Font.Color
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Font.ColorIndex = percOutside1585FC.Font.ColorIndex
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Interior.Color = percOutside1585FC.Interior.Color
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Interior.ColorIndex = percOutside1585FC.Interior.ColorIndex
-            Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions.Add(xlCellValue, xlNotBetween, ".25", ".75")
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Font.Color = percOutside2575FC.Font.Color
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Font.ColorIndex = percOutside2575FC.Font.ColorIndex
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Interior.Color = percOutside2575FC.Interior.Color
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Interior.ColorIndex = percOutside2575FC.Interior.ColorIndex
+        For iVarCycling = 0 To 2
+            Select Case iVarCycling
+                Case 0:
+                    iSummaryCol = 10
+                Case 1:
+                    iSummaryCol = 13
+                Case 2:
+                    iSummaryCol = 16
+            End Select
     
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 5).Value = noStimPooledHRChMean
-            If noStimPooledHRChN > 1 Then
-                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value = ((noStimPooledHRChCum - ((noStimPooledHRChMean * CDbl(noStimPooledHRChN) ^ 2) / CDbl(noStimPooledHRChN))) / CDbl(noStimPooledHRChN - 1)) ^ 0.5
-                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Value = noStimPooledHRChMean / ((thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value / noStimPooledHRChN) ^ 0.5)
-                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).Value = "=TDIST(ABS(" & thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Address & ")," & CStr(noStimPooledHRChN - 1) & ",1)"
+            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol) = noStimPooledVarN(iVarCycling)
+            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol + 1) = noStimPooledVarMean(iVarCycling)
+            If noStimPooledVarN(iVarCycling) > 1 Then
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol + 2) = ((noStimPooledVarCum(iVarCycling) - ((noStimPooledVarMean(iVarCycling) * CDbl(noStimPooledVarN(iVarCycling)) ^ 2) / CDbl(noStimPooledVarN(iVarCycling)))) / CDbl(noStimPooledVarN(iVarCycling) - 1)) ^ 0.5
             End If
+        Next
+    
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 2).Value = noStimPooledHRChN
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 3).Value = noStimPooledHRChNExcl
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).Value = (noStimPooledHRChNDec / noStimPooledHRChN)
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).Style = "Percent"
+        Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions.Delete
+        Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions.Add(xlCellValue, xlNotBetween, ".15", ".85")
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Font.Color = percOutside1585FC.Font.Color
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Font.ColorIndex = percOutside1585FC.Font.ColorIndex
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Interior.Color = percOutside1585FC.Interior.Color
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Interior.ColorIndex = percOutside1585FC.Interior.ColorIndex
+        Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions.Add(xlCellValue, xlNotBetween, ".25", ".75")
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Font.Color = percOutside2575FC.Font.Color
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Font.ColorIndex = percOutside2575FC.Font.ColorIndex
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Interior.Color = percOutside2575FC.Interior.Color
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Interior.ColorIndex = percOutside2575FC.Interior.ColorIndex
+
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 5).Value = noStimPooledHRChMean
+        If noStimPooledHRChN > 1 Then
+            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value = ((noStimPooledHRChCum - ((noStimPooledHRChMean * CDbl(noStimPooledHRChN) ^ 2) / CDbl(noStimPooledHRChN))) / CDbl(noStimPooledHRChN - 1)) ^ 0.5
+            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Value = noStimPooledHRChMean / ((thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value / noStimPooledHRChN) ^ 0.5)
+            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).Value = "=TDIST(ABS(" & thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Address & ")," & CStr(noStimPooledHRChN - 1) & ",1)"
         End If
     End If
     
@@ -1637,10 +1662,11 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
        Type:=xlErrorBarTypeCustom, Amount:=thisAnimalSummarySheet.Range("$JZ$" & thisAnimalSummarySheetRow & ":$OZ$" & thisAnimalSummarySheetRow), MinusValues:=thisAnimalSummarySheet.Range("$JZ$" & thisAnimalSummarySheetRow & ":$OZ$" & thisAnimalSummarySheetRow)
 
     myChart.Chart.ChartTitle.Characters.Font.Size = 12
-    myChart.Chart.Axes(xlValue).MinimumScale = 0.85
-    myChart.Chart.Axes(xlValue).MaximumScale = 1.15
+    'myChart.Chart.Axes(xlValue).MinimumScale = 0.85
+    'myChart.Chart.Axes(xlValue).MaximumScale = 1.15
+    myChart.Chart.Axes(xlValue).MinimumScale = -50
+    myChart.Chart.Axes(xlValue).MaximumScale = 50
 
-    
     thisAnimalSummarySheetRow = thisAnimalSummarySheetRow + 23
 
 End Sub
