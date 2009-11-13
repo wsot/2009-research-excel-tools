@@ -184,8 +184,31 @@ Function copyTrials(workbookToProcess As Workbook, experimentDate As String, exp
         If exclusionReason <> "" Then
             thisAnimalWorksheet.Cells(thisAnimalTrialsRow, 99).Value = exclusionReason
         End If
+        
+        'convert when the stimulation cable was detached to being 'no stimulation' trials for comparison
+        If exclusionInfo(0) = "Electrical" Then
+            If thisAnimalWorksheet.Range("M" & thisAnimalTrialsRow).Value = "Electrical" Then
+                If InStr(1, LCase(exclusionInfo(1)), "stimulation cable may have been detached", vbTextCompare) Then
+                    thisAnimalWorksheet.Cells(thisAnimalTrialsRow, 6).Value = ""
+                    thisAnimalWorksheet.Cells(thisAnimalTrialsRow, 7).Value = ""
+                    thisAnimalWorksheet.Cells(thisAnimalTrialsRow, 8).Value = ""
+                    
+                    thisAnimalWorksheet.Range("N" & thisAnimalTrialsRow).Value = "0* ref 0* @ 400Hz"
+                    thisAnimalWorksheet.Range("O" & thisAnimalTrialsRow).Value = "0uA"
+                    thisAnimalWorksheet.Range("P" & thisAnimalTrialsRow).Value = "0uA"
+                    thisAnimalWorksheet.Range("Q" & thisAnimalTrialsRow).Value = "0uA"
+                    
+                    thisAnimalWorksheet.Range("R" & thisAnimalTrialsRow).Value = "0* ref 0* @ 400Hz"
+                    thisAnimalWorksheet.Range("S" & thisAnimalTrialsRow).Value = "0uA"
+                    thisAnimalWorksheet.Range("T" & thisAnimalTrialsRow).Value = "0uA"
+                    thisAnimalWorksheet.Range("U" & thisAnimalTrialsRow).Value = "0uA"
+                End If
+            End If
+        End If
+        
         thisAnimalTrialsRow = thisAnimalTrialsRow + 1
         iSourceRow = iSourceRow + 1
+
     Wend
 End Function
 
@@ -315,18 +338,22 @@ Sub processTrials()
     
                 
                 Set trialTypesByDate = New Dictionary
+                Call trialTypesByDate.Add("Acclimatisation", New Dictionary)
                 Call trialTypesByDate.Add("Acoustic", New Dictionary)
                 Call trialTypesByDate.Add("Electrical", New Dictionary)
                 
                 Set trialTypesByStimParamsFull = New Dictionary
+                Call trialTypesByStimParamsFull.Add("Acclimatisation", New Dictionary)
                 Call trialTypesByStimParamsFull.Add("Acoustic", New Dictionary)
                 Call trialTypesByStimParamsFull.Add("Electrical", New Dictionary)
 
                 Set trialTypesByDateStimParamsFull = New Dictionary
+                Call trialTypesByDateStimParamsFull.Add("Acclimatisation", New Dictionary)
                 Call trialTypesByDateStimParamsFull.Add("Acoustic", New Dictionary)
                 Call trialTypesByDateStimParamsFull.Add("Electrical", New Dictionary)
 
                 Set trialTypesByStimParamsNoAmp = New Dictionary
+                Call trialTypesByStimParamsNoAmp.Add("Acclimatisation", New Dictionary)
                 Call trialTypesByStimParamsNoAmp.Add("Acoustic", New Dictionary)
                 Call trialTypesByStimParamsNoAmp.Add("Electrical", New Dictionary)
                 
@@ -410,6 +437,12 @@ Sub processTrials()
                         thisAnimalWorksheet.Name = animalID
                         Call outputTrials(trialTypes, "", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow, sourceWorksheet)
                     Else
+                        If trialTypes("Acclimatisation").Count > 0 Then
+                            Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
+                            Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
+                            thisAnimalWorksheet.Name = animalID & " Acclimatisation"
+                            Call outputTrials(trialTypes, "Acclimatisation", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow, sourceWorksheet)
+                        End If
                         If trialTypes("Acoustic").Count > 0 Then
                             Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
                             Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
@@ -645,10 +678,18 @@ Function parseTrials(sourceWorksheet As Worksheet)
 '                    End If
                     allTrials(UBound(allTrials)) = trialArr
                     
-                    Call addToDict(trialTypesByDate, trialInfoByDate, "Acoustic", UBound(allTrials))
-                    Call addToDict(trialTypesByStimParamsFull, trialInfoByStimParamsFull, "Acoustic", UBound(allTrials))
-                    Call addToDict(trialTypesByDateStimParamsFull, trialInfoByDateStimParamsFull, "Acoustic", UBound(allTrials))
-                    Call addToDict(trialTypesByStimParamsNoAmp, trialInfoByStimParamsNoAmp, "Acoustic", UBound(allTrials))
+                    If InStr(1, LCase(experimentTag), "acclimatisation", vbTextCompare) Then
+                        Call addToDict(trialTypesByDate, trialInfoByDate, "Acclimatisation", UBound(allTrials))
+                        Call addToDict(trialTypesByStimParamsFull, trialInfoByStimParamsFull, "Acclimatisation", UBound(allTrials))
+                        Call addToDict(trialTypesByDateStimParamsFull, trialInfoByDateStimParamsFull, "Acclimatisation", UBound(allTrials))
+                        Call addToDict(trialTypesByStimParamsNoAmp, trialInfoByStimParamsNoAmp, "Acclimatisation", UBound(allTrials))
+                    Else
+                        Call addToDict(trialTypesByDate, trialInfoByDate, "Acoustic", UBound(allTrials))
+                        Call addToDict(trialTypesByStimParamsFull, trialInfoByStimParamsFull, "Acoustic", UBound(allTrials))
+                        Call addToDict(trialTypesByDateStimParamsFull, trialInfoByDateStimParamsFull, "Acoustic", UBound(allTrials))
+                        Call addToDict(trialTypesByStimParamsNoAmp, trialInfoByStimParamsNoAmp, "Acoustic", UBound(allTrials))
+                    End If
+
                 End If
             Else 'electrical trial
                 If Not ((exclusionInfo(0) = "Electrical" Or exclusionInfo(0) = "all") And exclusionInfo(1) = "") Then
@@ -827,6 +868,16 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
     Dim currPooledVarMean As Variant
     Dim currPooledVarCum As Variant
     Dim currPooledVarN As Variant
+        
+    Dim AcclPooledHRChMean As Double
+    Dim AcclPooledHRChCum As Double
+    Dim AcclPooledHRChN As Long
+    Dim AcclPooledHRChNExcl As Long
+    Dim AcclPooledHRChNDec As Long
+    
+    Dim AcclPooledVarMean As Variant
+    Dim AcclPooledVarCum As Variant
+    Dim AcclPooledVarN As Variant
         
     Dim AcoPooledHRChMean As Double
     Dim AcoPooledHRChCum As Double
@@ -1296,8 +1347,10 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
 
 
                 myChart.Chart.ChartTitle.Characters.Font.Size = 12
-                myChart.Chart.Axes(xlValue).MinimumScale = 0.85
-                myChart.Chart.Axes(xlValue).MaximumScale = 1.15
+                'myChart.Chart.Axes(xlValue).MinimumScale = 0.85
+                'myChart.Chart.Axes(xlValue).MaximumScale = 1.15
+                myChart.Chart.Axes(xlValue).MinimumScale = -15
+                myChart.Chart.Axes(xlValue).MaximumScale = 15
                 
                 thisAnimalSummarySheetRow = thisAnimalSummarySheetRow + 1
             Next
@@ -1305,6 +1358,16 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
         End If
               
         Select Case arrTrialTypes(iTrialTypeNum)
+            Case "Acclimatisation":
+                AcclPooledHRChN = currPooledHRChN
+                AcclPooledHRChMean = currPooledHRChMean
+                AcclPooledHRChCum = currPooledHRChCum
+                AcclPooledHRChNExcl = currPooledHRChNExcl
+                AcclPooledHRChNDec = currPooledHRChNDec
+            
+                AcclPooledVarMean = currPooledVarMean
+                AcclPooledVarCum = currPooledVarCum
+                AcclPooledVarN = currPooledVarN
             Case "Acoustic":
                 AcoPooledHRChN = currPooledHRChN
                 AcoPooledHRChMean = currPooledHRChMean
@@ -1327,6 +1390,56 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                 ElPooledVarN = currPooledVarN
         End Select
     Next
+    
+    If trialType = "Acclimatisation" Or trialType = "" Then
+        thisAnimalSummarySheetRow = thisAnimalSummarySheetRow + 2
+            
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1).Value = "Acclimatisation"
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1).Font.Bold = True
+        
+        For iVarCycling = 0 To 2
+            Select Case iVarCycling
+                Case 0:
+                    iSummaryCol = 10
+                Case 1:
+                    iSummaryCol = 13
+                Case 2:
+                    iSummaryCol = 16
+            End Select
+    
+            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol) = AcclPooledVarN(iVarCycling)
+            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol + 1) = AcclPooledVarMean(iVarCycling)
+            If AcclPooledVarN(iVarCycling) > 1 Then
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol + 2) = ((AcclPooledVarCum(iVarCycling) - ((AcclPooledVarMean(iVarCycling) * CDbl(AcclPooledVarN(iVarCycling)) ^ 2) / CDbl(AcclPooledVarN(iVarCycling)))) / CDbl(AcclPooledVarN(iVarCycling) - 1)) ^ 0.5
+            End If
+        Next
+    
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 2).Value = AcclPooledHRChN
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 3).Value = AcclPooledHRChNExcl
+        'thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).Value = AcclPooledHRChNDec
+        
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).Value = (AcclPooledHRChNDec / AcclPooledHRChN)
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).Style = "Percent"
+        Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions.Delete
+        Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions.Add(xlCellValue, xlNotBetween, ".15", ".85")
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Font.Color = percOutside1585FC.Font.Color
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Font.ColorIndex = percOutside1585FC.Font.ColorIndex
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Interior.Color = percOutside1585FC.Interior.Color
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Interior.ColorIndex = percOutside1585FC.Interior.ColorIndex
+        Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions.Add(xlCellValue, xlNotBetween, ".25", ".75")
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Font.Color = percOutside2575FC.Font.Color
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Font.ColorIndex = percOutside2575FC.Font.ColorIndex
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Interior.Color = percOutside2575FC.Interior.Color
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Interior.ColorIndex = percOutside2575FC.Interior.ColorIndex
+
+        
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 5).Value = AcclPooledHRChMean
+        If AcclPooledHRChN > 1 Then
+            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value = ((AcclPooledHRChCum - ((AcclPooledHRChMean * CDbl(AcclPooledHRChN) ^ 2) / CDbl(AcclPooledHRChN))) / CDbl(AcclPooledHRChN - 1)) ^ 0.5
+            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Value = AcclPooledHRChMean / ((thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value / AcclPooledHRChN) ^ 0.5)
+            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).Value = "=TDIST(ABS(" & thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Address & ")," & CStr(AcclPooledHRChN - 1) & ",1)"
+        End If
+    End If
     
     If trialType = "Acoustic" Or trialType = "" Then
         thisAnimalSummarySheetRow = thisAnimalSummarySheetRow + 2
