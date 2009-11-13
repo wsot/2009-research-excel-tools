@@ -30,7 +30,7 @@ Sub generateHrAtTimePoints()
         If Worksheets("-4.5-9.5s HRs").Cells(1 + ((iTrialNum - 1) * 2), 3) <> "" Then
             lTrialStartSample = Worksheets("Trial points from LabChart").Cells(iTrialNum + 1, 3) - 8000
             lRealTrialStartSample = Worksheets("Trial points from LabChart").Cells(iTrialNum + 1, 3)
-            lTrialEndSample = Worksheets("Trial points from LabChart").Cells(iTrialNum + 1, 3) + 18000
+            lTrialEndSample = Worksheets("Trial points from LabChart").Cells(iTrialNum + 1, 3) + 18200
             
             lStartSample = Worksheets("-4.5-9.5s HRs").Cells(1 + ((iTrialNum - 1) * 2), 4)
             Worksheets("HRLine").Cells(iTrialNum + 1, 1).Value = "Trial " & iTrialNum
@@ -74,7 +74,7 @@ Sub generateHrAtTimePoints()
                     l100msCounter = l100msCounter + 200
                     If l100msCounter >= lTrialStartSample And l100msCounter <= lTrialEndSample Then
                         lOutColNum = lOutColNum + 1
-                        Worksheets("HRLine").Cells(iTrialNum + 1, lOutColNum).Value = (Worksheets("-4.5-9.5s HRs").Cells(2 + ((iTrialNum - 1) * 2), lInColNum - 1).Value / dStartingHR)
+                        Worksheets("HRLine").Cells(iTrialNum + 1, lOutColNum).Value = (Worksheets("-4.5-9.5s HRs").Cells(2 + ((iTrialNum - 1) * 2), lInColNum - 1).Value - dStartingHR)
                     End If
                 Wend
                 lInColNum = lInColNum + 1
