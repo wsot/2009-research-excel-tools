@@ -884,6 +884,9 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
     Dim noStimPooledVarMean As Variant
     Dim noStimPooledVarCum As Variant
     Dim noStimPooledVarN As Variant
+    
+    Dim noStimPooledPretrialHRMean As Double
+    Dim noStimPooledPretrialHRStdDev As Double
         
     Dim currPooledVarMean As Variant
     Dim currPooledVarCum As Variant
@@ -898,7 +901,10 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
     Dim AcclPooledVarMean As Variant
     Dim AcclPooledVarCum As Variant
     Dim AcclPooledVarN As Variant
-        
+    
+    Dim AcclPooledPretrialHRMean As Double
+    Dim AcclPooledPretrialHRStdDev As Double
+    
     Dim AcoPooledHRChMean As Double
     Dim AcoPooledHRChCum As Double
     Dim AcoPooledHRChN As Long
@@ -909,6 +915,9 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
     Dim AcoPooledVarCum As Variant
     Dim AcoPooledVarN As Variant
     
+    Dim AcoPooledPretrialHRMean As Double
+    Dim AcoPooledPretrialHRStdDev As Double
+    
     Dim ElPooledHRChMean As Double
     Dim ElPooledHRChCum As Double
     Dim ElPooledHRChN As Long
@@ -918,6 +927,9 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
     Dim ElPooledVarMean As Variant
     Dim ElPooledVarCum As Variant
     Dim ElPooledVarN As Variant
+    
+    Dim ElPooledPretrialHRMean As Double
+    Dim ElPooledPretrialHRStdDev As Double
     
     Dim HRIncTrials As Integer
     Dim HRDecTrials As Integer
@@ -1011,13 +1023,13 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                     thisAnimalWorksheet.Cells(iExcelOffset, 13).Value = arrTrial(6)
 
                     If arrTrial(15) = "" And arrTrial(7) = "" Then 'check if the data should be excluded
-                        If Not arrParamSets(iParamSetNum) = "No stimulation, No stimulation" Then 'dont include if no stim - shouldn't be pooled with the rest
+                        'If Not arrParamSets(iParamSetNum) = "No stimulation, No stimulation" Then 'dont include if no stim - shouldn't be pooled with the rest
                             nInHrSoFar = nInHrSoFar + 1
                             For HRIterator = 0 To 130
                                 HRPlot(HRIterator) = HRPlot(HRIterator) + ((sourceWorksheet.Cells(arrTrial(14), HRIterator + 102).Value - HRPlot(HRIterator)) / nInHrSoFar)
                                 HRSD(HRIterator) = HRSD(HRIterator) + (sourceWorksheet.Cells(arrTrial(14), HRIterator + 102).Value ^ 2)
                             Next
-                        End If
+                        'End If
                     End If
 
 
@@ -1034,10 +1046,15 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                         'contribute to the mean
                         nInMeanSoFar = nInMeanSoFar + 1
                         diff = arrTrial(5) - arrTrial(3)
+                        
+                        
                         meanHRChange = meanHRChange + ((diff - meanHRChange) / CDbl(nInMeanSoFar))
                         
                         'If Not arrParamSets(iParamSetNum) = "No stimulation, No stimulation" Then
                             currPooledHRChN = currPooledHRChN + 1
+                            currPooledPretrialHRMean = currPooledPretrialHRMean + ((arrTrial(3) - currPooledPretrialHRMean) / CDbl(currPooledHRChN))
+                            currPooledPretrialHRStdDev = currPooledPretrialHRStdDev + (arrTrial(3) ^ 2)
+
                             currPooledHRChMean = currPooledHRChMean + ((diff - currPooledHRChMean) / CDbl(currPooledHRChN))
                             currPooledHRChCum = currPooledHRChCum + (diff ^ 2)
                         'Else
@@ -1289,6 +1306,9 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                         thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions(2).Interior.Color = pLess10FC.Interior.Color
                         thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions(2).Interior.ColorIndex = pLess10FC.Interior.ColorIndex
                         thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).NumberFormat = "0.000"
+                        
+                        thisAnimalSummarySheet.Range("UE" & thisAnimalSummarySheetRow).Value = currPooledPretrialHRMean
+                        thisAnimalSummarySheet.Range("UF" & thisAnimalSummarySheetRow).Value = ((currPooledPretrialHRStdDev - (((currPooledPretrialHRMean * CDbl(currPooledHRChN)) ^ 2) / CDbl(currPooledHRChN))) / CDbl(currPooledHRChN - 1)) ^ 0.5
                     Else
                         thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Additional stats could not be calculated (N=1)"
                         thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6) = "=NA()"
@@ -1337,8 +1357,8 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                 Dim chartHeight As Integer
                 If iThisAnimalSummarySheetStartingRow > 2 Then
                     'chartOffset = (iThisAnimalSummarySheetStartingRow) * 15.5 + (UBound(arrParamSets) + 2) * 15.5
-                    chartOffset = thisAnimalSummarySheet.Range("A" & iThisAnimalSummarySheetStartingRow + UBound(arrParamSets) + 7 & ":A" & "A" & iThisAnimalSummarySheetStartingRow + UBound(arrParamSets) + 7 + 19).Top
-                    chartHeight = thisAnimalSummarySheet.Range("A" & iThisAnimalSummarySheetStartingRow + UBound(arrParamSets) + 7 & ":A" & "A" & iThisAnimalSummarySheetStartingRow + UBound(arrParamSets) + 7 + 19).Height
+                    chartOffset = thisAnimalSummarySheet.Range("A" & iThisAnimalSummarySheetStartingRow + UBound(arrParamSets) + 5 & ":A" & "A" & iThisAnimalSummarySheetStartingRow + UBound(arrParamSets) + 5 + 19).Top
+                    chartHeight = thisAnimalSummarySheet.Range("A" & iThisAnimalSummarySheetStartingRow + UBound(arrParamSets) + 5 & ":A" & "A" & iThisAnimalSummarySheetStartingRow + UBound(arrParamSets) + 5 + 19).Height
                 Else
                     chartOffset = thisAnimalSummarySheet.Range("A" & UBound(arrParamSets) + 7 & ":A" & UBound(arrParamSets) + 7 + 19).Top
                     chartHeight = thisAnimalSummarySheet.Range("A" & UBound(arrParamSets) + 7 & ":A" & UBound(arrParamSets) + 7 + 19).Height
@@ -1361,7 +1381,7 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                 '1 Standard deviation
 '                myChart.Chart.SeriesCollection(1).ErrorBar Direction:=xlY, Include:=xlBoth, _
 '                    Type:=xlErrorBarTypeCustom, Amount:=thisAnimalSummarySheet.Range("$EW$" & thisAnimalSummarySheetRow & ":$JW$" & thisAnimalSummarySheetRow), MinusValues:=thisAnimalSummarySheet.Range("$EW$" & thisAnimalSummarySheetRow & ":$JW$" & thisAnimalSummarySheetRow)
-                '2 SEM
+                '1 SEM
                                 myChart.Chart.SeriesCollection(1).ErrorBar Direction:=xlY, Include:=xlBoth, _
                     Type:=xlErrorBarTypeCustom, Amount:=thisAnimalSummarySheet.Range("$JZ$" & thisAnimalSummarySheetRow & ":$OZ$" & thisAnimalSummarySheetRow), MinusValues:=thisAnimalSummarySheet.Range("$JZ$" & thisAnimalSummarySheetRow & ":$OZ$" & thisAnimalSummarySheetRow)
 
@@ -1388,6 +1408,9 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                 AcclPooledVarMean = currPooledVarMean
                 AcclPooledVarCum = currPooledVarCum
                 AcclPooledVarN = currPooledVarN
+                AcclPooledPretrialHRMean = currPooledPretrialHRMean
+                AcclPooledPretrialHRStdDev = currPooledPretrialHRStdDev
+
             Case "Acoustic":
                 AcoPooledHRChN = currPooledHRChN
                 AcoPooledHRChMean = currPooledHRChMean
@@ -1398,6 +1421,9 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                 AcoPooledVarMean = currPooledVarMean
                 AcoPooledVarCum = currPooledVarCum
                 AcoPooledVarN = currPooledVarN
+                
+                AcoPooledPretrialHRMean = currPooledPretrialHRMean
+                AcoPooledPretrialHRStdDev = currPooledPretrialHRStdDev
             Case "Electrical":
                 ElPooledHRChN = currPooledHRChN
                 ElPooledHRChMean = currPooledHRChMean
@@ -1408,6 +1434,9 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                 ElPooledVarMean = currPooledVarMean
                 ElPooledVarCum = currPooledVarCum
                 ElPooledVarN = currPooledVarN
+                
+                ElPooledPretrialHRMean = currPooledPretrialHRMean
+                ElPooledPretrialHRStdDev = currPooledPretrialHRStdDev
             Case "No Stim":
                 noStimPooledHRChN = currPooledHRChN
                 noStimPooledHRChMean = currPooledHRChMean
@@ -1418,6 +1447,9 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                 noStimPooledVarMean = currPooledVarMean
                 noStimPooledVarCum = currPooledVarCum
                 noStimPooledVarN = currPooledVarN
+                
+                noStimPooledPretrialHRMean = currPooledPretrialHRMean
+                noStimPooledPretrialHRStdDev = currPooledPretrialHRStdDev
         End Select
     Next
     
@@ -1466,8 +1498,10 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
         thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 5).Value = AcclPooledHRChMean
         If AcclPooledHRChN > 1 Then
             thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value = ((AcclPooledHRChCum - ((AcclPooledHRChMean * CDbl(AcclPooledHRChN) ^ 2) / CDbl(AcclPooledHRChN))) / CDbl(AcclPooledHRChN - 1)) ^ 0.5
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Value = AcclPooledHRChMean / ((thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value / AcclPooledHRChN) ^ 0.5)
+            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Value = AcclPooledHRChMean / (thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value / (AcclPooledHRChN ^ 0.5))
             thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).Value = "=TDIST(ABS(" & thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Address & ")," & CStr(AcclPooledHRChN - 1) & ",1)"
+            thisAnimalSummarySheet.Range("UE" & thisAnimalSummarySheetRow).Value = AcclPooledPretrialHRMean
+            thisAnimalSummarySheet.Range("UF" & thisAnimalSummarySheetRow).Value = ((AcclPooledPretrialHRStdDev - (((AcclPooledPretrialHRMean * CDbl(AcclPooledHRChN)) ^ 2) / CDbl(AcclPooledHRChN))) / CDbl(AcclPooledHRChN - 1)) ^ 0.5
         End If
     End If
     
@@ -1516,8 +1550,11 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
         thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 5).Value = AcoPooledHRChMean
         If AcoPooledHRChN > 1 Then
             thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value = ((AcoPooledHRChCum - ((AcoPooledHRChMean * CDbl(AcoPooledHRChN) ^ 2) / CDbl(AcoPooledHRChN))) / CDbl(AcoPooledHRChN - 1)) ^ 0.5
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Value = AcoPooledHRChMean / ((thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value / AcoPooledHRChN) ^ 0.5)
+            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Value = AcoPooledHRChMean / (thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value / (AcoPooledHRChN ^ 0.5))
+            'thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Value = AcoPooledHRChMean / ((thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value / AcoPooledHRChN) ^ 0.5)
             thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).Value = "=TDIST(ABS(" & thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Address & ")," & CStr(AcoPooledHRChN - 1) & ",1)"
+            thisAnimalSummarySheet.Range("UE" & thisAnimalSummarySheetRow).Value = AcoPooledPretrialHRMean
+            thisAnimalSummarySheet.Range("UF" & thisAnimalSummarySheetRow).Value = ((AcoPooledPretrialHRStdDev - (((AcoPooledPretrialHRMean * CDbl(AcoPooledHRChN)) ^ 2) / CDbl(AcoPooledHRChN))) / CDbl(AcoPooledHRChN - 1)) ^ 0.5
         End If
     End If
    
@@ -1565,8 +1602,11 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
         thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 5).Value = ElPooledHRChMean
         If ElPooledHRChN > 1 Then
             thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value = ((ElPooledHRChCum - ((ElPooledHRChMean * CDbl(ElPooledHRChN) ^ 2) / CDbl(ElPooledHRChN))) / CDbl(ElPooledHRChN - 1)) ^ 0.5
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Value = ElPooledHRChMean / ((thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value / ElPooledHRChN) ^ 0.5)
+'            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Value = ElPooledHRChMean / ((thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value / ElPooledHRChN) ^ 0.5)
+            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Value = ElPooledHRChMean / (thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value / (ElPooledHRChN ^ 0.5))
             thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).Value = "=TDIST(ABS(" & thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Address & ")," & CStr(ElPooledHRChN - 1) & ",1)"
+            thisAnimalSummarySheet.Range("UE" & thisAnimalSummarySheetRow).Value = ElPooledPretrialHRMean
+            thisAnimalSummarySheet.Range("UF" & thisAnimalSummarySheetRow).Value = ((ElPooledPretrialHRStdDev - (((ElPooledPretrialHRMean * CDbl(ElPooledHRChN)) ^ 2) / CDbl(ElPooledHRChN))) / CDbl(ElPooledHRChN - 1)) ^ 0.5
         End If
     End If
     
@@ -1612,8 +1652,11 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
         thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 5).Value = noStimPooledHRChMean
         If noStimPooledHRChN > 1 Then
             thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value = ((noStimPooledHRChCum - ((noStimPooledHRChMean * CDbl(noStimPooledHRChN) ^ 2) / CDbl(noStimPooledHRChN))) / CDbl(noStimPooledHRChN - 1)) ^ 0.5
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Value = noStimPooledHRChMean / ((thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value / noStimPooledHRChN) ^ 0.5)
+'            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Value = noStimPooledHRChMean / ((thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value / noStimPooledHRChN) ^ 0.5)
+            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Value = noStimPooledHRChMean / (thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value / (noStimPooledHRChN ^ 0.5))
             thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).Value = "=TDIST(ABS(" & thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Address & ")," & CStr(noStimPooledHRChN - 1) & ",1)"
+            thisAnimalSummarySheet.Range("UE" & thisAnimalSummarySheetRow).Value = noStimPooledPretrialHRMean
+            thisAnimalSummarySheet.Range("UF" & thisAnimalSummarySheetRow).Value = ((noStimPooledPretrialHRStdDev - (((noStimPooledPretrialHRMean * CDbl(noStimPooledHRChN)) ^ 2) / CDbl(noStimPooledHRChN))) / CDbl(noStimPooledHRChN - 1)) ^ 0.5
         End If
     End If
     
@@ -1625,8 +1668,8 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
             If TotalnInHrSoFar > 1 Then
                 '1 SD
                 thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 153 + HRIterator).Value = (((TotalHRSD(HRIterator) - (((TotalHRPlot(HRIterator) * CDbl(TotalnInHrSoFar)) ^ 2#) / CDbl(TotalnInHrSoFar))) / CDbl(TotalnInHrSoFar)) ^ 0.5)
-                '2 SEM
-                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 286 + HRIterator).Value = 2 * ((((TotalHRSD(HRIterator) - (((TotalHRPlot(HRIterator) * CDbl(TotalnInHrSoFar)) ^ 2#) / CDbl(TotalnInHrSoFar))) / CDbl(TotalnInHrSoFar)) ^ 0.5) / (CDbl(TotalnInHrSoFar) ^ 0.5))
+                '1 SEM
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 286 + HRIterator).Value = ((((TotalHRSD(HRIterator) - (((TotalHRPlot(HRIterator) * CDbl(TotalnInHrSoFar)) ^ 2#) / CDbl(TotalnInHrSoFar))) / CDbl(TotalnInHrSoFar)) ^ 0.5) / (CDbl(TotalnInHrSoFar) ^ 0.5))
                 '1.96 SD (95% CI)
                 thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 419 + HRIterator).Value = (((TotalHRSD(HRIterator) - (((TotalHRPlot(HRIterator) * CDbl(TotalnInHrSoFar)) ^ 2#) / CDbl(TotalnInHrSoFar))) / CDbl(TotalnInHrSoFar)) ^ 0.5) * 1.96
             End If
@@ -1636,8 +1679,8 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
 
     If iThisAnimalSummarySheetStartingRow > 2 Then
         'chartOffset = (iThisAnimalSummarySheetStartingRow) * 15.5 + (UBound(arrParamSets) + 2) * 15.5
-        chartOffset = thisAnimalSummarySheet.Range("A" & (iThisAnimalSummarySheetStartingRow + UBound(arrParamSets) + 7) & ":A" & "A" & (iThisAnimalSummarySheetStartingRow + UBound(arrParamSets) + 7 + 19)).Top
-        chartHeight = thisAnimalSummarySheet.Range("A" & (iThisAnimalSummarySheetStartingRow + UBound(arrParamSets) + 7) & ":A" & "A" & (iThisAnimalSummarySheetStartingRow + UBound(arrParamSets) + 7 + 19)).Height
+        chartOffset = thisAnimalSummarySheet.Range("A" & (iThisAnimalSummarySheetStartingRow + UBound(arrParamSets) + 5) & ":A" & "A" & (iThisAnimalSummarySheetStartingRow + UBound(arrParamSets) + 5 + 19)).Top
+        chartHeight = thisAnimalSummarySheet.Range("A" & (iThisAnimalSummarySheetStartingRow + UBound(arrParamSets) + 5) & ":A" & "A" & (iThisAnimalSummarySheetStartingRow + UBound(arrParamSets) + 5 + 19)).Height
     Else
         chartOffset = thisAnimalSummarySheet.Range("A" & (UBound(arrParamSets) + 7) & ":A" & (UBound(arrParamSets) + 7 + 19)).Top
         chartHeight = thisAnimalSummarySheet.Range("A" & (UBound(arrParamSets) + 7) & ":A" & (UBound(arrParamSets) + 7 + 19)).Height
@@ -1660,7 +1703,7 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
     '1 Standard deviation
 '    myChart.Chart.SeriesCollection(1).ErrorBar Direction:=xlY, Include:=xlBoth, _
 '        Type:=xlErrorBarTypeCustom, Amount:=thisAnimalSummarySheet.Range("$EW$" & thisAnimalSummarySheetRow & ":$JW$" & thisAnimalSummarySheetRow), MinusValues:=thisAnimalSummarySheet.Range("$EW$" & thisAnimalSummarySheetRow & ":$JW$" & thisAnimalSummarySheetRow)
-    '2 SEM
+    '1 SEM
    myChart.Chart.SeriesCollection(1).ErrorBar Direction:=xlY, Include:=xlBoth, _
        Type:=xlErrorBarTypeCustom, Amount:=thisAnimalSummarySheet.Range("$JZ$" & thisAnimalSummarySheetRow & ":$OZ$" & thisAnimalSummarySheetRow), MinusValues:=thisAnimalSummarySheet.Range("$JZ$" & thisAnimalSummarySheetRow & ":$OZ$" & thisAnimalSummarySheetRow)
 
