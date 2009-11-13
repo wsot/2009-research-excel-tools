@@ -866,6 +866,9 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
     Dim iVarCycling As Integer
     Dim iSummaryCol As Integer
 
+    Dim currPooledPretrialHRMean As Double
+    Dim currPooledPretrialHRStdDev As Double
+
     Dim currPooledHRChMean As Double
     Dim currPooledHRChCum As Double
     Dim currPooledHRChN As Long
