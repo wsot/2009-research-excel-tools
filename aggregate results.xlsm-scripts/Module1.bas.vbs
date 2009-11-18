@@ -335,29 +335,32 @@ Sub processTrials()
                 'Dim trialTypesByStimParamsFull As Dictionary
                 'Dim trialTypesByDateStimParamsFull As Dictionary
                 'Dim trialTypesByStimParamsNoAmp As Dictionary
-    
                 
                 Set trialTypesByDate = New Dictionary
                 Call trialTypesByDate.Add("Acclimatisation", New Dictionary)
                 Call trialTypesByDate.Add("Acoustic", New Dictionary)
+                Call trialTypesByDate.Add("Acoustic Only", New Dictionary)
                 Call trialTypesByDate.Add("Electrical", New Dictionary)
                 Call trialTypesByDate.Add("No Stim", New Dictionary)
                 
                 Set trialTypesByStimParamsFull = New Dictionary
                 Call trialTypesByStimParamsFull.Add("Acclimatisation", New Dictionary)
                 Call trialTypesByStimParamsFull.Add("Acoustic", New Dictionary)
+                Call trialTypesByStimParamsFull.Add("Acoustic Only", New Dictionary)
                 Call trialTypesByStimParamsFull.Add("Electrical", New Dictionary)
                 Call trialTypesByStimParamsFull.Add("No Stim", New Dictionary)
 
                 Set trialTypesByDateStimParamsFull = New Dictionary
                 Call trialTypesByDateStimParamsFull.Add("Acclimatisation", New Dictionary)
                 Call trialTypesByDateStimParamsFull.Add("Acoustic", New Dictionary)
+                Call trialTypesByDateStimParamsFull.Add("Acoustic Only", New Dictionary)
                 Call trialTypesByDateStimParamsFull.Add("Electrical", New Dictionary)
                 Call trialTypesByDateStimParamsFull.Add("No Stim", New Dictionary)
 
                 Set trialTypesByStimParamsNoAmp = New Dictionary
                 Call trialTypesByStimParamsNoAmp.Add("Acclimatisation", New Dictionary)
                 Call trialTypesByStimParamsNoAmp.Add("Acoustic", New Dictionary)
+                Call trialTypesByStimParamsNoAmp.Add("Acoustic Only", New Dictionary)
                 Call trialTypesByStimParamsNoAmp.Add("Electrical", New Dictionary)
                 Call trialTypesByStimParamsNoAmp.Add("No Stim", New Dictionary)
                 
@@ -435,36 +438,35 @@ Sub processTrials()
                         thisAnimalSummarySheet.Cells(1, 21 + iColHeadersForHRLine).Value = Round((iColHeadersForHRLine - 40) / 10, 2)
                     Next
                     
-                    If oneAnimalOneSheet Then
+                    If trialTypes("Acclimatisation").Count > 0 Then
                         Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
                         Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
-                        thisAnimalWorksheet.Name = animalID
-                        Call outputTrials(trialTypes, "", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow, sourceWorksheet)
-                    Else
-                        If trialTypes("Acclimatisation").Count > 0 Then
-                            Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
-                            Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
-                            thisAnimalWorksheet.Name = animalID & " Acclimatisation"
-                            Call outputTrials(trialTypes, "Acclimatisation", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow, sourceWorksheet)
-                        End If
-                        If trialTypes("Acoustic").Count > 0 Then
-                            Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
-                            Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
-                            thisAnimalWorksheet.Name = animalID & " Acoustic"
-                            Call outputTrials(trialTypes, "Acoustic", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow, sourceWorksheet)
-                        End If
-                        If trialTypes("Electrical").Count > 0 Then
-                            Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
-                            Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
-                            thisAnimalWorksheet.Name = animalID & " Electrical"
-                            Call outputTrials(trialTypes, "Electrical", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow, sourceWorksheet)
-                        End If
-                        If trialTypes("No Stim").Count > 0 Then
-                            Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
-                            Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
-                            thisAnimalWorksheet.Name = animalID & " No Stim"
-                            Call outputTrials(trialTypes, "No Stim", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow, sourceWorksheet)
-                        End If
+                        thisAnimalWorksheet.Name = animalID & " Acclimatisation"
+                        Call outputTrials(trialTypes, "Acclimatisation", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow, sourceWorksheet)
+                    End If
+                    If trialTypes("Acoustic Only").Count > 0 Then
+                        Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
+                        Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
+                        thisAnimalWorksheet.Name = animalID & " Acoustic Only"
+                        Call outputTrials(trialTypes, "Acoustic Only", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow, sourceWorksheet)
+                    End If
+                    If trialTypes("Acoustic").Count > 0 Then
+                        Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
+                        Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
+                        thisAnimalWorksheet.Name = animalID & " Acoustic"
+                        Call outputTrials(trialTypes, "Acoustic", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow, sourceWorksheet)
+                    End If
+                    If trialTypes("Electrical").Count > 0 Then
+                        Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
+                        Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
+                        thisAnimalWorksheet.Name = animalID & " Electrical"
+                        Call outputTrials(trialTypes, "Electrical", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow, sourceWorksheet)
+                    End If
+                    If trialTypes("No Stim").Count > 0 Then
+                        Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
+                        Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
+                        thisAnimalWorksheet.Name = animalID & " No Stim"
+                        Call outputTrials(trialTypes, "No Stim", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow, sourceWorksheet)
                     End If
 '                    Call outputWorkbook.SaveAs(outputFilename)
 '                    Call outputWorkbook.Close
@@ -694,6 +696,12 @@ Function parseTrials(sourceWorksheet As Worksheet)
                         Call addToDict(trialTypesByDateStimParamsFull, trialInfoByDateStimParamsFull, "Acclimatisation", UBound(allTrials))
                         Call addToDict(trialTypesByStimParamsNoAmp, trialInfoByStimParamsNoAmp, "Acclimatisation", UBound(allTrials))
                     Else
+                        If Not InStr(1, LCase(experimentTag), "electric", vbTextCompare) Then
+                            Call addToDict(trialTypesByDate, trialInfoByDate, "Acoustic Only", UBound(allTrials))
+                            Call addToDict(trialTypesByStimParamsFull, trialInfoByStimParamsFull, "Acoustic Only", UBound(allTrials))
+                            Call addToDict(trialTypesByDateStimParamsFull, trialInfoByDateStimParamsFull, "Acoustic Only", UBound(allTrials))
+                            Call addToDict(trialTypesByStimParamsNoAmp, trialInfoByStimParamsNoAmp, "Acoustic Only", UBound(allTrials))
+                        End If
                         Call addToDict(trialTypesByDate, trialInfoByDate, "Acoustic", UBound(allTrials))
                         Call addToDict(trialTypesByStimParamsFull, trialInfoByStimParamsFull, "Acoustic", UBound(allTrials))
                         Call addToDict(trialTypesByDateStimParamsFull, trialInfoByDateStimParamsFull, "Acoustic", UBound(allTrials))
@@ -878,7 +886,7 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
     Dim currPooledVarMean As Variant
     Dim currPooledVarCum As Variant
     Dim currPooledVarN As Variant
-    
+        
     Dim HRIncTrials As Integer
     Dim HRDecTrials As Integer
     
