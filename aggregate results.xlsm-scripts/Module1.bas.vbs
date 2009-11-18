@@ -696,7 +696,7 @@ Function parseTrials(sourceWorksheet As Worksheet)
                         Call addToDict(trialTypesByDateStimParamsFull, trialInfoByDateStimParamsFull, "Acclimatisation", UBound(allTrials))
                         Call addToDict(trialTypesByStimParamsNoAmp, trialInfoByStimParamsNoAmp, "Acclimatisation", UBound(allTrials))
                     Else
-                        If Not InStr(1, LCase(experimentTag), "electric", vbTextCompare) Then
+                        If InStr(1, LCase(experimentTag), "electrical", vbTextCompare) = 0 Then
                             Call addToDict(trialTypesByDate, trialInfoByDate, "Acoustic Only", UBound(allTrials))
                             Call addToDict(trialTypesByStimParamsFull, trialInfoByStimParamsFull, "Acoustic Only", UBound(allTrials))
                             Call addToDict(trialTypesByDateStimParamsFull, trialInfoByDateStimParamsFull, "Acoustic Only", UBound(allTrials))
