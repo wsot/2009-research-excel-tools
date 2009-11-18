@@ -874,78 +874,22 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
     Dim currPooledHRChN As Long
     Dim currPooledHRChNExcl As Long
     Dim currPooledHRChNDec As Long
-        
-    Dim noStimPooledHRChMean As Double
-    Dim noStimPooledHRChCum As Double
-    Dim noStimPooledHRChN As Long
-    Dim noStimPooledHRChNExcl As Long
-    Dim noStimPooledHRChNDec As Long
-        
-    Dim noStimPooledVarMean As Variant
-    Dim noStimPooledVarCum As Variant
-    Dim noStimPooledVarN As Variant
-    
-    Dim noStimPooledPretrialHRMean As Double
-    Dim noStimPooledPretrialHRStdDev As Double
-        
-    Dim currPooledVarMean As Variant
-    Dim currPooledVarCum As Variant
-    Dim currPooledVarN As Variant
-        
-    Dim AcclPooledHRChMean As Double
-    Dim AcclPooledHRChCum As Double
-    Dim AcclPooledHRChN As Long
-    Dim AcclPooledHRChNExcl As Long
-    Dim AcclPooledHRChNDec As Long
-    
-    Dim AcclPooledVarMean As Variant
-    Dim AcclPooledVarCum As Variant
-    Dim AcclPooledVarN As Variant
-    
-    Dim AcclPooledPretrialHRMean As Double
-    Dim AcclPooledPretrialHRStdDev As Double
-    
-    Dim AcoPooledHRChMean As Double
-    Dim AcoPooledHRChCum As Double
-    Dim AcoPooledHRChN As Long
-    Dim AcoPooledHRChNExcl As Long
-    Dim AcoPooledHRChNDec As Long
-    
-    Dim AcoPooledVarMean As Variant
-    Dim AcoPooledVarCum As Variant
-    Dim AcoPooledVarN As Variant
-    
-    Dim AcoPooledPretrialHRMean As Double
-    Dim AcoPooledPretrialHRStdDev As Double
-    
-    Dim ElPooledHRChMean As Double
-    Dim ElPooledHRChCum As Double
-    Dim ElPooledHRChN As Long
-    Dim ElPooledHRChNExcl As Long
-    Dim ElPooledHRChNDec As Long
-    
-    Dim ElPooledVarMean As Variant
-    Dim ElPooledVarCum As Variant
-    Dim ElPooledVarN As Variant
-    
-    Dim ElPooledPretrialHRMean As Double
-    Dim ElPooledPretrialHRStdDev As Double
-    
+           
     Dim HRIncTrials As Integer
     Dim HRDecTrials As Integer
     
-    For iTrialTypeNum = 0 To UBound(arrTrialTypes)
-        currPooledHRChN = 0
-        currPooledHRChMean = 0
-        currPooledHRChCum = 0
-        currPooledHRChNExcl = 0
-        currPooledHRChNDec = 0
-        
-        currPooledVarMean = Array(0#, 0#, 0#)
-        currPooledVarCum = Array(0#, 0#, 0#)
-        currPooledVarN = Array(0#, 0#, 0#)
+    currPooledHRChN = 0
+    currPooledHRChMean = 0
+    currPooledHRChCum = 0
+    currPooledHRChNExcl = 0
+    currPooledHRChNDec = 0
     
-        If arrTrialTypes(iTrialTypeNum) = trialType Or trialType = "" Then
+    currPooledVarMean = Array(0#, 0#, 0#)
+    currPooledVarCum = Array(0#, 0#, 0#)
+    currPooledVarN = Array(0#, 0#, 0#)
+    
+    For iTrialTypeNum = 0 To UBound(arrTrialTypes)
+        If arrTrialTypes(iTrialTypeNum) = trialType Then
             ReDim TotalHRPlot(130)
             ReDim TotalHRSD(130)
 
@@ -1402,270 +1346,57 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
             Next
             iExcelOffset = iExcelOffset + 1
         End If
-              
-        Select Case arrTrialTypes(iTrialTypeNum)
-            Case "Acclimatisation":
-                AcclPooledHRChN = currPooledHRChN
-                AcclPooledHRChMean = currPooledHRChMean
-                AcclPooledHRChCum = currPooledHRChCum
-                AcclPooledHRChNExcl = currPooledHRChNExcl
-                AcclPooledHRChNDec = currPooledHRChNDec
-            
-                AcclPooledVarMean = currPooledVarMean
-                AcclPooledVarCum = currPooledVarCum
-                AcclPooledVarN = currPooledVarN
-                AcclPooledPretrialHRMean = currPooledPretrialHRMean
-                AcclPooledPretrialHRStdDev = currPooledPretrialHRStdDev
-
-            Case "Acoustic":
-                AcoPooledHRChN = currPooledHRChN
-                AcoPooledHRChMean = currPooledHRChMean
-                AcoPooledHRChCum = currPooledHRChCum
-                AcoPooledHRChNExcl = currPooledHRChNExcl
-                AcoPooledHRChNDec = currPooledHRChNDec
-            
-                AcoPooledVarMean = currPooledVarMean
-                AcoPooledVarCum = currPooledVarCum
-                AcoPooledVarN = currPooledVarN
-                
-                AcoPooledPretrialHRMean = currPooledPretrialHRMean
-                AcoPooledPretrialHRStdDev = currPooledPretrialHRStdDev
-            Case "Electrical":
-                ElPooledHRChN = currPooledHRChN
-                ElPooledHRChMean = currPooledHRChMean
-                ElPooledHRChCum = currPooledHRChCum
-                ElPooledHRChNExcl = currPooledHRChNExcl
-                ElPooledHRChNDec = currPooledHRChNDec
-                
-                ElPooledVarMean = currPooledVarMean
-                ElPooledVarCum = currPooledVarCum
-                ElPooledVarN = currPooledVarN
-                
-                ElPooledPretrialHRMean = currPooledPretrialHRMean
-                ElPooledPretrialHRStdDev = currPooledPretrialHRStdDev
-            Case "No Stim":
-                noStimPooledHRChN = currPooledHRChN
-                noStimPooledHRChMean = currPooledHRChMean
-                noStimPooledHRChCum = currPooledHRChCum
-                noStimPooledHRChNExcl = currPooledHRChNExcl
-                noStimPooledHRChNDec = currPooledHRChNDec
-                
-                noStimPooledVarMean = currPooledVarMean
-                noStimPooledVarCum = currPooledVarCum
-                noStimPooledVarN = currPooledVarN
-                
-                noStimPooledPretrialHRMean = currPooledPretrialHRMean
-                noStimPooledPretrialHRStdDev = currPooledPretrialHRStdDev
-        End Select
     Next
     
-    If trialType = "Acclimatisation" Or trialType = "" Then
-        thisAnimalSummarySheetRow = thisAnimalSummarySheetRow + 2
+    thisAnimalSummarySheetRow = thisAnimalSummarySheetRow + 2
             
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1).Value = "Acclimatisation"
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1).Font.Bold = True
-        
-        For iVarCycling = 0 To 2
-            Select Case iVarCycling
-                Case 0:
-                    iSummaryCol = 10
-                Case 1:
-                    iSummaryCol = 13
-                Case 2:
-                    iSummaryCol = 16
-            End Select
+    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1).Value = trialType
+    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1).Font.Bold = True
     
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol) = AcclPooledVarN(iVarCycling)
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol + 1) = AcclPooledVarMean(iVarCycling)
-            If AcclPooledVarN(iVarCycling) > 1 Then
-                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol + 2) = ((AcclPooledVarCum(iVarCycling) - ((AcclPooledVarMean(iVarCycling) * CDbl(AcclPooledVarN(iVarCycling)) ^ 2) / CDbl(AcclPooledVarN(iVarCycling)))) / CDbl(AcclPooledVarN(iVarCycling) - 1)) ^ 0.5
-            End If
-        Next
-    
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 2).Value = AcclPooledHRChN
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 3).Value = AcclPooledHRChNExcl
-        'thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).Value = AcclPooledHRChNDec
-        
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).Value = (AcclPooledHRChNDec / AcclPooledHRChN)
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).Style = "Percent"
-        Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions.Delete
-        Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions.Add(xlCellValue, xlNotBetween, ".15", ".85")
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Font.Color = percOutside1585FC.Font.Color
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Font.ColorIndex = percOutside1585FC.Font.ColorIndex
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Interior.Color = percOutside1585FC.Interior.Color
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Interior.ColorIndex = percOutside1585FC.Interior.ColorIndex
-        Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions.Add(xlCellValue, xlNotBetween, ".25", ".75")
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Font.Color = percOutside2575FC.Font.Color
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Font.ColorIndex = percOutside2575FC.Font.ColorIndex
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Interior.Color = percOutside2575FC.Interior.Color
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Interior.ColorIndex = percOutside2575FC.Interior.ColorIndex
+    For iVarCycling = 0 To 2
+        Select Case iVarCycling
+            Case 0:
+                iSummaryCol = 10
+            Case 1:
+                iSummaryCol = 13
+            Case 2:
+                iSummaryCol = 16
+        End Select
 
-        
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 5).Value = AcclPooledHRChMean
-        If AcclPooledHRChN > 1 Then
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value = ((AcclPooledHRChCum - ((AcclPooledHRChMean * CDbl(AcclPooledHRChN) ^ 2) / CDbl(AcclPooledHRChN))) / CDbl(AcclPooledHRChN - 1)) ^ 0.5
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Value = AcclPooledHRChMean / (thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value / (AcclPooledHRChN ^ 0.5))
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).Value = "=TDIST(ABS(" & thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Address & ")," & CStr(AcclPooledHRChN - 1) & ",1)"
-            thisAnimalSummarySheet.Range("UE" & thisAnimalSummarySheetRow).Value = AcclPooledPretrialHRMean
-            thisAnimalSummarySheet.Range("UF" & thisAnimalSummarySheetRow).Value = ((AcclPooledPretrialHRStdDev - (((AcclPooledPretrialHRMean * CDbl(AcclPooledHRChN)) ^ 2) / CDbl(AcclPooledHRChN))) / CDbl(AcclPooledHRChN - 1)) ^ 0.5
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol) = currPooledVarN(iVarCycling)
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol + 1) = currPooledVarMean(iVarCycling)
+        If currPooledVarN(iVarCycling) > 1 Then
+            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol + 2) = ((currPooledVarCum(iVarCycling) - ((currPooledVarMean(iVarCycling) * CDbl(currPooledVarN(iVarCycling)) ^ 2) / CDbl(currPooledVarN(iVarCycling)))) / CDbl(currPooledVarN(iVarCycling) - 1)) ^ 0.5
         End If
-    End If
-    
-    If trialType = "Acoustic" Or trialType = "" Then
-        thisAnimalSummarySheetRow = thisAnimalSummarySheetRow + 2
-            
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1).Value = "Acoustic"
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1).Font.Bold = True
-        
-        For iVarCycling = 0 To 2
-            Select Case iVarCycling
-                Case 0:
-                    iSummaryCol = 10
-                Case 1:
-                    iSummaryCol = 13
-                Case 2:
-                    iSummaryCol = 16
-            End Select
-    
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol) = AcoPooledVarN(iVarCycling)
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol + 1) = AcoPooledVarMean(iVarCycling)
-            If AcoPooledVarN(iVarCycling) > 1 Then
-                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol + 2) = ((AcoPooledVarCum(iVarCycling) - ((AcoPooledVarMean(iVarCycling) * CDbl(AcoPooledVarN(iVarCycling)) ^ 2) / CDbl(AcoPooledVarN(iVarCycling)))) / CDbl(AcoPooledVarN(iVarCycling) - 1)) ^ 0.5
-            End If
-        Next
-    
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 2).Value = AcoPooledHRChN
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 3).Value = AcoPooledHRChNExcl
-        'thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).Value = AcoPooledHRChNDec
-        
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).Value = (AcoPooledHRChNDec / AcoPooledHRChN)
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).Style = "Percent"
-        Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions.Delete
-        Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions.Add(xlCellValue, xlNotBetween, ".15", ".85")
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Font.Color = percOutside1585FC.Font.Color
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Font.ColorIndex = percOutside1585FC.Font.ColorIndex
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Interior.Color = percOutside1585FC.Interior.Color
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Interior.ColorIndex = percOutside1585FC.Interior.ColorIndex
-        Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions.Add(xlCellValue, xlNotBetween, ".25", ".75")
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Font.Color = percOutside2575FC.Font.Color
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Font.ColorIndex = percOutside2575FC.Font.ColorIndex
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Interior.Color = percOutside2575FC.Interior.Color
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Interior.ColorIndex = percOutside2575FC.Interior.ColorIndex
+    Next
 
-        
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 5).Value = AcoPooledHRChMean
-        If AcoPooledHRChN > 1 Then
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value = ((AcoPooledHRChCum - ((AcoPooledHRChMean * CDbl(AcoPooledHRChN) ^ 2) / CDbl(AcoPooledHRChN))) / CDbl(AcoPooledHRChN - 1)) ^ 0.5
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Value = AcoPooledHRChMean / (thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value / (AcoPooledHRChN ^ 0.5))
-            'thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Value = AcoPooledHRChMean / ((thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value / AcoPooledHRChN) ^ 0.5)
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).Value = "=TDIST(ABS(" & thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Address & ")," & CStr(AcoPooledHRChN - 1) & ",1)"
-            thisAnimalSummarySheet.Range("UE" & thisAnimalSummarySheetRow).Value = AcoPooledPretrialHRMean
-            thisAnimalSummarySheet.Range("UF" & thisAnimalSummarySheetRow).Value = ((AcoPooledPretrialHRStdDev - (((AcoPooledPretrialHRMean * CDbl(AcoPooledHRChN)) ^ 2) / CDbl(AcoPooledHRChN))) / CDbl(AcoPooledHRChN - 1)) ^ 0.5
-        End If
-    End If
-   
-    If trialType = "Electrical" Or trialType = "" Then
-        thisAnimalSummarySheetRow = thisAnimalSummarySheetRow + 2
-            
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1).Value = "Electrical"
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1).Font.Bold = True
-        
-        For iVarCycling = 0 To 2
-            Select Case iVarCycling
-                Case 0:
-                    iSummaryCol = 10
-                Case 1:
-                    iSummaryCol = 13
-                Case 2:
-                    iSummaryCol = 16
-            End Select
+    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 2).Value = currPooledHRChN
+    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 3).Value = currPooledHRChNExcl
+    'thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).Value = currPooledHRChNDec
     
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol) = ElPooledVarN(iVarCycling)
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol + 1) = ElPooledVarMean(iVarCycling)
-            If ElPooledVarN(iVarCycling) > 1 Then
-                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol + 2) = ((ElPooledVarCum(iVarCycling) - ((ElPooledVarMean(iVarCycling) * CDbl(ElPooledVarN(iVarCycling)) ^ 2) / CDbl(ElPooledVarN(iVarCycling)))) / CDbl(ElPooledVarN(iVarCycling) - 1)) ^ 0.5
-            End If
-        Next
-    
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 2).Value = ElPooledHRChN
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 3).Value = ElPooledHRChNExcl
-        'thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).Value = ElPooledHRChNDec
-        
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).Value = (ElPooledHRChNDec / ElPooledHRChN)
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).Style = "Percent"
-        Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions.Delete
-        Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions.Add(xlCellValue, xlNotBetween, ".15", ".85")
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Font.Color = percOutside1585FC.Font.Color
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Font.ColorIndex = percOutside1585FC.Font.ColorIndex
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Interior.Color = percOutside1585FC.Interior.Color
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Interior.ColorIndex = percOutside1585FC.Interior.ColorIndex
-        Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions.Add(xlCellValue, xlNotBetween, ".25", ".75")
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Font.Color = percOutside2575FC.Font.Color
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Font.ColorIndex = percOutside2575FC.Font.ColorIndex
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Interior.Color = percOutside2575FC.Interior.Color
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Interior.ColorIndex = percOutside2575FC.Interior.ColorIndex
+    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).Value = (currPooledHRChNDec / currPooledHRChN)
+    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).Style = "Percent"
+    Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions.Delete
+    Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions.Add(xlCellValue, xlNotBetween, ".15", ".85")
+    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Font.Color = percOutside1585FC.Font.Color
+    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Font.ColorIndex = percOutside1585FC.Font.ColorIndex
+    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Interior.Color = percOutside1585FC.Interior.Color
+    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Interior.ColorIndex = percOutside1585FC.Interior.ColorIndex
+    Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions.Add(xlCellValue, xlNotBetween, ".25", ".75")
+    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Font.Color = percOutside2575FC.Font.Color
+    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Font.ColorIndex = percOutside2575FC.Font.ColorIndex
+    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Interior.Color = percOutside2575FC.Interior.Color
+    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Interior.ColorIndex = percOutside2575FC.Interior.ColorIndex
 
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 5).Value = ElPooledHRChMean
-        If ElPooledHRChN > 1 Then
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value = ((ElPooledHRChCum - ((ElPooledHRChMean * CDbl(ElPooledHRChN) ^ 2) / CDbl(ElPooledHRChN))) / CDbl(ElPooledHRChN - 1)) ^ 0.5
-'            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Value = ElPooledHRChMean / ((thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value / ElPooledHRChN) ^ 0.5)
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Value = ElPooledHRChMean / (thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value / (ElPooledHRChN ^ 0.5))
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).Value = "=TDIST(ABS(" & thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Address & ")," & CStr(ElPooledHRChN - 1) & ",1)"
-            thisAnimalSummarySheet.Range("UE" & thisAnimalSummarySheetRow).Value = ElPooledPretrialHRMean
-            thisAnimalSummarySheet.Range("UF" & thisAnimalSummarySheetRow).Value = ((ElPooledPretrialHRStdDev - (((ElPooledPretrialHRMean * CDbl(ElPooledHRChN)) ^ 2) / CDbl(ElPooledHRChN))) / CDbl(ElPooledHRChN - 1)) ^ 0.5
-        End If
+    
+    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 5).Value = currPooledHRChMean
+    If currPooledHRChN > 1 Then
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value = ((currPooledHRChCum - ((currPooledHRChMean * CDbl(currPooledHRChN) ^ 2) / CDbl(currPooledHRChN))) / CDbl(currPooledHRChN - 1)) ^ 0.5
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Value = currPooledHRChMean / (thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value / (currPooledHRChN ^ 0.5))
+        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).Value = "=TDIST(ABS(" & thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Address & ")," & CStr(currPooledHRChN - 1) & ",1)"
+        thisAnimalSummarySheet.Range("UE" & thisAnimalSummarySheetRow).Value = currPooledPretrialHRMean
+        thisAnimalSummarySheet.Range("UF" & thisAnimalSummarySheetRow).Value = ((currPooledPretrialHRStdDev - (((currPooledPretrialHRMean * CDbl(currPooledHRChN)) ^ 2) / CDbl(currPooledHRChN))) / CDbl(currPooledHRChN - 1)) ^ 0.5
     End If
-    
-    If trialType = "No Stim" Or trialType = "" Then 'no stimulation trials
-        thisAnimalSummarySheetRow = thisAnimalSummarySheetRow + 2
-            
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1).Value = "No Stimulation"
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1).Font.Bold = True
-        
-        For iVarCycling = 0 To 2
-            Select Case iVarCycling
-                Case 0:
-                    iSummaryCol = 10
-                Case 1:
-                    iSummaryCol = 13
-                Case 2:
-                    iSummaryCol = 16
-            End Select
-    
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol) = noStimPooledVarN(iVarCycling)
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol + 1) = noStimPooledVarMean(iVarCycling)
-            If noStimPooledVarN(iVarCycling) > 1 Then
-                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, iSummaryCol + 2) = ((noStimPooledVarCum(iVarCycling) - ((noStimPooledVarMean(iVarCycling) * CDbl(noStimPooledVarN(iVarCycling)) ^ 2) / CDbl(noStimPooledVarN(iVarCycling)))) / CDbl(noStimPooledVarN(iVarCycling) - 1)) ^ 0.5
-            End If
-        Next
-    
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 2).Value = noStimPooledHRChN
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 3).Value = noStimPooledHRChNExcl
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).Value = (noStimPooledHRChNDec / noStimPooledHRChN)
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).Style = "Percent"
-        Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions.Delete
-        Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions.Add(xlCellValue, xlNotBetween, ".15", ".85")
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Font.Color = percOutside1585FC.Font.Color
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Font.ColorIndex = percOutside1585FC.Font.ColorIndex
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Interior.Color = percOutside1585FC.Interior.Color
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(1).Interior.ColorIndex = percOutside1585FC.Interior.ColorIndex
-        Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions.Add(xlCellValue, xlNotBetween, ".25", ".75")
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Font.Color = percOutside2575FC.Font.Color
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Font.ColorIndex = percOutside2575FC.Font.ColorIndex
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Interior.Color = percOutside2575FC.Interior.Color
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 4).FormatConditions(2).Interior.ColorIndex = percOutside2575FC.Interior.ColorIndex
-
-        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 5).Value = noStimPooledHRChMean
-        If noStimPooledHRChN > 1 Then
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value = ((noStimPooledHRChCum - ((noStimPooledHRChMean * CDbl(noStimPooledHRChN) ^ 2) / CDbl(noStimPooledHRChN))) / CDbl(noStimPooledHRChN - 1)) ^ 0.5
-'            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Value = noStimPooledHRChMean / ((thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value / noStimPooledHRChN) ^ 0.5)
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Value = noStimPooledHRChMean / (thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value / (noStimPooledHRChN ^ 0.5))
-            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).Value = "=TDIST(ABS(" & thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Address & ")," & CStr(noStimPooledHRChN - 1) & ",1)"
-            thisAnimalSummarySheet.Range("UE" & thisAnimalSummarySheetRow).Value = noStimPooledPretrialHRMean
-            thisAnimalSummarySheet.Range("UF" & thisAnimalSummarySheetRow).Value = ((noStimPooledPretrialHRStdDev - (((noStimPooledPretrialHRMean * CDbl(noStimPooledHRChN)) ^ 2) / CDbl(noStimPooledHRChN))) / CDbl(noStimPooledHRChN - 1)) ^ 0.5
-        End If
-    End If
-    
             
     If TotalnInHrSoFar > 0 Then
         For HRIterator = 0 To 130
