@@ -977,6 +977,7 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                 thisAnimalWorksheet.Cells(iExcelOffset, 12).Value = "HR -4s to 0s exclusion reason"
                 thisAnimalWorksheet.Cells(iExcelOffset, 13).Value = "HR 5s to 9s exclusion reason"
                 thisAnimalWorksheet.Cells(iExcelOffset, 14).Value = "Overall trial exclusion reason"
+                thisAnimalWorksheet.Cells(iExcelOffset, 15).Value = "HR -4s to 9s exclusion reason"
                 iExcelOffset = iExcelOffset + 1
                 arrTrials = dictParamSets(arrParamSets(iParamSetNum))
                 nInMeanSoFar = 0
@@ -1021,8 +1022,10 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                     thisAnimalWorksheet.Cells(iExcelOffset, 11).Value = arrTrial(2)
                     thisAnimalWorksheet.Cells(iExcelOffset, 12).Value = arrTrial(4)
                     thisAnimalWorksheet.Cells(iExcelOffset, 13).Value = arrTrial(6)
+                    thisAnimalWorksheet.Cells(iExcelOffset, 14).Value = arrTrial(15)
 
-                    If arrTrial(15) = "" And arrTrial(7) = "" Then 'check if the data should be excluded
+                    'If arrTrial(15) = "" And arrTrial(7) = "" Then 'check if the data should be excluded
+                    If arrTrial(15) = "" And arrTrial(7) = "" And arrTrial(6) = "" And arrTrial(4) = "" Then 'check if the data should be excluded
                         'If Not arrParamSets(iParamSetNum) = "No stimulation, No stimulation" Then 'dont include if no stim - shouldn't be pooled with the rest
                             nInHrSoFar = nInHrSoFar + 1
                             For HRIterator = 0 To 130
@@ -1328,8 +1331,11 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                         If nInHrSoFar > 1 Then
                             '1 SD
                             thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 153 + HRIterator).Value = (((HRSD(HRIterator) - (((HRPlot(HRIterator) * CDbl(nInHrSoFar)) ^ 2#) / CDbl(nInHrSoFar))) / CDbl(nInHrSoFar)) ^ 0.5)
-                            '2 SEM
+                            '2 SE
+                            'thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 286 + HRIterator).Value = 2 * ((((HRSD(HRIterator) - (((HRPlot(HRIterator) * CDbl(nInHrSoFar)) ^ 2#) / CDbl(nInHrSoFar))) / CDbl(nInHrSoFar)) ^ 0.5) / (CDbl(nInHrSoFar) ^ 0.5))
+                            
                             thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 286 + HRIterator).Value = 2 * ((((HRSD(HRIterator) - (((HRPlot(HRIterator) * CDbl(nInHrSoFar)) ^ 2#) / CDbl(nInHrSoFar))) / CDbl(nInHrSoFar)) ^ 0.5) / (CDbl(nInHrSoFar) ^ 0.5))
+                            
                             '1.96 SD (95% CI)
                             thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 419 + HRIterator).Value = (((HRSD(HRIterator) - (((HRPlot(HRIterator) * CDbl(nInHrSoFar)) ^ 2#) / CDbl(nInHrSoFar))) / CDbl(nInHrSoFar)) ^ 0.5) * 1.96
                         End If
@@ -1381,7 +1387,7 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                 '1 Standard deviation
 '                myChart.Chart.SeriesCollection(1).ErrorBar Direction:=xlY, Include:=xlBoth, _
 '                    Type:=xlErrorBarTypeCustom, Amount:=thisAnimalSummarySheet.Range("$EW$" & thisAnimalSummarySheetRow & ":$JW$" & thisAnimalSummarySheetRow), MinusValues:=thisAnimalSummarySheet.Range("$EW$" & thisAnimalSummarySheetRow & ":$JW$" & thisAnimalSummarySheetRow)
-                '1 SEM
+                '2 SE
                                 myChart.Chart.SeriesCollection(1).ErrorBar Direction:=xlY, Include:=xlBoth, _
                     Type:=xlErrorBarTypeCustom, Amount:=thisAnimalSummarySheet.Range("$JZ$" & thisAnimalSummarySheetRow & ":$OZ$" & thisAnimalSummarySheetRow), MinusValues:=thisAnimalSummarySheet.Range("$JZ$" & thisAnimalSummarySheetRow & ":$OZ$" & thisAnimalSummarySheetRow)
 
@@ -1668,8 +1674,8 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
             If TotalnInHrSoFar > 1 Then
                 '1 SD
                 thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 153 + HRIterator).Value = (((TotalHRSD(HRIterator) - (((TotalHRPlot(HRIterator) * CDbl(TotalnInHrSoFar)) ^ 2#) / CDbl(TotalnInHrSoFar))) / CDbl(TotalnInHrSoFar)) ^ 0.5)
-                '1 SEM
-                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 286 + HRIterator).Value = ((((TotalHRSD(HRIterator) - (((TotalHRPlot(HRIterator) * CDbl(TotalnInHrSoFar)) ^ 2#) / CDbl(TotalnInHrSoFar))) / CDbl(TotalnInHrSoFar)) ^ 0.5) / (CDbl(TotalnInHrSoFar) ^ 0.5))
+                '2 SE
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 286 + HRIterator).Value = 2 * ((((TotalHRSD(HRIterator) - (((TotalHRPlot(HRIterator) * CDbl(TotalnInHrSoFar)) ^ 2#) / CDbl(TotalnInHrSoFar))) / CDbl(TotalnInHrSoFar)) ^ 0.5) / (CDbl(TotalnInHrSoFar) ^ 0.5))
                 '1.96 SD (95% CI)
                 thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 419 + HRIterator).Value = (((TotalHRSD(HRIterator) - (((TotalHRPlot(HRIterator) * CDbl(TotalnInHrSoFar)) ^ 2#) / CDbl(TotalnInHrSoFar))) / CDbl(TotalnInHrSoFar)) ^ 0.5) * 1.96
             End If
@@ -1703,7 +1709,7 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
     '1 Standard deviation
 '    myChart.Chart.SeriesCollection(1).ErrorBar Direction:=xlY, Include:=xlBoth, _
 '        Type:=xlErrorBarTypeCustom, Amount:=thisAnimalSummarySheet.Range("$EW$" & thisAnimalSummarySheetRow & ":$JW$" & thisAnimalSummarySheetRow), MinusValues:=thisAnimalSummarySheet.Range("$EW$" & thisAnimalSummarySheetRow & ":$JW$" & thisAnimalSummarySheetRow)
-    '1 SEM
+    '2 SE
    myChart.Chart.SeriesCollection(1).ErrorBar Direction:=xlY, Include:=xlBoth, _
        Type:=xlErrorBarTypeCustom, Amount:=thisAnimalSummarySheet.Range("$JZ$" & thisAnimalSummarySheetRow & ":$OZ$" & thisAnimalSummarySheetRow), MinusValues:=thisAnimalSummarySheet.Range("$JZ$" & thisAnimalSummarySheetRow & ":$OZ$" & thisAnimalSummarySheetRow)
 
