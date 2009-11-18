@@ -875,6 +875,10 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
     Dim currPooledHRChNExcl As Long
     Dim currPooledHRChNDec As Long
            
+    Dim currPooledVarMean As Variant
+    Dim currPooledVarCum As Variant
+    Dim currPooledVarN As Variant
+    
     Dim HRIncTrials As Integer
     Dim HRDecTrials As Integer
     
