@@ -962,7 +962,6 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                 For iTrialNum = 0 To UBound(arrTrials)
                     arrTrial = allTrials(arrTrials(iTrialNum))
                                         
-                                        
                     thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = arrTrial(11)
                     thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = arrTrial(12)
                     thisAnimalWorksheet.Cells(iExcelOffset, 3).Value = arrTrial(13)
@@ -985,6 +984,7 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                         'If Not arrParamSets(iParamSetNum) = "No stimulation, No stimulation" Then 'dont include if no stim - shouldn't be pooled with the rest
                             nInHrSoFar = nInHrSoFar + 1
                             For HRIterator = 0 To 130
+                                thisAnimalWorksheet.Cells(iExcelOffset, HRIterator + 50).Value = sourceWorksheet.Cells(arrTrial(14), HRIterator + 102).Value
                                 HRPlot(HRIterator) = HRPlot(HRIterator) + ((sourceWorksheet.Cells(arrTrial(14), HRIterator + 102).Value - HRPlot(HRIterator)) / nInHrSoFar)
                                 HRSD(HRIterator) = HRSD(HRIterator) + (sourceWorksheet.Cells(arrTrial(14), HRIterator + 102).Value ^ 2)
                             Next
@@ -1357,6 +1357,7 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                 thisAnimalSummarySheetRow = thisAnimalSummarySheetRow + 1
             Next
             iExcelOffset = iExcelOffset + 1
+            '---
         End If
     Next
     
