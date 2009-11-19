@@ -198,9 +198,8 @@ Sub processHeartRate()
             Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 17)), "Clear")
         End If
 
-        
         thisStartPoint = lTrialSampStart - 8000
-        thisEndPoint = lTrialSampStart + 18000
+        thisEndPoint = lTrialSampStart
 
         Call detectHROnSelection(thisStartPoint, thisEndPoint, proportionInterpolated, detectedHR, beatCount, theStdDev, overlyCloseBeats, interpolations, abberantBeats, longestInterpolation, shortestInterpolation, interpolationDuration, interpolatedBeatsMax, interpolatedBeatsMin, interpolatedBeats, iTrialNum, "-4-0s", cumulativeInterpolations, iOverlyCloseBeatsOffset, iAbberOffset)
         
@@ -501,6 +500,10 @@ Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportion
                     abberWS.Cells(abberantBeats + iAbberOffset + 2, ((iTrialNum - 1) * 5) + 2).Value = currentBeatSamp
                     abberWS.Cells(abberantBeats + iAbberOffset + 2, ((iTrialNum - 1) * 5) + 3).Value = "'" & calculateLCTime(currentBeatSamp)
                     abberWS.Cells(abberantBeats + iAbberOffset + 2, ((iTrialNum - 1) * 5) + 4).Value = thisInterpolationBeats - 1
+                    
+                    HRperbeatWS.Cells(((iTrialNum - 1) * 2) + 1, iColCounter).Value = currentBeatSamp
+                    HRperbeatWS.Cells(((iTrialNum - 1) * 2) + 2, iColCounter).Value = immediateHR
+                    iColCounter = iColCounter + 1
                 Else
                     interpolations = interpolations + 1
                     If (thisInterpolationBeats - 1) > interpolatedBeatsMax Or interpolations = 1 Then
@@ -521,6 +524,14 @@ Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportion
                     
                     beatCount = beatCount + (CDbl(Round(thisInterpolationBeats)) * ((currentBeatSamp - lStartPoint) / (currentBeatSamp - prevAcceptedBeatSamp))) 'if first beat, only include a potion of a beat matching the proportion within the set boundaries
                     thisInterpolationBeats = CDbl(Round((thisInterpolationBeats - 1))) * ((currentBeatSamp - lStartPoint) / (currentBeatSamp - prevAcceptedBeatSamp)) 'if first beat, only include a potion of a beat matching the proportion within the set boundaries
+                    
+                    For iBeatCycler = 1 To CInt(thisNumberOfBeats)
+                        'sumOfSquares = sumOfSquares + (immediateHR ^ 2)
+                        'sumOfX = sumOfX + immediateHR
+                        HRperbeatWS.Cells(((iTrialNum - 1) * 2) + 1, iColCounter).Value = (currentBeatSamp + ((iBeatCycler - 1) * (thisInterpolationDuration / thisNumberOfBeats)))
+                        HRperbeatWS.Cells(((iTrialNum - 1) * 2) + 2, iColCounter).Value = immediateHR
+                        iColCounter = iColCounter + 1
+                    Next
                 End If
                 isFirstBeat = False
             ElseIf isLastBeat Then
@@ -535,6 +546,9 @@ Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportion
                     abberWS.Cells(abberantBeats + iAbberOffset + 2, ((iTrialNum - 1) * 5) + 2).Value = currentBeatSamp
                     abberWS.Cells(abberantBeats + iAbberOffset + 2, ((iTrialNum - 1) * 5) + 3).Value = "'" & calculateLCTime(currentBeatSamp)
                     abberWS.Cells(abberantBeats + iAbberOffset + 2, ((iTrialNum - 1) * 5) + 4).Value = thisInterpolationBeats - 1
+                    HRperbeatWS.Cells(((iTrialNum - 1) * 2) + 1, iColCounter).Value = currentBeatSamp
+                    HRperbeatWS.Cells(((iTrialNum - 1) * 2) + 2, iColCounter).Value = (CDbl(Round(thisInterpolationBeats)) / ((thisInterpolationDuration / 2000) / 60))
+                    iColCounter = iColCounter + 1
                 Else
                     interpolations = interpolations + 1
                     If (thisInterpolationBeats - 1) > interpolatedBeatsMax Or interpolations = 1 Then
@@ -555,6 +569,12 @@ Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportion
                 
                     beatCount = beatCount + (CDbl(Round(thisInterpolationBeats)) * (1 - ((currentBeatSamp - lEndPoint) / (currentBeatSamp - prevAcceptedBeatSamp)))) 'if first beat, only include a potion of a beat matching the proportion within the set boundaries
                     thisInterpolationBeats = CDbl(Round((thisInterpolationBeats - 1))) * (1 - ((currentBeatSamp - lEndPoint) / (currentBeatSamp - prevAcceptedBeatSamp))) 'if first beat, only include a potion of a beat matching the proportion within the set boundaries
+
+                    For iBeatCycler = 1 To CInt(CDbl(Round(thisInterpolationBeats)))
+                        HRperbeatWS.Cells(((iTrialNum - 1) * 2) + 1, iColCounter).Value = (currentBeatSamp + ((iBeatCycler - 1) * (thisInterpolationDuration / CDbl(Round(thisInterpolationBeats)))))
+                        HRperbeatWS.Cells(((iTrialNum - 1) * 2) + 2, iColCounter).Value = (CDbl(Round(thisInterpolationBeats)) / ((thisInterpolationDuration / 2000) / 60))
+                        iColCounter = iColCounter + 1
+                    Next
                 End If
             Else
                 If Round(thisInterpolationBeats) = 1 Then
@@ -629,11 +649,17 @@ Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportion
                 If isFirstBeat Then
                     beatCount = beatCount + ((currentBeatSamp - lStartPoint) / (currentBeatSamp - prevAcceptedBeatSamp))  'if first beat, only include a potion of a beat matching the proportion within the set boundaries
                     immediateHR = (1 / (((currentBeatSamp - prevAcceptedBeatSamp) / 2000) / 60))
+                    HRperbeatWS.Cells(((iTrialNum - 1) * 2) + 1, iColCounter).Value = currentBeatSamp
+                    HRperbeatWS.Cells(((iTrialNum - 1) * 2) + 2, iColCounter).Value = immediateHR
+                    iColCounter = iColCounter + 1
 '                    sumOfSquares = sumOfSquares + (immediateHR ^ 2) * ((currentBeatSamp - lStartPoint) / (currentBeatSamp - prevAcceptedBeatSamp))
                     isFirstBeat = False
                 ElseIf isLastBeat Then
                     beatCount = beatCount + (1 - ((currentBeatSamp - lEndPoint) / (currentBeatSamp - prevAcceptedBeatSamp))) 'if first beat, only include a potion of a beat matching the proportion within the set boundaries
                     immediateHR = (1 / (((currentBeatSamp - prevAcceptedBeatSamp) / 2000) / 60))
+                    HRperbeatWS.Cells(((iTrialNum - 1) * 2) + 1, iColCounter).Value = currentBeatSamp
+                    HRperbeatWS.Cells(((iTrialNum - 1) * 2) + 2, iColCounter).Value = immediateHR
+                    iColCounter = iColCounter + 1
 '                    sumOfSquares = sumOfSquares + (immediateHR ^ 2) * (1 - ((currentBeatSamp - lEndPoint) / (currentBeatSamp - prevAcceptedBeatSamp)))
                 Else
                     beatCount = beatCount + 1#
@@ -653,11 +679,17 @@ Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportion
                 beatCount = beatCount + ((currentBeatSamp - lStartPoint) / (currentBeatSamp - prevAcceptedBeatSamp))  'if first beat, only include a potion of a beat matching the proportion within the set boundaries
                 immediateHR = (1 / (((currentBeatSamp - prevAcceptedBeatSamp) / 2000) / 60))
 '                sumOfSquares = sumOfSquares + (immediateHR ^ 2) * ((currentBeatSamp - lStartPoint) / (currentBeatSamp - prevAcceptedBeatSamp))
+                HRperbeatWS.Cells(((iTrialNum - 1) * 2) + 1, iColCounter).Value = currentBeatSamp
+                HRperbeatWS.Cells(((iTrialNum - 1) * 2) + 2, iColCounter).Value = immediateHR
+                iColCounter = iColCounter + 1
                 isFirstBeat = False
             ElseIf isLastBeat Then
                 beatCount = beatCount + (1 - ((currentBeatSamp - lEndPoint) / (currentBeatSamp - prevAcceptedBeatSamp)))  'if first beat, only include a potion of a beat matching the proportion within the set boundaries
                 immediateHR = (1 / (((currentBeatSamp - prevAcceptedBeatSamp) / 2000) / 60))
 '                sumOfSquares = sumOfSquares + (immediateHR ^ 2) * (1 - ((currentBeatSamp - lEndPoint) / (currentBeatSamp - prevAcceptedBeatSamp)))
+                HRperbeatWS.Cells(((iTrialNum - 1) * 2) + 1, iColCounter).Value = currentBeatSamp
+                HRperbeatWS.Cells(((iTrialNum - 1) * 2) + 2, iColCounter).Value = immediateHR
+                iColCounter = iColCounter + 1
             Else
                 beatCount = beatCount + 1#
                 immediateHR = (1 / (((currentBeatSamp - prevAcceptedBeatSamp) / 2000) / 60))
@@ -783,6 +815,7 @@ Sub highlightCell(theCell As Range, strStyle As String)
             
     End Select
 End Sub
+
 
 
 
