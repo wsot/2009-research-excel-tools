@@ -1380,7 +1380,7 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                             
                             '1.96 SD (95% CI)
                             'thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 419 + HRIterator).Value = (((HRSD(HRIterator) - (((HRPlot(HRIterator) * CDbl(HRPlotN)) ^ 2#) / CDbl(HRPlotN))) / CDbl(HRPlotN)) ^ 0.5) * 1.96
-                            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_95CIOffset + HRIterator).Value = 1.96 * calcStdDev(HRPlotSum(HRIterator), HRPlotSS(HRIterator), HRPlotN)
+                            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_95CIOffset + HRIterator).Value = calc95ci(HRPlotSum(HRIterator), HRPlotSS(HRIterator), HRPlotN)
                         End If
                     Next
                 End If
@@ -1423,15 +1423,15 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                 myChart.Chart.Legend.Delete
                 myChart.Chart.SeriesCollection(1).Values = thisAnimalSummarySheet.Range(thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart), thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + 130))
                 myChart.Chart.SeriesCollection(1).HasErrorBars = True
-                '1.96 Standard deviation
-            '   myChart.Chart.SeriesCollection(1).ErrorBar Direction:=xlY, Include:=xlBoth, _
-            '       Type:=xlErrorBarTypeCustom, Amount:=thisAnimalSummarySheet.Range(thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_95CIOffset), thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_95CIOffset + 130)), MinusValues:=thisAnimalSummarySheet.Range(thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_95CIOffset), thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_95CIOffset + 130))
+                '95% ci
+               myChart.Chart.SeriesCollection(1).ErrorBar Direction:=xlY, Include:=xlBoth, _
+                   Type:=xlErrorBarTypeCustom, Amount:=thisAnimalSummarySheet.Range(thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_95CIOffset), thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_95CIOffset + 130)), MinusValues:=thisAnimalSummarySheet.Range(thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_95CIOffset), thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_95CIOffset + 130))
                 '1 Standard deviation
             '   myChart.Chart.SeriesCollection(1).ErrorBar Direction:=xlY, Include:=xlBoth, _
             '       Type:=xlErrorBarTypeCustom, Amount:=thisAnimalSummarySheet.Range(thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_SDOffset), thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_SDOffset + 130)), MinusValues:=thisAnimalSummarySheet.Range(thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_SDOffset), thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_SDOffset + 130))
                 '2 SE
-               myChart.Chart.SeriesCollection(1).ErrorBar Direction:=xlY, Include:=xlBoth, _
-                   Type:=xlErrorBarTypeCustom, Amount:=thisAnimalSummarySheet.Range(thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_2SEOffset), thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_2SEOffset + 130)), MinusValues:=thisAnimalSummarySheet.Range(thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_2SEOffset), thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_2SEOffset + 130))
+               'myChart.Chart.SeriesCollection(1).ErrorBar Direction:=xlY, Include:=xlBoth, _
+               '    Type:=xlErrorBarTypeCustom, Amount:=thisAnimalSummarySheet.Range(thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_2SEOffset), thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_2SEOffset + 130)), MinusValues:=thisAnimalSummarySheet.Range(thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_2SEOffset), thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_2SEOffset + 130))
 
 
                 myChart.Chart.ChartTitle.Characters.Font.Size = 12
@@ -1510,7 +1510,8 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                 thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_2SEOffset + HRIterator).Value = 2 * calcSEM(TotalHRPlotSum(HRIterator), TotalHRPlotSS(HRIterator), TotalHRPlotN) '(((TotalHRSD(HRIterator) - (((TotalHRPlot(HRIterator) * CDbl(TotalHRPlotN)) ^ 2#) / CDbl(TotalHRPlotN))) / CDbl(TotalnInHrSoFar)) ^ 0.5)
                 '1.96 SD (95% CI)
                 'thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 419 + HRIterator).Value = (((TotalHRSD(HRIterator) - (((TotalHRPlot(HRIterator) * CDbl(TotalnInHrSoFar)) ^ 2#) / CDbl(TotalnInHrSoFar))) / CDbl(TotalnInHrSoFar)) ^ 0.5) * 1.96
-                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_95CIOffset + HRIterator).Value = 1.96 * calcStdDev(TotalHRPlotSum(HRIterator), TotalHRPlotSS(HRIterator), TotalHRPlotN) '(((TotalHRSD(HRIterator) - (((TotalHRPlot(HRIterator) * CDbl(TotalHRPlotN)) ^ 2#) / CDbl(TotalHRPlotN))) / CDbl(TotalnInHrSoFar)) ^ 0.5)
+                'thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_95CIOffset + HRIterator).Value = 1.96 * calcStdDev(TotalHRPlotSum(HRIterator), TotalHRPlotSS(HRIterator), TotalHRPlotN) '(((TotalHRSD(HRIterator) - (((TotalHRPlot(HRIterator) * CDbl(TotalHRPlotN)) ^ 2#) / CDbl(TotalHRPlotN))) / CDbl(TotalnInHrSoFar)) ^ 0.5)
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_95CIOffset + HRIterator).Value = calc95ci(TotalHRPlotSum(HRIterator), TotalHRPlotSS(HRIterator), TotalHRPlotN)
             End If
         Next
     End If
@@ -1537,15 +1538,15 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
     myChart.Chart.SeriesCollection(1).Values = thisAnimalSummarySheet.Range(thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart), thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + 130))
     'myChart.Chart.SeriesCollection(1).Values = thisAnimalSummarySheet.Range("$U$" & thisAnimalSummarySheetRow & ":$EU$" & thisAnimalSummarySheetRow)
     myChart.Chart.SeriesCollection(1).HasErrorBars = True
-    '1.96 Standard deviation
-'   myChart.Chart.SeriesCollection(1).ErrorBar Direction:=xlY, Include:=xlBoth, _
-'       Type:=xlErrorBarTypeCustom, Amount:=thisAnimalSummarySheet.Range(thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_95CIOffset), thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_95CIOffset + 130)), MinusValues:=thisAnimalSummarySheet.Range(thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_95CIOffset), thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_95CIOffset + 130))
+    '95% ci
+   myChart.Chart.SeriesCollection(1).ErrorBar Direction:=xlY, Include:=xlBoth, _
+       Type:=xlErrorBarTypeCustom, Amount:=thisAnimalSummarySheet.Range(thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_95CIOffset), thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_95CIOffset + 130)), MinusValues:=thisAnimalSummarySheet.Range(thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_95CIOffset), thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_95CIOffset + 130))
     '1 Standard deviation
 '   myChart.Chart.SeriesCollection(1).ErrorBar Direction:=xlY, Include:=xlBoth, _
 '       Type:=xlErrorBarTypeCustom, Amount:=thisAnimalSummarySheet.Range(thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_SDOffset), thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_SDOffset + 130)), MinusValues:=thisAnimalSummarySheet.Range(thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_SDOffset), thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_SDOffset + 130))
     '2 SE
-   myChart.Chart.SeriesCollection(1).ErrorBar Direction:=xlY, Include:=xlBoth, _
-       Type:=xlErrorBarTypeCustom, Amount:=thisAnimalSummarySheet.Range(thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_2SEOffset), thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_2SEOffset + 130)), MinusValues:=thisAnimalSummarySheet.Range(thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_2SEOffset), thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_2SEOffset + 130))
+   'myChart.Chart.SeriesCollection(1).ErrorBar Direction:=xlY, Include:=xlBoth, _
+   '    Type:=xlErrorBarTypeCustom, Amount:=thisAnimalSummarySheet.Range(thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_2SEOffset), thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_2SEOffset + 130)), MinusValues:=thisAnimalSummarySheet.Range(thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_2SEOffset), thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HRLinestart + SS_2SEOffset + 130))
 
     myChart.Chart.ChartTitle.Characters.Font.Size = 12
     'myChart.Chart.Axes(xlValue).MinimumScale = 0.85
@@ -1816,6 +1817,13 @@ Function calcSEM(dblSum As Double, dblSS As Double, lngN As Long)
     dblStdDev = calcStdDev(dblSum, dblSS, lngN)
     calcSEM = dblStdDev / (CDbl(lngN) ^ 0.5)
 End Function
+
+Function calc95ci(dblSum As Double, dblSS As Double, lngN As Long)
+    Dim dblStdDev As Double
+    dblStdDev = calcStdDev(dblSum, dblSS, lngN)
+    calc95ci = 1.96 * (dblStdDev / (CDbl(lngN) ^ 0.5))
+End Function
+
 
 Function calcSES(dblSum As Double, dblSS As Double, lngN As Long) 'standard error of the statistic
     Dim dblSD As Double
