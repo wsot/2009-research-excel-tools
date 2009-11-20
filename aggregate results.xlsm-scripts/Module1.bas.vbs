@@ -319,6 +319,8 @@ Sub processTrials()
     
     Dim iPass As Integer
     
+    Dim splitHR As Double
+    
 '    For iPass = 0 To 2
 '        Select Case iPass
 '            Case 0:
@@ -399,6 +401,7 @@ Sub processTrials()
                 
 '                Call parseTrials(trialTypes, sourceWorksheet)
                 Call parseTrials(sourceWorksheet)
+                splitHR = getMeanBaselineHR(trialTypesByDate, "Acoustic Only")
                 For iPass = 0 To 3
                     thisAnimalSummarySheetRow = 2
                     Select Case iPass
@@ -471,31 +474,31 @@ Sub processTrials()
                         Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
                         Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
                         thisAnimalWorksheet.Name = animalID & " Acclimatisation"
-                        Call outputTrials(trialTypes, "Acclimatisation", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow, sourceWorksheet)
+                        Call outputTrials(trialTypes, "Acclimatisation", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow, sourceWorksheet, splitHR)
                     End If
                     If trialTypes("Acoustic Only").Count > 0 Then
                         Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
                         Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
                         thisAnimalWorksheet.Name = animalID & " Acoustic Only"
-                        Call outputTrials(trialTypes, "Acoustic Only", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow, sourceWorksheet)
+                        Call outputTrials(trialTypes, "Acoustic Only", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow, sourceWorksheet, splitHR)
                     End If
                     If trialTypes("Acoustic").Count > 0 Then
                         Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
                         Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
                         thisAnimalWorksheet.Name = animalID & " Acoustic"
-                        Call outputTrials(trialTypes, "Acoustic", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow, sourceWorksheet)
+                        Call outputTrials(trialTypes, "Acoustic", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow, sourceWorksheet, splitHR)
                     End If
                     If trialTypes("Electrical").Count > 0 Then
                         Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
                         Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
                         thisAnimalWorksheet.Name = animalID & " Electrical"
-                        Call outputTrials(trialTypes, "Electrical", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow, sourceWorksheet)
+                        Call outputTrials(trialTypes, "Electrical", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow, sourceWorksheet, splitHR)
                     End If
                     If trialTypes("No Stim").Count > 0 Then
                         Call outputWorkbook.Worksheets("Output template").Copy(, outputWorkbook.Worksheets("Output template"))
                         Set thisAnimalWorksheet = outputWorkbook.Worksheets("Output template (2)")
                         thisAnimalWorksheet.Name = animalID & " No Stim"
-                        Call outputTrials(trialTypes, "No Stim", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow, sourceWorksheet)
+                        Call outputTrials(trialTypes, "No Stim", thisAnimalWorksheet, thisAnimalSummarySheet, thisAnimalSummarySheetRow, sourceWorksheet, splitHR)
                     End If
 '                    Call outputWorkbook.SaveAs(outputFilename)
 '                    Call outputWorkbook.Close
@@ -543,12 +546,12 @@ Sub processTrials()
 End Sub
 
 'Function parseTrials(outputDict As Dictionary, sourceWorksheet As Workbook, experimentDate As String, experimentTag As String, exclusionInfo As Variant)
-Function parseTrials(sourceWorksheet As Worksheet)
+Function parseTrials(sourceWorksheet As Worksheet) As Double
     ReDim allTrials(0)
     Dim experimentDate As String
     Dim experimentTag As String
     Dim exclusionInfo As Variant
-    
+        
     Dim trialInfoByDate As String
     Dim trialInfoByStimParamsFull As String
     Dim trialInfoByDateStimParamsFull As String
@@ -580,12 +583,13 @@ Function parseTrials(sourceWorksheet As Worksheet)
     
     Dim blnExcludeThis As Boolean
     
-    Dim trialArr
+    Dim arrTrial
     Dim paramArr
     
     Dim iCurrBlockNum As Integer
     
     Dim exclusionReason As String
+    Dim HRIterator As Long
     
     While sourceWorksheet.Range("A" & i).Value <> ""
         If sourceWorksheet.Range("M" & i).Value <> "" Then
@@ -604,8 +608,8 @@ Function parseTrials(sourceWorksheet As Worksheet)
              Call readAmpArrays(acoAmps, elAmps, param1, param2, sourceWorksheet, iCurrBlockNum, experimentTag)
     '        End If
            
-            trialArr = Array()
-            ReDim trialArr(15)
+            arrTrial = Array()
+            ReDim arrTrial(15)
             'result array contains 11 elements
             '1:date
             '2:HR -84 to -4s from start
@@ -633,51 +637,59 @@ Function parseTrials(sourceWorksheet As Worksheet)
     'Const HRDetLongIntBeat = 14
     'Const HRDetStdDev = 7
     
-            trialArr(0) = experimentDate
-            trialArr(11) = experimentTag
-            trialArr(12) = sourceWorksheet.Range("J" & i).Value
-            trialArr(14) = i
+            arrTrial(0) = experimentDate
+            arrTrial(11) = experimentTag
+            arrTrial(12) = sourceWorksheet.Range("J" & i).Value
+            arrTrial(14) = i
     
             exclusionReason = checkForHRExclusions(sourceWorksheet, i, HRDetOffset)
             If exclusionReason <> "" Then
-                trialArr(1) = "=NA()"
-                trialArr(2) = exclusionReason
+                arrTrial(1) = "=NA()"
+                arrTrial(2) = exclusionReason
             Else
-                trialArr(1) = sourceWorksheet.Cells(i, HRDetOffset + HRDetHROffset).Value
-                trialArr(8) = sourceWorksheet.Cells(i, HRDetOffset + HRDetStdDev).Value
+                arrTrial(1) = sourceWorksheet.Cells(i, HRDetOffset + HRDetHROffset).Value
+                arrTrial(8) = sourceWorksheet.Cells(i, HRDetOffset + HRDetStdDev).Value
             End If
     
             exclusionReason = checkForHRExclusions(sourceWorksheet, i, HRDetOffset + HRDetCols)
             If exclusionReason <> "" Then
-                trialArr(3) = "=NA()"
-                trialArr(4) = exclusionReason
+                arrTrial(3) = "=NA()"
+                arrTrial(4) = exclusionReason
             Else
-                trialArr(3) = sourceWorksheet.Cells(i, HRDetOffset + HRDetCols + HRDetHROffset).Value
-                trialArr(9) = sourceWorksheet.Cells(i, HRDetOffset + HRDetCols + HRDetStdDev).Value
+                arrTrial(3) = sourceWorksheet.Cells(i, HRDetOffset + HRDetCols + HRDetHROffset).Value
+                arrTrial(9) = sourceWorksheet.Cells(i, HRDetOffset + HRDetCols + HRDetStdDev).Value
             End If
             exclusionReason = checkForHRExclusions(sourceWorksheet, i, HRDetOffset + (2 * HRDetCols))
             If exclusionReason <> "" Then
-                trialArr(5) = "=NA()"
-                trialArr(6) = exclusionReason
+                arrTrial(5) = "=NA()"
+                arrTrial(6) = exclusionReason
             Else
-                trialArr(5) = sourceWorksheet.Cells(i, HRDetOffset + (HRDetCols * 2) + HRDetHROffset).Value
-                trialArr(10) = sourceWorksheet.Cells(i, HRDetOffset + (HRDetCols * 2) + HRDetStdDev).Value
+                arrTrial(5) = sourceWorksheet.Cells(i, HRDetOffset + (HRDetCols * 2) + HRDetHROffset).Value
+                arrTrial(10) = sourceWorksheet.Cells(i, HRDetOffset + (HRDetCols * 2) + HRDetStdDev).Value
             End If
             exclusionReason = checkForHRExclusions(sourceWorksheet, i, HRDetOffset + (3 * HRDetCols))
-            trialArr(15) = exclusionReason
+            arrTrial(15) = exclusionReason
+            If exclusionReason = "" Then
+                For HRIterator = 1 To 130
+                    If Abs(sourceWorksheet.Cells(i, HRIterator + 102).Value - sourceWorksheet.Cells(i, HRIterator + 101).Value) > maxSingleBeatVar Then
+                        arrTrial(15) = "Excess variation in HR plot"
+                        Exit For
+                    End If
+                Next
+            End If
              
             If sourceWorksheet.Range("M" & i).Value = "Acoustic" Then
                 If Not ((exclusionInfo(0) = "Acoustic" Or exclusionInfo(0) = "all") And exclusionInfo(1) = "") Then
                      If (exclusionInfo(0) = "Acoustic" Or exclusionInfo(0) = "all") And exclusionInfo(1) <> "" Then
                         If exclusionInfo(2) = "" Then
-                            trialArr(7) = exclusionInfo(1)
+                            arrTrial(7) = exclusionInfo(1)
                         ElseIf CDbl(exclusionInfo(2)) <= sourceWorksheet.Range("K" & i).Value Then  'check if there is a time cutoff which has been passed
-                            trialArr(7) = exclusionInfo(1)
+                            arrTrial(7) = exclusionInfo(1)
                         Else
-                            trialArr(7) = ""
+                            arrTrial(7) = ""
                         End If
                      Else
-                        trialArr(7) = ""
+                        arrTrial(7) = ""
                      End If
 
                      'acoustic trial - drop the last 2 letters to remove the Hz
@@ -703,12 +715,12 @@ Function parseTrials(sourceWorksheet As Worksheet)
                         trialInfoByDateStimParamsFull = experimentDate & ": " & param1str & ", " & param2str
                         trialInfoByStimParamsFull = param1str & ", " & param2str
                         trialInfoByStimParamsNoAmp = CStr(param1) & ", " & CStr(param2)
-                        trialArr(13) = param1str & ", " & param2str
+                        arrTrial(13) = param1str & ", " & param2str
                     Else
                         trialInfoByDateStimParamsFull = experimentDate & ": " & param2str & ", " & param1str
                         trialInfoByStimParamsFull = param2str & ", " & param1str
                         trialInfoByStimParamsNoAmp = CStr(param2) & ", " & CStr(param1)
-                        trialArr(13) = param2str & ", " & param1str
+                        arrTrial(13) = param2str & ", " & param1str
                     End If
                     trialInfoByDate = experimentDate
                      
@@ -717,7 +729,7 @@ Function parseTrials(sourceWorksheet As Worksheet)
 '                    Else
 '                        ReDim allTrials(0)
 '                    End If
-                    allTrials(UBound(allTrials)) = trialArr
+                    allTrials(UBound(allTrials)) = arrTrial
                     
                     If InStr(1, LCase(experimentTag), "acclimatisation", vbTextCompare) Then
                         Call addToDict(trialTypesByDate, trialInfoByDate, "Acclimatisation", UBound(allTrials))
@@ -742,14 +754,14 @@ Function parseTrials(sourceWorksheet As Worksheet)
                 If Not ((exclusionInfo(0) = "Electrical" Or exclusionInfo(0) = "all") And exclusionInfo(1) = "") Then
                      If (exclusionInfo(0) = "Electrical" Or exclusionInfo(0) = "all") And exclusionInfo(1) <> "" Then
                         If exclusionInfo(2) = "" Then
-                            trialArr(7) = exclusionInfo(1)
+                            arrTrial(7) = exclusionInfo(1)
                         ElseIf CDbl(exclusionInfo(2)) <= sourceWorksheet.Range("K" & i).Value Then  'check if there is a time cutoff which has been passed
-                            trialArr(7) = exclusionInfo(1)
+                            arrTrial(7) = exclusionInfo(1)
                         Else
-                            trialArr(7) = ""
+                            arrTrial(7) = ""
                         End If
                      Else
-                        trialArr(7) = ""
+                        arrTrial(7) = ""
                      End If
                      
                     param1arr = Split(param1, " ")
@@ -811,18 +823,18 @@ Function parseTrials(sourceWorksheet As Worksheet)
                         trialInfoByDateStimParamsFull = experimentDate & ": " & param1str & ", " & param2str
                         trialInfoByStimParamsFull = param1str & ", " & param2str
                         trialInfoByStimParamsNoAmp = CStr(param1) & ", " & CStr(param2)
-                        trialArr(13) = param1str & ", " & param2str
+                        arrTrial(13) = param1str & ", " & param2str
                     Else
                         trialInfoByDateStimParamsFull = experimentDate & ": " & param2str & ", " & param1str
                         trialInfoByStimParamsFull = param2str & ", " & param1str
                         trialInfoByStimParamsNoAmp = CStr(param2) & ", " & CStr(param1)
-                        trialArr(13) = param2str & ", " & param1str
+                        arrTrial(13) = param2str & ", " & param1str
                     End If
                     trialInfoByDate = experimentDate
 
 
                     ReDim Preserve allTrials(UBound(allTrials) + 1)
-                    allTrials(UBound(allTrials)) = trialArr
+                    allTrials(UBound(allTrials)) = arrTrial
                     
                     If param1str = "No stimulation" Then
                         Call addToDict(trialTypesByDate, trialInfoByDate, "No Stim", UBound(allTrials))
@@ -856,7 +868,7 @@ Function checkForHRExclusions(sourceWorksheet As Worksheet, i As Integer, horizO
             End If
 End Function
 
-Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksheet As Worksheet, thisAnimalSummarySheet As Worksheet, ByRef thisAnimalSummarySheetRow, ByRef sourceWorksheet As Worksheet)
+Function outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksheet As Worksheet, thisAnimalSummarySheet As Worksheet, ByRef thisAnimalSummarySheetRow, ByRef sourceWorksheet As Worksheet, splitHR As Double) As Double
     Dim arrTrialTypes
     arrTrialTypes = trialTypes.Keys
     
@@ -1055,14 +1067,14 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                     thisAnimalWorksheet.Cells(iExcelOffset, 12).Value = arrTrial(4)
                     thisAnimalWorksheet.Cells(iExcelOffset, 13).Value = arrTrial(6)
 
-                    If arrTrial(15) = "" And arrTrial(7) = "" And arrTrial(6) = "" And arrTrial(4) = "" Then 'check if the data should be excluded
-                            For HRIterator = 1 To 130
-                                If Abs(sourceWorksheet.Cells(arrTrial(14), HRIterator + 102).Value - sourceWorksheet.Cells(arrTrial(14), HRIterator + 101).Value) > maxSingleBeatVar Then
-                                    arrTrial(15) = "Excess variation in HR plot"
-                                    Exit For
-                                End If
-                            Next
-                    End If
+'                    If arrTrial(15) = "" And arrTrial(7) = "" And arrTrial(6) = "" And arrTrial(4) = "" Then 'check if the data should be excluded
+'                            For HRIterator = 1 To 130
+'                                If Abs(sourceWorksheet.Cells(arrTrial(14), HRIterator + 102).Value - sourceWorksheet.Cells(arrTrial(14), HRIterator + 101).Value) > maxSingleBeatVar Then
+'                                    arrTrial(15) = "Excess variation in HR plot"
+'                                    Exit For
+'                                End If
+'                            Next
+'                    End If
 
                     thisAnimalWorksheet.Cells(iExcelOffset, 15).Value = arrTrial(15)
                     
@@ -1556,7 +1568,7 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
 
     thisAnimalSummarySheetRow = thisAnimalSummarySheetRow + 23
 
-End Sub
+End Function
 
 
 Sub deleteOldWorksheets(thisWorkbook As Workbook)
@@ -1841,4 +1853,48 @@ End Function
 
 Function calcMean(dblSum As Double, lngN As Long)
     calcMean = dblSum / CDbl(lngN)
+End Function
+
+'given a trial type array (which must be internally grouped by date), and a trial type, gets the baseline HR for the day with the most recent date
+Function getMeanBaselineHR(trialTypes As Dictionary, trialType As String)
+    Dim arrDates As Variant
+    Dim vSessions As Variant
+    Set vSessions = trialTypes(trialType)
+    arrDates = vSessions.Keys
+       
+    Dim sMaxDate As String
+    Dim sThisDate As String
+    Dim dDate As Date
+    
+    Dim i As Integer
+    For i = 0 To UBound(arrDates)
+        sThisDate = arrDates(i)
+        If sMaxDate = "" Then
+            sMaxDate = sThisDate
+        Else
+            dDate = CDate(sThisDate)
+            If dDate > CDate(sMaxDate) Then
+                sMaxDate = sThisDate
+            End If
+        End If
+    Next
+    
+    Dim arrTrials As Variant
+    Dim arrTrial As Variant
+    Dim iTrialNum As Integer
+    
+    arrTrials = vSessions(sMaxDate)
+    
+    Dim baselineHRSum As Double
+    Dim baselineHRN As Long
+    
+    For iTrialNum = 0 To UBound(arrTrials)
+        arrTrial = allTrials(arrTrials(iTrialNum))
+        If arrTrial(15) = "" And arrTrial(7) = "" And arrTrial(6) = "" And arrTrial(4) = "" Then 'check if the data should be excluded
+            baselineHRN = baselineHRN + 1
+            baselineHRSum = baselineHRSum + arrTrial(3)
+        End If
+    Next
+        
+    getMeanBaselineHR = calcMean(baselineHRSum, baselineHRN)
 End Function
