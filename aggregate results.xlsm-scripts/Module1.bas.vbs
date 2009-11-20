@@ -922,9 +922,13 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
     Dim iVarCycling As Integer
     Dim iSummaryCol As Integer
 
-    Dim pooledPretrialHRn As Long
-    Dim pooledPretrialHRSum As Double
-    Dim pooledPretrialHRSS As Double
+    Dim pretrialHRn As Long
+    Dim pretrialHRSum As Double
+    Dim pretrialHRSS As Double
+
+'    Dim pooledPretrialHRn As Long
+'    Dim pooledPretrialHRSum As Double
+'    Dim pooledPretrialHRSS As Double
 
     Dim pooledHRChSum As Double
     Dim pooledHRChSS As Double
@@ -1009,6 +1013,11 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                 stdDevSum(0) = 0#
                 stdDevSum(1) = 0#
                 stdDevSum(2) = 0#
+                
+                pretrialHRn = 0
+                pretrialHRSum = 0#
+                pretrialHRSS = 0#
+
                 
                 meanHRN(0) = 0#
                 meanHRN(1) = 0#
@@ -1097,9 +1106,9 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                             pooledHRChSum = pooledHRChSum + diff
                             pooledHRChSS = pooledHRChSS + (diff ^ 2)
                             
-                            pooledPretrialHRn = pooledPretrialHRn + 1
-                            pooledPretrialHRSum = pooledPretrialHRSum + arrTrial(3)
-                            pooledPretrialHRSS = pooledPretrialHRSS + arrTrial(3) ^ 2
+                            pretrialHRn = pretrialHRn + 1
+                            pretrialHRSum = pretrialHRSum + arrTrial(3)
+                            pretrialHRSS = pretrialHRSS + arrTrial(3) ^ 2
                             
                         'Else
                         '    noStimPooledHRChN = noStimPooledHRChN + 1
@@ -1336,10 +1345,10 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                         thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_Pval).FormatConditions(2).Interior.ColorIndex = pLess10FC.Interior.ColorIndex
                         thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_Pval).NumberFormat = "0.000"
                         
-                        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_BaselineHRMean).Value = calcMean(pooledPretrialHRSum, pooledPretrialHRn)
-                        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_BaselineHRStdDev).Value = calcStdDev(pooledPretrialHRSum, pooledPretrialHRSS, pooledPretrialHRn)
-                        'thisAnimalSummarySheet.Range("UE" & thisAnimalSummarySheetRow).Value = calcMean(pooledPretrialHRSum, pooledPretrialHRn)
-                        'thisAnimalSummarySheet.Range("UF" & thisAnimalSummarySheetRow).Value = calcStdDev(pooledPretrialHRSum, pooledPretrialHRSS, pooledPretrialHRn)
+                        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_BaselineHRMean).Value = calcMean(pretrialHRSum, pretrialHRn)
+                        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_BaselineHRStdDev).Value = calcStdDev(pretrialHRSum, pretrialHRSS, pretrialHRn)
+                        'thisAnimalSummarySheet.Range("UE" & thisAnimalSummarySheetRow).Value = calcMean(pretrialHRSum, pretrialHRn)
+                        'thisAnimalSummarySheet.Range("UF" & thisAnimalSummarySheetRow).Value = calcStdDev(pretrialHRSum, pretrialHRSS, pretrialHRn)
                     Else
                         thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Additional stats could not be calculated (N=1)"
                         thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HrChstdev) = "=NA()"
@@ -1484,8 +1493,8 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
         thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_HrChstdev).Value = calcStdDev(pooledHRChSum, pooledHRChSS, pooledHRChN)  '((currPooledHRChCum - ((currPooledHRChMean * CDbl(currPooledHRChN) ^ 2) / CDbl(currPooledHRChN))) / CDbl(currPooledHRChN - 1)) ^ 0.5
         thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_Tscore).Value = calcPairedTScore(pooledHRChSum, pooledHRChSS, pooledHRChN)  'currPooledHRChMean / (thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value / (currPooledHRChN ^ 0.5))
         thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_Pval).Value = "=TDIST(ABS(" & thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, SS_Tscore).Address & ")," & CStr(pooledHRChN - 1) & ",1)"
-        'thisAnimalSummarySheet.Range("UE" & thisAnimalSummarySheetRow).Value = calcMean(pooledPretrialHRSum, pooledPretrialHRn)
-        'thisAnimalSummarySheet.Range("UF" & thisAnimalSummarySheetRow).Value = calcStdDev(pooledPretrialHRSum, pooledPretrialHRSS, pooledPretrialHRn)
+        'thisAnimalSummarySheet.Range("UE" & thisAnimalSummarySheetRow).Value = calcMean(pretrialHRSum, pretrialHRn)
+        'thisAnimalSummarySheet.Range("UF" & thisAnimalSummarySheetRow).Value = calcStdDev(pretrialHRSum, pretrialHRSS, pretrialHRn)
     End If
             
     If TotalHRPlotN > 0 Then
