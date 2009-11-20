@@ -1,6 +1,8 @@
 Attribute VB_Name = "Module1"
 Option Explicit
 
+Const maxSingleBeatVar = 100
+
 Const SS_Cluster = 1
 Const SS_HRIncludedtrials = 2
 Const SS_HRExcludedTrials = 3
@@ -1043,9 +1045,18 @@ Sub outputTrials(trialTypes As Dictionary, trialType As String, thisAnimalWorksh
                     thisAnimalWorksheet.Cells(iExcelOffset, 11).Value = arrTrial(2)
                     thisAnimalWorksheet.Cells(iExcelOffset, 12).Value = arrTrial(4)
                     thisAnimalWorksheet.Cells(iExcelOffset, 13).Value = arrTrial(6)
-                    thisAnimalWorksheet.Cells(iExcelOffset, 14).Value = arrTrial(15)
 
-                    'If arrTrial(15) = "" And arrTrial(7) = "" Then 'check if the data should be excluded
+                    If arrTrial(15) = "" And arrTrial(7) = "" And arrTrial(6) = "" And arrTrial(4) = "" Then 'check if the data should be excluded
+                            For HRIterator = 1 To 130
+                                If Abs(sourceWorksheet.Cells(arrTrial(14), HRIterator + 102).Value - sourceWorksheet.Cells(arrTrial(14), HRIterator + 101).Value) > maxSingleBeatVar Then
+                                    arrTrial(15) = "Excess variation in HR plot"
+                                    Exit For
+                                End If
+                            Next
+                    End If
+
+                    thisAnimalWorksheet.Cells(iExcelOffset, 15).Value = arrTrial(15)
+                    
                     If arrTrial(15) = "" And arrTrial(7) = "" And arrTrial(6) = "" And arrTrial(4) = "" Then 'check if the data should be excluded
                         'If Not arrParamSets(iParamSetNum) = "No stimulation, No stimulation" Then 'dont include if no stim - shouldn't be pooled with the rest
                             HRPlotN = HRPlotN + 1
