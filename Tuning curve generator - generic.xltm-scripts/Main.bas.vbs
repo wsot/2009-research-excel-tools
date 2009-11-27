@@ -507,7 +507,9 @@ Function detectNoiseFloor(objTTX As TTankX, stimStartEpoc As String, oDriveDetec
             For lArrIndx = 0 To (UBound(histoSums))
                 dblMeanSpikes = histoSums(lArrIndx)(0) / (UBound(aStimTimes) + 1)
                 dblStdDevSpikes = (histoSquares(lArrIndx)(0) - ((dblMeanSpikes ^ 2) / (UBound(aStimTimes) + 1))) / (UBound(aStimTimes) + 1)
+'                dblStdDevSpikes = (histoSquares(lArrIndx)(0) - ((histoSums(lArrIndx)(0) ^ 2) / (UBound(aStimTimes) + 1))) / (UBound(aStimTimes) + 1)
                 Call dNoiseFloorList.Add(lArrIndx + 1, Array((dblMeanSpikes + dblStdDevSpikes) / (oDriveDetectionParams.Diff_ITI - oDriveDetectionParams.Diff_StimDur), dblMeanSpikes, dblStdDevSpikes, (oDriveDetectionParams.Diff_ITI - oDriveDetectionParams.Diff_StimDur)))
+                'Call dNoiseFloorList.Add(lArrIndx + 1, Array((dblMeanSpikes + dblStdDevSpikes) / (oDriveDetectionParams.Diff_ITI - oDriveDetectionParams.Diff_StimDur) * oDriveDetectionParams.Diff_StimDur, dblMeanSpikes, dblStdDevSpikes, (oDriveDetectionParams.Diff_ITI - oDriveDetectionParams.Diff_StimDur)))
                 If Not IsMissing(outputWS) Then
                     If IsObject(outputWS) Then
                         If Not outputWS Is Nothing Then
@@ -1488,6 +1490,8 @@ Function readCommentFromFile(objFile As File) As String
     readCommentFromFile = ts.ReadLine
     ts.Close
 End Function
+
+
 
 
 

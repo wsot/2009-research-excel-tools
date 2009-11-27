@@ -8,8 +8,14 @@ Dim CodeMod As VBIDE.CodeModule
 
 
 Sub reprocess(isTestRun As Boolean, onlyOne As Boolean)
-    
+        
     Application.Calculation = xlCalculationManual
+    
+    Dim iOutputCounter As Integer
+    
+    iOutputCounter = 40
+    
+    Dim neuroWS2 As Worksheet
     
     Dim regenerateExcelFiles As Boolean
     Dim regenerateTDTdata As Boolean
@@ -206,6 +212,11 @@ Sub reprocess(isTestRun As Boolean, onlyOne As Boolean)
                             Else
                                 Set newWorkbook = Workbooks.Open(templateFilename)
                                 Set workbookToProcess = Workbooks.Open(strExcelPathname)
+                                If Not WorksheetExists("Neural Data (2)", workbookToProcess) Then
+                                    Set neuroWS2 = workbookToProcess.Worksheets.Add(, workbookToProcess.Worksheets("Neural Data"), , xlWorksheet)
+                                    neuroWS2.Name = "Neural Data (2)"
+                                    neuroWS2.Range("A1:AI2").Value = newWorkbook.Worksheets("Neural Data (2)").Range("A1:AI2").Value
+                                End If
                                 For Each VBComp In newWorkbook.VBProject.VBComponents
                                     Call CopyModule(VBComp.Name, newWorkbook.VBProject, workbookToProcess.VBProject, True)
 'CopyModule(ModuleName As String, _
@@ -214,6 +225,7 @@ Sub reprocess(isTestRun As Boolean, onlyOne As Boolean)
     OverwriteExisting As Boolean
                                 'Set VBComp = ActiveWorkbook.VBProject.VBComponents
                                 Next
+                                
                                 Call newWorkbook.Close(False)
                             End If
                             
@@ -269,6 +281,8 @@ Sub reprocess(isTestRun As Boolean, onlyOne As Boolean)
                             
                             If Not isTestRun Then
                                 Call workbookToProcess.Save
+                                thisWorkbook.Worksheets("Configuration").Range("A" & iOutputCounter) = workbookToProcess.Path & "\" & workbookToProcess.Name
+                                iOutputCounter = iOutputCounter + 1
                             End If
                             If onlyOne Then
                                 GoTo outsideTheLoop
@@ -369,3 +383,14 @@ Function checkForExclusion(objFolder As Folder) As Boolean
     Next
 
 End Function
+Public Function WorksheetExists(ByVal WorksheetName As String, Optional theWB As Variant) As Boolean
+    If IsMissing(theWB) Then
+        theWB = Application.ActiveWorkbook
+    End If
+    
+    On Error Resume Next
+        WorksheetExists = (theWB.Sheets(WorksheetName).Name <> "")
+    On Error GoTo 0
+
+End Function
+

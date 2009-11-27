@@ -329,8 +329,8 @@ Sub processHeartRate()
             Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 17)), "Clear")
         End If
 
-        thisStartPoint = lTrialSampStart - 9000
-        thisEndPoint = lTrialSampStart + 19000
+        thisStartPoint = lTrialSampStart - 17000
+        thisEndPoint = lTrialSampStart + 17000
         
         Call detectHROnSelection(thisStartPoint, thisEndPoint, proportionInterpolated, detectedHR, beatCount, theStdDev, overlyCloseBeats, interpolations, abberantBeats, longestInterpolation, shortestInterpolation, interpolationDuration, interpolatedBeatsMax, interpolatedBeatsMin, interpolatedBeats, iTrialNum, "-4.5-9.5s", cumulativeInterpolations, iOverlyCloseBeatsOffset, iAbberOffset)
         
@@ -525,10 +525,10 @@ Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportion
                     beatCount = beatCount + (CDbl(Round(thisInterpolationBeats)) * ((currentBeatSamp - lStartPoint) / (currentBeatSamp - prevAcceptedBeatSamp))) 'if first beat, only include a potion of a beat matching the proportion within the set boundaries
                     thisInterpolationBeats = CDbl(Round((thisInterpolationBeats - 1))) * ((currentBeatSamp - lStartPoint) / (currentBeatSamp - prevAcceptedBeatSamp)) 'if first beat, only include a potion of a beat matching the proportion within the set boundaries
                     
-                    For iBeatCycler = 1 To CInt(thisNumberOfBeats)
+                    For iBeatCycler = 1 To Round(thisNumberOfBeats)
                         'sumOfSquares = sumOfSquares + (immediateHR ^ 2)
                         'sumOfX = sumOfX + immediateHR
-                        HRperbeatWS.Cells(((iTrialNum - 1) * 2) + 1, iColCounter).Value = (currentBeatSamp + ((iBeatCycler - 1) * (thisInterpolationDuration / thisNumberOfBeats)))
+                        HRperbeatWS.Cells(((iTrialNum - 1) * 2) + 1, iColCounter).Value = (prevAcceptedBeatSamp + (iBeatCycler * (thisInterpolationDuration / Round(thisNumberOfBeats))))
                         HRperbeatWS.Cells(((iTrialNum - 1) * 2) + 2, iColCounter).Value = immediateHR
                         iColCounter = iColCounter + 1
                     Next
@@ -570,8 +570,8 @@ Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportion
                     beatCount = beatCount + (CDbl(Round(thisInterpolationBeats)) * (1 - ((currentBeatSamp - lEndPoint) / (currentBeatSamp - prevAcceptedBeatSamp)))) 'if first beat, only include a potion of a beat matching the proportion within the set boundaries
                     thisInterpolationBeats = CDbl(Round((thisInterpolationBeats - 1))) * (1 - ((currentBeatSamp - lEndPoint) / (currentBeatSamp - prevAcceptedBeatSamp))) 'if first beat, only include a potion of a beat matching the proportion within the set boundaries
 
-                    For iBeatCycler = 1 To CInt(CDbl(Round(thisInterpolationBeats)))
-                        HRperbeatWS.Cells(((iTrialNum - 1) * 2) + 1, iColCounter).Value = (currentBeatSamp + ((iBeatCycler - 1) * (thisInterpolationDuration / CDbl(Round(thisInterpolationBeats)))))
+                    For iBeatCycler = 1 To Round(thisInterpolationBeats)
+                        HRperbeatWS.Cells(((iTrialNum - 1) * 2) + 1, iColCounter).Value = (prevAcceptedBeatSamp + (iBeatCycler * (thisInterpolationDuration / Round(thisNumberOfBeats))))
                         HRperbeatWS.Cells(((iTrialNum - 1) * 2) + 2, iColCounter).Value = (CDbl(Round(thisInterpolationBeats)) / ((thisInterpolationDuration / 2000) / 60))
                         iColCounter = iColCounter + 1
                     Next
@@ -608,10 +608,10 @@ Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportion
                     
                     thisNumberOfBeats = CDbl(Round((thisInterpolationDuration / ((beatDuration + lPostBeatDuration) / 2))))
                     immediateHR = (thisNumberOfBeats / ((thisInterpolationDuration / 2000) / 60))
-                    For iBeatCycler = 1 To CInt(thisNumberOfBeats)
+                    For iBeatCycler = 1 To Round(thisNumberOfBeats)
                         'sumOfSquares = sumOfSquares + (immediateHR ^ 2)
                         'sumOfX = sumOfX + immediateHR
-                        HRperbeatWS.Cells(((iTrialNum - 1) * 2) + 1, iColCounter).Value = (currentBeatSamp + ((iBeatCycler - 1) * (thisInterpolationDuration / thisNumberOfBeats)))
+                        HRperbeatWS.Cells(((iTrialNum - 1) * 2) + 1, iColCounter).Value = (prevAcceptedBeatSamp + (iBeatCycler * (thisInterpolationDuration / Round(thisNumberOfBeats))))
                         HRperbeatWS.Cells(((iTrialNum - 1) * 2) + 2, iColCounter).Value = immediateHR
                         iColCounter = iColCounter + 1
                     Next
@@ -815,7 +815,3 @@ Sub highlightCell(theCell As Range, strStyle As String)
             
     End Select
 End Sub
-
-
-
-

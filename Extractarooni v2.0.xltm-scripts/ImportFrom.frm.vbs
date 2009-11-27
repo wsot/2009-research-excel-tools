@@ -1,11 +1,13 @@
 Attribute VB_Name = "ImportFrom"
-Attribute VB_Base = "0{94D4489B-4B27-487D-8BEB-DE0E2D749DFF}{D95D133E-2566-45F5-AD26-19B936CA22D7}"
+Attribute VB_Base = "0{9C5E48A8-2420-4CCF-AD2F-0589E7145B7F}{CBEE1915-70AD-4DC7-B26F-EB725DA17AD7}"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 Attribute VB_TemplateDerived = False
 Attribute VB_Customizable = False
+Option Explicit
+
 Dim objTTX As Object
 Const ConnectSuccess = 1
 Const ServerConnectFail = 1
@@ -16,7 +18,6 @@ Private Sub Cancel_Click()
     doImport = False
     Unload Me        'Unloads the UserForm.
 End Sub
-
 
 Private Sub ImportButton_Click()
     If BlockSelect1.ActiveBlock <> "" Then
@@ -35,8 +36,8 @@ Private Sub ImportButton_Click()
         Dim dictOtherEp As Dictionary
         Set dictOtherEp = New Dictionary
         
-        Dim dHeadings As Dictionary
-        Set dHeadings = New Dictionary
+        Dim dBlocks As Dictionary
+        Set dBlocks = New Dictionary
         
         Dim i As Integer
         Dim j As Integer
@@ -59,14 +60,14 @@ Private Sub ImportButton_Click()
 
         j = 0
     
-        For i = 0 To (HeadingList.ListCount - 1)
-            If HeadingList.Selected(i) Then
-                Call dHeadings.Add(HeadingList.List(i), 1)
-                Worksheets("Variables (do not edit)").Range("H" & CStr(2 + j)).Value = HeadingList.List(i)
+        For i = 0 To (BlockList.ListCount - 1)
+            If BlockList.Selected(i) Then
+                Call dBlocks.Add(BlockList.List(i), 1)
+                Worksheets("Variables (do not edit)").Range("N" & CStr(2 + j)).Value = BlockList.List(i)
                 j = j + 1
             End If
         Next
-        Worksheets("Variables (do not edit)").Range("H" & CStr(2 + j)).Value = ""
+        Worksheets("Variables (do not edit)").Range("N" & CStr(2 + j)).Value = ""
     
         xAxisEp = XAxis.Value
         Worksheets("Variables (do not edit)").Range("B5").Value = xAxisEp
@@ -315,14 +316,16 @@ Sub buildBlockList(tankPath)
 
     Dim dBlocks As Dictionary
     Set dBlocks = New Dictionary
-    Dim vBlocks
+    Dim vBlocks As Variant
 
-    Dim objFS, objFolder
+    Dim objFS As FileSystemObject
+    Dim objFolder As Folder
     Set objFS = CreateObject("Scripting.FileSystemObject")
 '   fso.GetParentFolderName(docFullName)
     Set objFolder = objFS.GetFolder(tankPath)
 
-    Dim Subfolders, objSubfolder
+    Dim Subfolders As Folders
+    Dim objSubfolder As Folder
     Set Subfolders = objFolder.Subfolders
     For Each objSubfolder In Subfolders
         If objSubfolder.Name <> "TempBlk" Then
@@ -338,7 +341,10 @@ Sub buildBlockList(tankPath)
     
     vBlocks = dBlocks.Keys
 
+    BlockList.Clear
+
     For i = 0 To UBound(vBlocks)
-        Call HeadingList.AddItem(vBlocks(i), i)
+        Call BlockList.AddItem(vBlocks(i), i)
     Next
 End Sub
+

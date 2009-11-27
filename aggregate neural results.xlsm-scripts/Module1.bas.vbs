@@ -219,6 +219,25 @@ Function copyTrials(workbookToProcess As Workbook, experimentDate As String, exp
                         'post mean
                         thisAnimalWorksheet.Range("AP" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("K" & lNeuroSourceRow + 2 + (lNeuroOffset * 2) + 1).Value
     
+                        '1-4 total amp1
+                        thisAnimalWorksheet.Range("AR" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("Y" & lNeuroSourceRow + 2 + (lNeuroOffset * 2)).Value
+                        '1-4 total amp2
+                        thisAnimalWorksheet.Range("AS" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("AA" & lNeuroSourceRow + 2 + (lNeuroOffset * 2)).Value
+                        '1-4 total amp3
+                        thisAnimalWorksheet.Range("AT" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("AC" & lNeuroSourceRow + 2 + (lNeuroOffset * 2)).Value
+                        
+                        '5-8 total amp1
+                        thisAnimalWorksheet.Range("AV" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("Y" & lNeuroSourceRow + 2 + (lNeuroOffset * 2) + 1).Value
+                        '5-8 total amp2
+                        thisAnimalWorksheet.Range("AW" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("AA" & lNeuroSourceRow + 2 + (lNeuroOffset * 2) + 1).Value
+                        '5-8 total amp3
+                        thisAnimalWorksheet.Range("AX" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("AC" & lNeuroSourceRow + 2 + (lNeuroOffset * 2) + 1).Value
+                        
+                        
+                        'post mean
+                        thisAnimalWorksheet.Range("AP" & thisAnimalTrialsRow).Value = workbookToProcess.Worksheets("Neural Data").Range("K" & lNeuroSourceRow + 2 + (lNeuroOffset * 2) + 1).Value
+    
+    
                         
                         'thisAnimalWorksheet.Range(thisAnimalWorksheet.Cells(thisAnimalTrialsRow, 9), thisAnimalWorksheet.Cells(thisAnimalTrialsRow, 22)).Value = workbookToProcess.Worksheets("Output").Range("A" & lSourceRow & ":N" & lSourceRow).Value
         
@@ -298,7 +317,7 @@ Sub processTrials()
                 animalID = sourceWorksheet.Name
                 
                 Call parseTrials(sourceWorksheet, animalID)
-                For iPass = 0 To 2
+                For iPass = 2 To 2
                     thisAnimalSummarySheetRow = 2
                     Select Case iPass
                         Case 0:
@@ -397,34 +416,38 @@ Function parseTrials(sourceWorksheet As Worksheet, strAnimal As String)
         
         Select Case strAnimal
             Case "111_140":
-                Call addToDict(neuralByClass, experimentDate, "DCN", i)
+                Call addToDict(neuralByClass, neuralByAcclimInfo, "DCN", i)
             Case "111_141":
                 Select Case iChannel:
                     Case 4, 5, 6, 7, 8, 9, 25:
-                        Call addToDict(neuralByClass, experimentDate, "VCN", i)
+                        Call addToDict(neuralByClass, neuralByAcclimInfo, "VCN", i)
                     Case 10, 11, 12, 13, 14, 15, 25:
-                        Call addToDict(neuralByClass, experimentDate, "DCN", i)
+                        Call addToDict(neuralByClass, neuralByAcclimInfo, "DCN", i)
                     Case 26, 27, 28, 29, 30, 31, 32:
-                        Call addToDict(neuralByClass, experimentDate, "Octopus", i)
+                        Call addToDict(neuralByClass, neuralByAcclimInfo, "Octopus", i)
                 End Select
             Case "112_1024":
                 Select Case iChannel:
                     Case 17, 18, 19, 20, 21, 22, 23, 8, 9, 10, 11, 12, 13, 14, 15, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32:
-                        Call addToDict(neuralByClass, experimentDate, "VCN", i)
+                    'Case 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32:
+                        Call addToDict(neuralByClass, neuralByAcclimInfo, "VCN", i)
+                    'Case 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16:
+                    '    Call addToDict(neuralByClass, experimentDate, "DCN", i)
                 End Select
             Case "123_1164":
-                Select Case iChannel:
-                    Case 21:
-                        Call addToDict(neuralByClass, experimentDate, "DCN", i)
-                    Case 7, 15:
-                        Call addToDict(neuralByClass, experimentDate, "AVCN", i)
-                    Case 5, 6, 8, 9, 10, 11, 13:
-                        Call addToDict(neuralByClass, experimentDate, "VCN", i)
-                End Select
+                'Select Case iChannel:
+'                    Case 21:
+'                        Call addToDict(neuralByClass, experimentDate, "DCN", i)
+'                    Case 7, 15:
+                        Call addToDict(neuralByClass, neuralByAcclimInfo, "AVCN", i)
+'                    Case 5, 6, 8, 9, 10, 11, 13:
+'                        Call addToDict(neuralByClass, experimentDate, "VCN", i)
+                'End Select
                 'Call addToDict(neuralByClass, experimentDate, "DCN", i)
                 'Call addToDict(neuralByClass, experimentDate, "VCN", i)
                 'Call addToDict(neuralByClass, experimentDate, "Octopus", i)
         End Select
+
         
         Call addToDict(neuralByDate, experimentDate, CStr(iChannel), i)
         Call addToDict(neuralByAcclim, neuralByAcclimInfo, CStr(iChannel), i)
@@ -477,7 +500,30 @@ Sub outputTrials(theDict As Dictionary, thisAnimalWorksheet As Worksheet, thisAn
         
     Dim changeMean As Double
     Dim changeVar As Double
-        
+    
+    'Dim dblTotal14 As Double
+    'Dim dblTotal58 As Double
+    Dim dblTotal1420 As Double
+    Dim dblTotal1425 As Double
+    Dim dblTotal1430 As Double
+    
+    Dim dblTotal5820 As Double
+    Dim dblTotal5825 As Double
+    Dim dblTotal5830 As Double
+    
+    Dim lTotalAttn1420 As Long
+    Dim lTotalAttn1425 As Long
+    Dim lTotalAttn1430 As Long
+    
+    Dim lTotalAttn5820 As Long
+    Dim lTotalAttn5825 As Long
+    Dim lTotalAttn5830 As Long
+    
+    Dim myChart As ChartObject
+    Dim lChartPos As Long
+    
+    Dim i As Integer
+    
     Dim iSummaryCol As Integer
 
     For iChanNum = 0 To UBound(arrChannels)
@@ -489,6 +535,21 @@ Sub outputTrials(theDict As Dictionary, thisAnimalWorksheet As Worksheet, thisAn
         Set dictSublevel = theDict(arrChannels(iChanNum))
         arrSubLevels = dictSublevel.Keys
         For iSubLevelNum = 0 To UBound(arrSubLevels)
+            dblTotal1420 = 0
+            dblTotal1425 = 0
+            dblTotal1430 = 0
+            
+            dblTotal5820 = 0
+            dblTotal5825 = 0
+            dblTotal5830 = 0
+            
+            lTotalAttn1420 = 0
+            lTotalAttn1425 = 0
+            lTotalAttn1430 = 0
+            
+            lTotalAttn5820 = 0
+            lTotalAttn5825 = 0
+            lTotalAttn5830 = 0
             'thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1).Style.Name = "Normal"
 
             thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1).Font.Bold = True
@@ -528,71 +589,236 @@ Sub outputTrials(theDict As Dictionary, thisAnimalWorksheet As Worksheet, thisAn
                             
             For lTrialNum = 0 To UBound(arrTrials)
                 lRowNum = arrTrials(lTrialNum)
-                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1) = "'" & arrChannels(iChanNum) & ": " & CStr(arrSubLevels(iSubLevelNum))
-                If Not arrSubLevels(iSubLevelNum) = "Acclimatisation" And Not arrSubLevels(iSubLevelNum) = "Trials" Then
-                    If InStr(1, sourceWorksheet.Range("E" & lRowNum).Value, "acclimatisation", vbTextCompare) > 0 Then
-                        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1) = thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1) & ": Acclimatisation"
-                    Else
-                        thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1) = thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1) & ": Trials"
+                'If sourceWorksheet.Range("Z" & lRowNum).Value <> 0 And sourceWorksheet.Range("AA" & lRowNum).Value <> 0 Then
+                    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1) = "'" & arrChannels(iChanNum) & ": " & CStr(arrSubLevels(iSubLevelNum))
+                    If Not arrSubLevels(iSubLevelNum) = "Acclimatisation" And Not arrSubLevels(iSubLevelNum) = "Trials" Then
+                        If InStr(1, sourceWorksheet.Range("E" & lRowNum).Value, "acclimatisation", vbTextCompare) > 0 Then
+                            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1) = thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1) & ": Acclimatisation"
+                        Else
+                            thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1) = thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1) & ": Trials"
+                        End If
                     End If
-                End If
-                thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = sourceWorksheet.Range("E" & lRowNum).Value
-                thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = sourceWorksheet.Range("J" & lRowNum).Value
-                thisAnimalWorksheet.Cells(iExcelOffset, 3).Value = sourceWorksheet.Range("D" & lRowNum).Value
-                
-                thisAnimalWorksheet.Cells(iExcelOffset, 4).Value = sourceWorksheet.Range("Y" & lRowNum).Value
-                thisAnimalWorksheet.Cells(iExcelOffset, 5).Value = sourceWorksheet.Range("Z" & lRowNum).Value
-                thisAnimalWorksheet.Cells(iExcelOffset, 6).Value = sourceWorksheet.Range("AA" & lRowNum).Value
-                thisAnimalWorksheet.Cells(iExcelOffset, 7).Value = sourceWorksheet.Range("AB" & lRowNum).Value
-                thisAnimalWorksheet.Cells(iExcelOffset, 8).Value = sourceWorksheet.Range("AC" & lRowNum).Value
-                thisAnimalWorksheet.Cells(iExcelOffset, 9).Value = sourceWorksheet.Range("AD" & lRowNum).Value
-                thisAnimalWorksheet.Cells(iExcelOffset, 10).Value = sourceWorksheet.Range("AE" & lRowNum).Value
-                thisAnimalWorksheet.Cells(iExcelOffset, 11).Value = sourceWorksheet.Range("AF" & lRowNum).Value
-                thisAnimalWorksheet.Cells(iExcelOffset, 12).Value = sourceWorksheet.Range("AG" & lRowNum).Value
-                
-                thisAnimalWorksheet.Cells(iExcelOffset, 13).Value = sourceWorksheet.Range("AM" & lRowNum).Value
-                thisAnimalWorksheet.Cells(iExcelOffset, 14).Value = sourceWorksheet.Range("AN" & lRowNum).Value
-                
-                thisAnimalWorksheet.Cells(iExcelOffset, 15).Value = sourceWorksheet.Range("AK" & lRowNum).Value
-                thisAnimalWorksheet.Cells(iExcelOffset, 16).Value = sourceWorksheet.Range("AL" & lRowNum).Value
+                    thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = sourceWorksheet.Range("E" & lRowNum).Value
+                    thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = sourceWorksheet.Range("J" & lRowNum).Value
+                    thisAnimalWorksheet.Cells(iExcelOffset, 3).Value = sourceWorksheet.Range("D" & lRowNum).Value
+                    
+                    'amplitudes
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 4).Value = sourceWorksheet.Range("Y" & lRowNum).Value
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 5).Value = sourceWorksheet.Range("Z" & lRowNum).Value
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 6).Value = sourceWorksheet.Range("AA" & lRowNum).Value
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 7).Value = sourceWorksheet.Range("AB" & lRowNum).Value
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 8).Value = sourceWorksheet.Range("AC" & lRowNum).Value
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 9).Value = sourceWorksheet.Range("AD" & lRowNum).Value
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 10).Value = sourceWorksheet.Range("AE" & lRowNum).Value
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 11).Value = sourceWorksheet.Range("AF" & lRowNum).Value
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 12).Value = sourceWorksheet.Range("AG" & lRowNum).Value
+                    
+                    thisAnimalWorksheet.Cells(iExcelOffset, 13).Value = sourceWorksheet.Range("AM" & lRowNum).Value
+                    thisAnimalWorksheet.Cells(iExcelOffset, 14).Value = sourceWorksheet.Range("AN" & lRowNum).Value
+                    
+                    thisAnimalWorksheet.Cells(iExcelOffset, 15).Value = sourceWorksheet.Range("AK" & lRowNum).Value
+                    thisAnimalWorksheet.Cells(iExcelOffset, 16).Value = sourceWorksheet.Range("AL" & lRowNum).Value
+        
+                    thisAnimalWorksheet.Cells(iExcelOffset, 17).Value = sourceWorksheet.Range("AO" & lRowNum).Value
+                    thisAnimalWorksheet.Cells(iExcelOffset, 18).Value = sourceWorksheet.Range("AP" & lRowNum).Value
+
+                    'spike counts
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 20).Value = sourceWorksheet.Range("AR" & lRowNum).Value
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 21).Value = sourceWorksheet.Range("AS" & lRowNum).Value
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 22).Value = sourceWorksheet.Range("AT" & lRowNum).Value
+        
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 24).Value = sourceWorksheet.Range("AV" & lRowNum).Value
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 25).Value = sourceWorksheet.Range("AW" & lRowNum).Value
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 26).Value = sourceWorksheet.Range("AX" & lRowNum).Value
+        
+        
+                    If sourceWorksheet.Range("G" & lRowNum).Value = "" Or (sourceWorksheet.Range("G" & lRowNum).Value <> "" And sourceWorksheet.Range("H" & lRowNum).Value >= sourceWorksheet.Range("K" & lRowNum).Value) Then 'check if the data should be excluded
+                        nInMeanSoFar = nInMeanSoFar + 1
+                        'dblTotal1420 = dblTotal1420 + thisAnimalWorksheet.Cells(iExcelOffset, 15).Value
+                        'dblTotal5820 = dblTotal5820 + thisAnimalWorksheet.Cells(iExcelOffset, 16).Value
+                        'diff = thisAnimalWorksheet.Cells(iExcelOffset, 14).Value - thisAnimalWorksheet.Cells(iExcelOffset, 13).Value
+                        'changeSum = changeSum + diff
+                        'changeSumSqr = changeSumSqr + diff ^ 2
+                        
+                        Select Case sourceWorksheet.Range("Y" & lRowNum).Value
+                            Case 20:
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 4) = 20
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 5).Value = sourceWorksheet.Range("Z" & lRowNum).Value
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 6).Value = sourceWorksheet.Range("AA" & lRowNum).Value
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 20).Value = sourceWorksheet.Range("AR" & lRowNum).Value
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 24).Value = sourceWorksheet.Range("AV" & lRowNum).Value
+                            Case 25:
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 7) = 25
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 8).Value = sourceWorksheet.Range("Z" & lRowNum).Value
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 9).Value = sourceWorksheet.Range("AA" & lRowNum).Value
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 21).Value = sourceWorksheet.Range("AR" & lRowNum).Value
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 25).Value = sourceWorksheet.Range("AV" & lRowNum).Value
+                            Case 30:
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 10) = 30
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 11).Value = sourceWorksheet.Range("Z" & lRowNum).Value
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 12).Value = sourceWorksheet.Range("AA" & lRowNum).Value
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 22).Value = sourceWorksheet.Range("AR" & lRowNum).Value
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 26).Value = sourceWorksheet.Range("AV" & lRowNum).Value
+                        End Select
+                        
+                        Select Case sourceWorksheet.Range("AB" & lRowNum).Value
+                            Case 20:
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 4) = 20
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 5).Value = sourceWorksheet.Range("AC" & lRowNum).Value
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 6).Value = sourceWorksheet.Range("AD" & lRowNum).Value
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 20).Value = sourceWorksheet.Range("AS" & lRowNum).Value
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 24).Value = sourceWorksheet.Range("AW" & lRowNum).Value
+                            Case 25:
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 7) = 25
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 8).Value = sourceWorksheet.Range("AC" & lRowNum).Value
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 9).Value = sourceWorksheet.Range("AD" & lRowNum).Value
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 21).Value = sourceWorksheet.Range("AS" & lRowNum).Value
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 25).Value = sourceWorksheet.Range("AW" & lRowNum).Value
+                            Case 30:
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 10) = 30
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 11).Value = sourceWorksheet.Range("AC" & lRowNum).Value
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 12).Value = sourceWorksheet.Range("AD" & lRowNum).Value
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 22).Value = sourceWorksheet.Range("AS" & lRowNum).Value
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 26).Value = sourceWorksheet.Range("AW" & lRowNum).Value
+                            End Select
+
+
+                        Select Case sourceWorksheet.Range("AE" & lRowNum).Value
+                            Case 20:
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 4) = 20
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 5).Value = sourceWorksheet.Range("AF" & lRowNum).Value
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 6).Value = sourceWorksheet.Range("AG" & lRowNum).Value
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 20).Value = sourceWorksheet.Range("AT" & lRowNum).Value
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 24).Value = sourceWorksheet.Range("AX" & lRowNum).Value
+                            Case 25:
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 7) = 25
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 8).Value = sourceWorksheet.Range("AF" & lRowNum).Value
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 9).Value = sourceWorksheet.Range("AG" & lRowNum).Value
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 21).Value = sourceWorksheet.Range("AT" & lRowNum).Value
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 25).Value = sourceWorksheet.Range("AX" & lRowNum).Value
+                            Case 30:
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 10) = 30
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 11).Value = sourceWorksheet.Range("AF" & lRowNum).Value
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 12).Value = sourceWorksheet.Range("AG" & lRowNum).Value
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 22).Value = sourceWorksheet.Range("AT" & lRowNum).Value
+                                    thisAnimalWorksheet.Cells(iExcelOffset, 26).Value = sourceWorksheet.Range("AX" & lRowNum).Value
+                            End Select
+
+                        lTotalAttn1420 = lTotalAttn1420 + thisAnimalWorksheet.Cells(iExcelOffset, 5).Value
+                        lTotalAttn5820 = lTotalAttn5820 + thisAnimalWorksheet.Cells(iExcelOffset, 6).Value
+                        dblTotal1420 = dblTotal1420 + thisAnimalWorksheet.Cells(iExcelOffset, 24).Value
+                        dblTotal5820 = dblTotal5820 + thisAnimalWorksheet.Cells(iExcelOffset, 20).Value
+                        
+                        lTotalAttn1425 = lTotalAttn1425 + thisAnimalWorksheet.Cells(iExcelOffset, 8).Value
+                        lTotalAttn5825 = lTotalAttn5825 + thisAnimalWorksheet.Cells(iExcelOffset, 9).Value
+                        dblTotal1425 = dblTotal1425 + thisAnimalWorksheet.Cells(iExcelOffset, 25).Value
+                        dblTotal5825 = dblTotal5825 + thisAnimalWorksheet.Cells(iExcelOffset, 21).Value
+                        
+                        lTotalAttn1430 = lTotalAttn1430 + thisAnimalWorksheet.Cells(iExcelOffset, 11).Value
+                        lTotalAttn5830 = lTotalAttn5830 + thisAnimalWorksheet.Cells(iExcelOffset, 12).Value
+                        dblTotal1430 = dblTotal1430 + thisAnimalWorksheet.Cells(iExcelOffset, 26).Value
+                        dblTotal5830 = dblTotal5830 + thisAnimalWorksheet.Cells(iExcelOffset, 22).Value
+
+'                        Select Case thisAnimalWorksheet.Cells(iExcelOffset, 4).Value
+'                            Case 20:
+'                                lTotalAttn1420 = lTotalAttn1420 + thisAnimalWorksheet.Cells(iExcelOffset, 5).Value
+'                                lTotalAttn5820 = lTotalAttn5820 + thisAnimalWorksheet.Cells(iExcelOffset, 6).Value
+'                                dblTotal1420 = dblTotal1420 + thisAnimalWorksheet.Cells(iExcelOffset, 24).Value
+'                                dblTotal5820 = dblTotal5820 + thisAnimalWorksheet.Cells(iExcelOffset, 20).Value
+
+'                            Case 25:
+'                                lTotalAttn1425 = lTotalAttn1425 + thisAnimalWorksheet.Cells(iExcelOffset, 5).Value
+'                                lTotalAttn5825 = lTotalAttn5825 + thisAnimalWorksheet.Cells(iExcelOffset, 6).Value
+'                                dblTotal1425 = dblTotal1425 + thisAnimalWorksheet.Cells(iExcelOffset, 24).Value
+'                                dblTotal5825 = dblTotal5825 + thisAnimalWorksheet.Cells(iExcelOffset, 20).Value
+
+'                            Case 30:
+'                                lTotalAttn1430 = lTotalAttn1430 + thisAnimalWorksheet.Cells(iExcelOffset, 5).Value
+'                                lTotalAttn5830 = lTotalAttn5830 + thisAnimalWorksheet.Cells(iExcelOffset, 6).Value
+'                                dblTotal1430 = dblTotal1430 + thisAnimalWorksheet.Cells(iExcelOffset, 24).Value
+'                                dblTotal5830 = dblTotal5830 + thisAnimalWorksheet.Cells(iExcelOffset, 20).Value
+'                        End Select
+                            
+'                        Select Case thisAnimalWorksheet.Cells(iExcelOffset, 7).Value
+'                            Case 20:
+'                                lTotalAttn1420 = lTotalAttn1420 + thisAnimalWorksheet.Cells(iExcelOffset, 8).Value
+'                                lTotalAttn5820 = lTotalAttn5820 + thisAnimalWorksheet.Cells(iExcelOffset, 9).Value
+'                                dblTotal1420 = dblTotal1420 + thisAnimalWorksheet.Cells(iExcelOffset, 25).Value
+'                                dblTotal5820 = dblTotal5820 + thisAnimalWorksheet.Cells(iExcelOffset, 21).Value
+
+'                            Case 25:
+'                                lTotalAttn1425 = lTotalAttn1425 + thisAnimalWorksheet.Cells(iExcelOffset, 8).Value
+'                                lTotalAttn5825 = lTotalAttn5825 + thisAnimalWorksheet.Cells(iExcelOffset, 9).Value
+'                                dblTotal1425 = dblTotal1425 + thisAnimalWorksheet.Cells(iExcelOffset, 25).Value
+'                                dblTotal5825 = dblTotal5825 + thisAnimalWorksheet.Cells(iExcelOffset, 21).Value
+
+'                            Case 30:
+'                                lTotalAttn1430 = lTotalAttn1430 + thisAnimalWorksheet.Cells(iExcelOffset, 8).Value
+'                                lTotalAttn5830 = lTotalAttn5830 + thisAnimalWorksheet.Cells(iExcelOffset, 9).Value
+'                                dblTotal1430 = dblTotal1430 + thisAnimalWorksheet.Cells(iExcelOffset, 25).Value
+'                                dblTotal5830 = dblTotal5830 + thisAnimalWorksheet.Cells(iExcelOffset, 21).Value
+'                        End Select
+                            
+'                        Select Case thisAnimalWorksheet.Cells(iExcelOffset, 10).Value
+'                            Case 20:
+'                                lTotalAttn1420 = lTotalAttn1420 + thisAnimalWorksheet.Cells(iExcelOffset, 11).Value
+'                                lTotalAttn5820 = lTotalAttn5820 + thisAnimalWorksheet.Cells(iExcelOffset, 12).Value
+'                                dblTotal1420 = dblTotal1420 + thisAnimalWorksheet.Cells(iExcelOffset, 26).Value
+'                                dblTotal5820 = dblTotal5820 + thisAnimalWorksheet.Cells(iExcelOffset, 22).Value
+
+'                            Case 25:
+'                                lTotalAttn1425 = lTotalAttn1425 + thisAnimalWorksheet.Cells(iExcelOffset, 11).Value
+'                                lTotalAttn5825 = lTotalAttn5825 + thisAnimalWorksheet.Cells(iExcelOffset, 12).Value
+'                                dblTotal1425 = dblTotal1425 + thisAnimalWorksheet.Cells(iExcelOffset, 26).Value
+'                                dblTotal5825 = dblTotal5825 + thisAnimalWorksheet.Cells(iExcelOffset, 22).Value
+
+'                            Case 30:
+'                                lTotalAttn1430 = lTotalAttn1430 + thisAnimalWorksheet.Cells(iExcelOffset, 11).Value
+'                                lTotalAttn5830 = lTotalAttn5830 + thisAnimalWorksheet.Cells(iExcelOffset, 12).Value
+'                                dblTotal1430 = dblTotal1430 + thisAnimalWorksheet.Cells(iExcelOffset, 26).Value
+'                                dblTotal5830 = dblTotal5830 + thisAnimalWorksheet.Cells(iExcelOffset, 22).Value
+'                        End Select
+                            
+                        
+                            'Dim lTotalAttn1420 As Long
+                            'Dim lTotalAttn1425 As Long
+                            'Dim lTotalAttn1430 As Long
     
-                thisAnimalWorksheet.Cells(iExcelOffset, 17).Value = sourceWorksheet.Range("AO" & lRowNum).Value
-                thisAnimalWorksheet.Cells(iExcelOffset, 18).Value = sourceWorksheet.Range("AP" & lRowNum).Value
-    
-                If sourceWorksheet.Range("G" & lRowNum).Value = "" Or (sourceWorksheet.Range("G" & lRowNum).Value <> "" And sourceWorksheet.Range("H" & lRowNum).Value >= sourceWorksheet.Range("K" & lRowNum).Value) Then 'check if the data should be excluded
-                    nInMeanSoFar = nInMeanSoFar + 1
-                    diff = thisAnimalWorksheet.Cells(iExcelOffset, 14).Value - thisAnimalWorksheet.Cells(iExcelOffset, 13).Value
-                    changeSum = changeSum + diff
-                    changeSumSqr = changeSumSqr + diff ^ 2
-                ElseIf sourceWorksheet.Range("G" & lRowNum).Value <> "" Then
-                    nExcluded = nExcluded + 1
-                    thisAnimalWorksheet.Cells(iExcelOffset, 19).Value = sourceWorksheet.Range("G" & lRowNum).Value
-                    thisAnimalWorksheet.Range("A" & iExcelOffset, "AZ" & iExcelOffset).Interior.Color = excludedTrialCell.Interior.Color
-                    thisAnimalWorksheet.Range("A" & iExcelOffset, "AZ" & iExcelOffset).Interior.ColorIndex = excludedTrialCell.Interior.ColorIndex
-                    thisAnimalWorksheet.Range("A" & iExcelOffset, "AZ" & iExcelOffset).Font.Color = excludedTrialCell.Font.Color
-                    thisAnimalWorksheet.Range("A" & iExcelOffset, "AZ" & iExcelOffset).Font.ColorIndex = excludedTrialCell.Font.ColorIndex
-                End If
-    
+                            'Dim lTotalAttn5820 As Long
+                            'Dim lTotalAttn5825 As Long
+                            'Dim lTotalAttn5830 As Long
+                        
+                        
+                    ElseIf sourceWorksheet.Range("G" & lRowNum).Value <> "" Then
+                        nExcluded = nExcluded + 1
+                        thisAnimalWorksheet.Cells(iExcelOffset, 19).Value = sourceWorksheet.Range("G" & lRowNum).Value
+                        thisAnimalWorksheet.Range("A" & iExcelOffset, "AZ" & iExcelOffset).Interior.Color = excludedTrialCell.Interior.Color
+                        thisAnimalWorksheet.Range("A" & iExcelOffset, "AZ" & iExcelOffset).Interior.ColorIndex = excludedTrialCell.Interior.ColorIndex
+                        thisAnimalWorksheet.Range("A" & iExcelOffset, "AZ" & iExcelOffset).Font.Color = excludedTrialCell.Font.Color
+                        thisAnimalWorksheet.Range("A" & iExcelOffset, "AZ" & iExcelOffset).Font.ColorIndex = excludedTrialCell.Font.ColorIndex
+                    End If
+                'End If
                 iExcelOffset = iExcelOffset + 1
             Next
     
-            If nInMeanSoFar > 0 Then
-                changeMean = changeSum / nInMeanSoFar
-            End If
+'            If nInMeanSoFar > 0 Then
+'                changeMean = changeSum / nInMeanSoFar
+'            End If
     
-            If nInMeanSoFar > 1 Then
-                changeVar = (changeSumSqr - (changeSum ^ 2 / nInMeanSoFar)) / (nInMeanSoFar - 1)
-                If changeVar <> 0 Then
-                    tStat = (changeMean / (changeVar ^ 0.5) / (nInMeanSoFar ^ 0.5))
-                Else
-                    tStat = 10000
-                End If
-            End If
+ '           If nInMeanSoFar > 1 Then
+ '               changeVar = (changeSumSqr - (changeSum ^ 2 / nInMeanSoFar)) / (nInMeanSoFar - 1)
+ '               If changeVar <> 0 Then
+ '                   tStat = (changeMean / (changeVar ^ 0.5) / (nInMeanSoFar ^ 0.5))
+ '               Else
+ '                   tStat = 10000
+ '               End If
+ '           End If
             
             iExcelOffset = iExcelOffset + 1
-                            
+            
             thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 2) = nInMeanSoFar
             thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 3) = nExcluded
+            
             
             thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "N included:"
             thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
@@ -604,58 +830,177 @@ Sub outputTrials(theDict As Dictionary, thisAnimalWorksheet As Worksheet, thisAn
             iExcelOffset = iExcelOffset + 1
     
             If nInMeanSoFar > 0 Then
+            
+                lChartPos = iExcelOffset
                 iExcelOffset = iExcelOffset + 1
-                thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Mean change:"
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "1-4 total 20db:"
                 thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
-                thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = changeMean
-                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 5) = changeMean
+                thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = dblTotal1420
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 5) = dblTotal1420
+                
+                thisAnimalWorksheet.Cells(iExcelOffset, 4).Value = "1-4 mean 20db:"
+                thisAnimalWorksheet.Cells(iExcelOffset, 4).Font.Italic = True
+                thisAnimalWorksheet.Cells(iExcelOffset, 5).Value = dblTotal1420 / lTotalAttn1420
+                
                 iExcelOffset = iExcelOffset + 1
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "1-4 total 25db:"
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
+                thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = dblTotal1425
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6) = dblTotal1425
+                
+                thisAnimalWorksheet.Cells(iExcelOffset, 4).Value = "1-4 mean 25db:"
+                thisAnimalWorksheet.Cells(iExcelOffset, 4).Font.Italic = True
+                thisAnimalWorksheet.Cells(iExcelOffset, 5).Value = dblTotal1425 / lTotalAttn1425
+                
+                iExcelOffset = iExcelOffset + 1
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "1-4 total 30db:"
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
+                thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = dblTotal1430
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7) = dblTotal1430
+                
+                thisAnimalWorksheet.Cells(iExcelOffset, 4).Value = "1-4 mean 30db:"
+                thisAnimalWorksheet.Cells(iExcelOffset, 4).Font.Italic = True
+                thisAnimalWorksheet.Cells(iExcelOffset, 5).Value = dblTotal1430 / lTotalAttn1430
+                
+                iExcelOffset = iExcelOffset + 2
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "5-8 total 20db:"
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
+                thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = dblTotal5820
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8) = dblTotal5820
+                
+                thisAnimalWorksheet.Cells(iExcelOffset, 4).Value = "5-8 mean 20db:"
+                thisAnimalWorksheet.Cells(iExcelOffset, 4).Font.Italic = True
+                thisAnimalWorksheet.Cells(iExcelOffset, 5).Value = dblTotal5820 / lTotalAttn5820
+                
+                iExcelOffset = iExcelOffset + 1
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "5-8 total 25db:"
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
+                thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = dblTotal5825
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 9) = dblTotal5825
+                
+                thisAnimalWorksheet.Cells(iExcelOffset, 4).Value = "5-8 mean 25db:"
+                thisAnimalWorksheet.Cells(iExcelOffset, 4).Font.Italic = True
+                thisAnimalWorksheet.Cells(iExcelOffset, 5).Value = dblTotal5825 / lTotalAttn5825
+                
+                iExcelOffset = iExcelOffset + 1
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "5-8 total 30db:"
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
+                thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = dblTotal5830
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 10) = dblTotal5830
+                
+                thisAnimalWorksheet.Cells(iExcelOffset, 4).Value = "5-8 mean 30db:"
+                thisAnimalWorksheet.Cells(iExcelOffset, 4).Font.Italic = True
+                thisAnimalWorksheet.Cells(iExcelOffset, 5).Value = dblTotal5830 / lTotalAttn5830
+                
+
+                'Dim myChart As ChartObject
+                Set myChart = thisAnimalWorksheet.ChartObjects.Add(thisAnimalWorksheet.Cells(lChartPos, 8).Left, thisAnimalWorksheet.Cells(lChartPos, 8).Top, 300, 200)
+                myChart.Chart.ChartType = xlLine
+                'myChart.Chart.SeriesCollection(1).Name
+                myChart.Chart.SeriesCollection.NewSeries
+                myChart.Chart.SeriesCollection(1).Name = "Stim 1-4"
+                myChart.Chart.SeriesCollection(1).Format.Line.Weight = 1#
+                myChart.Chart.SeriesCollection(1).XValues = Array(20, 25, 30)
+                'myChart.Chart.Legend.Delete
+                myChart.Chart.SeriesCollection(1).Values = thisAnimalWorksheet.Range("$E$" & lChartPos + 1 & ":$E$" & lChartPos + 3)
+'                myChart.Chart.ChartType = xlLine
+                myChart.Chart.SeriesCollection.NewSeries
+                myChart.Chart.SeriesCollection(2).Name = "Stim 5-8"
+                myChart.Chart.SeriesCollection(2).Format.Line.Weight = 1#
+                myChart.Chart.SeriesCollection(2).XValues = Array(20, 25, 30)
+                myChart.Chart.SeriesCollection(2).Values = thisAnimalWorksheet.Range("$E$" & lChartPos + 4 & ":$E$" & lChartPos + 6)
+
+                iExcelOffset = iExcelOffset + 2
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "1-4 20db count:"
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
+                thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = lTotalAttn1420
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 12) = lTotalAttn1420
+
+                iExcelOffset = iExcelOffset + 1
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "1-4 25db count:"
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
+                thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = lTotalAttn1425
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 13) = lTotalAttn1425
+                
+                iExcelOffset = iExcelOffset + 1
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "1-4 30db count:"
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
+                thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = lTotalAttn1430
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 14) = lTotalAttn1430
+                iExcelOffset = iExcelOffset + 1
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "1-4 total count:"
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
+                thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = lTotalAttn1430 + lTotalAttn1425 + lTotalAttn1420
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 17) = lTotalAttn1430 + lTotalAttn1425 + lTotalAttn1420
+
+
+                iExcelOffset = iExcelOffset + 2
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "5-8 20db count:"
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
+                thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = lTotalAttn5820
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 15) = lTotalAttn5820
+                iExcelOffset = iExcelOffset + 1
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "5-8 25db count:"
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
+                thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = lTotalAttn5825
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 16) = lTotalAttn5825
+                iExcelOffset = iExcelOffset + 1
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "5-8 30db count:"
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
+                thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = lTotalAttn5830
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 17) = lTotalAttn5830
+                iExcelOffset = iExcelOffset + 1
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "5-8 total count:"
+                thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
+                thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = lTotalAttn5830 + lTotalAttn5825 + lTotalAttn5820
+                thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 17) = lTotalAttn5830 + lTotalAttn5825 + lTotalAttn5820
+
                 If nInMeanSoFar > 1 Then
-                    thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Variance:"
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = changeVar
-                    iExcelOffset = iExcelOffset + 1
-                    thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Standard Deviation:"
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = changeVar ^ 0.5
-                    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value = changeVar ^ 0.5
-                    iExcelOffset = iExcelOffset + 1
-                    thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Std. Error of Mean:"
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = ((changeVar / nInMeanSoFar) ^ 0.5)
-                    iExcelOffset = iExcelOffset + 1
-                    thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "T-statistic:"
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = tStat
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2).NumberFormat = "0.000"
-                    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Value = tStat
-                    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).NumberFormat = "0.000"
-                    iExcelOffset = iExcelOffset + 1
-                    thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "P-value:"
-                    thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = "=TDIST(ABS(B" & CStr(iExcelOffset - 1) & ")," & CStr(nInMeanSoFar - 1) & ",1)"
-                    Call thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions.Delete
-                    Call thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions.Add(xlCellValue, xlLessEqual, ".05")
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(1).Font.Color = pLess05FC.Font.Color
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(1).Font.ColorIndex = pLess05FC.Font.ColorIndex
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(1).Interior.Color = pLess05FC.Interior.Color
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(1).Interior.ColorIndex = pLess05FC.Interior.ColorIndex
-                    Call thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions.Add(xlCellValue, xlLessEqual, ".1")
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Font.Color = pLess10FC.Font.Color
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Font.ColorIndex = pLess10FC.Font.ColorIndex
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Interior.Color = pLess10FC.Interior.Color
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Interior.ColorIndex = pLess10FC.Interior.ColorIndex
-                    thisAnimalWorksheet.Cells(iExcelOffset, 2).NumberFormat = "0.000"
+'                    thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Variance:"
+'                    thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = changeVar
+'                    iExcelOffset = iExcelOffset + 1
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Standard Deviation:"
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = changeVar ^ 0.5
+                    'thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6).Value = changeVar ^ 0.5
+                    'iExcelOffset = iExcelOffset + 1
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Std. Error of Mean:"
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = ((changeVar / nInMeanSoFar) ^ 0.5)
+                    'iExcelOffset = iExcelOffset + 1
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "T-statistic:"
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = tStat
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 2).NumberFormat = "0.000"
+                    'thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Value = tStat
+                    'thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).NumberFormat = "0.000"
+                    'iExcelOffset = iExcelOffset + 1
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "P-value:"
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 1).Font.Italic = True
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 2).Value = "=TDIST(ABS(B" & CStr(iExcelOffset - 1) & ")," & CStr(nInMeanSoFar - 1) & ",1)"
+                    'Call thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions.Delete
+                    'Call thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions.Add(xlCellValue, xlLessEqual, ".05")
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(1).Font.Color = pLess05FC.Font.Color
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(1).Font.ColorIndex = pLess05FC.Font.ColorIndex
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(1).Interior.Color = pLess05FC.Interior.Color
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(1).Interior.ColorIndex = pLess05FC.Interior.ColorIndex
+                    'Call thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions.Add(xlCellValue, xlLessEqual, ".1")
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Font.Color = pLess10FC.Font.Color
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Font.ColorIndex = pLess10FC.Font.ColorIndex
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Interior.Color = pLess10FC.Interior.Color
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 2).FormatConditions(2).Interior.ColorIndex = pLess10FC.Interior.ColorIndex
+                    'thisAnimalWorksheet.Cells(iExcelOffset, 2).NumberFormat = "0.000"
                     
-                    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).Value = "=TDIST(ABS(" & thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Address & ")," & CStr(nInMeanSoFar - 1) & ",1)"
-                    Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions.Delete
-                    Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions.Add(xlCellValue, xlLessEqual, ".05")
-                    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions(1).Font.Color = pLess05FC.Font.Color
-                    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions(1).Font.ColorIndex = pLess05FC.Font.ColorIndex
-                    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions(1).Interior.Color = pLess05FC.Interior.Color
-                    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions(1).Interior.ColorIndex = pLess05FC.Interior.ColorIndex
-                    Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions.Add(xlCellValue, xlLessEqual, ".1")
-                    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions(2).Font.Color = pLess10FC.Font.Color
-                    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions(2).Font.ColorIndex = pLess10FC.Font.ColorIndex
-                    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions(2).Interior.Color = pLess10FC.Interior.Color
-                    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions(2).Interior.ColorIndex = pLess10FC.Interior.ColorIndex
-                    thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).NumberFormat = "0.000"
+                    'thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).Value = "=TDIST(ABS(" & thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 7).Address & ")," & CStr(nInMeanSoFar - 1) & ",1)"
+                    'Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions.Delete
+                    'Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions.Add(xlCellValue, xlLessEqual, ".05")
+                    'thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions(1).Font.Color = pLess05FC.Font.Color
+                    'thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions(1).Font.ColorIndex = pLess05FC.Font.ColorIndex
+                    'thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions(1).Interior.Color = pLess05FC.Interior.Color
+                    'thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions(1).Interior.ColorIndex = pLess05FC.Interior.ColorIndex
+                    'Call thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions.Add(xlCellValue, xlLessEqual, ".1")
+                    'thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions(2).Font.Color = pLess10FC.Font.Color
+                    'thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions(2).Font.ColorIndex = pLess10FC.Font.ColorIndex
+                    'thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions(2).Interior.Color = pLess10FC.Interior.Color
+                    'thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).FormatConditions(2).Interior.ColorIndex = pLess10FC.Interior.ColorIndex
+                    'thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 8).NumberFormat = "0.000"
                 Else
                     thisAnimalWorksheet.Cells(iExcelOffset, 1).Value = "Additional stats could not be calculated (N=1)"
                     thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 6) = "=NA()"
@@ -666,45 +1011,7 @@ Sub outputTrials(theDict As Dictionary, thisAnimalWorksheet As Worksheet, thisAn
             
             iExcelOffset = iExcelOffset + 2
             
-            If 0 = 1 Then
-                Dim myChart As ChartObject
-                Dim chartOffset As Integer
-                Dim chartHeight As Integer
-                If iThisAnimalSummarySheetStartingRow > 2 Then
-                    'chartOffset = (iThisAnimalSummarySheetStartingRow) * 15.5 + (UBound(arrParamSets) + 2) * 15.5
-                    chartOffset = thisAnimalSummarySheet.Range("A" & iThisAnimalSummarySheetStartingRow + UBound(arrSubLevels) + 7 & ":A" & "A" & iThisAnimalSummarySheetStartingRow + UBound(arrSubLevels) + 7 + 19).Top
-                    chartHeight = thisAnimalSummarySheet.Range("A" & iThisAnimalSummarySheetStartingRow + UBound(arrSubLevels) + 7 & ":A" & "A" & iThisAnimalSummarySheetStartingRow + UBound(arrSubLevels) + 7 + 19).Height
-                Else
-                    chartOffset = thisAnimalSummarySheet.Range("A" & UBound(arrSubLevels) + 7 & ":A" & UBound(arrSubLevels) + 7 + 19).Top
-                    chartHeight = thisAnimalSummarySheet.Range("A" & UBound(arrSubLevels) + 7 & ":A" & UBound(arrSubLevels) + 7 + 19).Height
-                    'chartOffset = (UBound(arrParamSets) + 5) * 15.5
-                End If
-    
-                Set myChart = thisAnimalSummarySheet.ChartObjects.Add(((thisAnimalSummarySheetRow - iThisAnimalSummarySheetStartingRow) * 500) + 1, chartOffset, 500, chartHeight)
-                myChart.Chart.ChartType = xlLine
-                myChart.Chart.SeriesCollection.NewSeries
-                myChart.Chart.SeriesCollection(1).Name = thisAnimalSummarySheet.Cells(thisAnimalSummarySheetRow, 1).Value & " (N=" & nInMeanSoFar & ")"
-                myChart.Chart.SeriesCollection(1).Format.Line.Weight = 1#
-                myChart.Chart.SeriesCollection(1).XValues = thisAnimalSummarySheet.Range("=$U$1:$EU$1")
-                myChart.Chart.Legend.Delete
-                myChart.Chart.SeriesCollection(1).Values = thisAnimalSummarySheet.Range("$U$" & thisAnimalSummarySheetRow & ":$EU$" & thisAnimalSummarySheetRow)
-                myChart.Chart.SeriesCollection(1).HasErrorBars = True
-                '1.96 Standard deviation
-                'myChart.Chart.SeriesCollection(1).ErrorBar Direction:=xlY, Include:=xlBoth, _
-                '    Type:=xlErrorBarTypeCustom, Amount:=thisAnimalSummarySheet.Range("$PC$" & thisAnimalSummarySheetRow & ":$UC$" & thisAnimalSummarySheetRow), MinusValues:=thisAnimalSummarySheet.Range("$PC$" & thisAnimalSummarySheetRow & ":$UC$" & thisAnimalSummarySheetRow)
-    
-                '1 Standard deviation
-    '                myChart.Chart.SeriesCollection(1).ErrorBar Direction:=xlY, Include:=xlBoth, _
-    '                    Type:=xlErrorBarTypeCustom, Amount:=thisAnimalSummarySheet.Range("$EW$" & thisAnimalSummarySheetRow & ":$JW$" & thisAnimalSummarySheetRow), MinusValues:=thisAnimalSummarySheet.Range("$EW$" & thisAnimalSummarySheetRow & ":$JW$" & thisAnimalSummarySheetRow)
-                '2 SEM
-                                myChart.Chart.SeriesCollection(1).ErrorBar Direction:=xlY, Include:=xlBoth, _
-                    Type:=xlErrorBarTypeCustom, Amount:=thisAnimalSummarySheet.Range("$JZ$" & thisAnimalSummarySheetRow & ":$OZ$" & thisAnimalSummarySheetRow), MinusValues:=thisAnimalSummarySheet.Range("$JZ$" & thisAnimalSummarySheetRow & ":$OZ$" & thisAnimalSummarySheetRow)
-    
-    
-                myChart.Chart.ChartTitle.Characters.Font.Size = 12
-                myChart.Chart.Axes(xlValue).MinimumScale = 0.85
-                myChart.Chart.Axes(xlValue).MaximumScale = 1.15
-            End If
+
                 
             thisAnimalSummarySheetRow = thisAnimalSummarySheetRow + 1
         Next
