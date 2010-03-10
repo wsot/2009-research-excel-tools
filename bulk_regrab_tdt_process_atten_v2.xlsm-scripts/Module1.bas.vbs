@@ -110,8 +110,15 @@ Sub reprocess(isTestRun As Boolean, onlyOne As Boolean)
     Dim blockName As String
     Dim strUsedRange As String
     
+    
     Dim workbookToProcess As Workbook
     Dim newWorkbook As Workbook
+    
+    If Not regenerateExcelFiles Then
+        Set newWorkbook = Workbooks.Open(templateFilename)
+    End If
+
+    
     Set AnimalFolders = rootFolder.Subfolders
     For Each objAnimalFolder In AnimalFolders 'cycle through the folder for each animal
         If Not checkForExclusion(objAnimalFolder) Then
@@ -210,7 +217,7 @@ Sub reprocess(isTestRun As Boolean, onlyOne As Boolean)
 
                                 Set workbookToProcess = newWorkbook
                             Else
-                                Set newWorkbook = Workbooks.Open(templateFilename)
+'                                Set newWorkbook = Workbooks.Open(templateFilename)
                                 Set workbookToProcess = Workbooks.Open(strExcelPathname)
                                 If Not WorksheetExists("Neural Data (2)", workbookToProcess) Then
                                     Set neuroWS2 = workbookToProcess.Worksheets.Add(, workbookToProcess.Worksheets("Neural Data"), , xlWorksheet)
@@ -226,7 +233,7 @@ Sub reprocess(isTestRun As Boolean, onlyOne As Boolean)
                                 'Set VBComp = ActiveWorkbook.VBProject.VBComponents
                                 Next
                                 
-                                Call newWorkbook.Close(False)
+                                'Call newWorkbook.Close(False)
                             End If
                             
                             workbookToProcess.Activate

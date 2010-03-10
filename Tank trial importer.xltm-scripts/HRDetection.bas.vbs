@@ -264,8 +264,8 @@ Sub processHeartRate()
         End If
 
 
-        thisStartPoint = lTrialSampStart + 10000
-        thisEndPoint = lTrialSampStart + 18000
+        thisStartPoint = lTrialSampStart + 2000
+        thisEndPoint = lTrialSampStart + 10000
         
         Call detectHROnSelection(thisStartPoint, thisEndPoint, proportionInterpolated, detectedHR, beatCount, theStdDev, overlyCloseBeats, interpolations, abberantBeats, longestInterpolation, shortestInterpolation, interpolationDuration, interpolatedBeatsMax, interpolatedBeatsMin, interpolatedBeats, iTrialNum, "5-9s", cumulativeInterpolations, iOverlyCloseBeatsOffset, iAbberOffset)
         
