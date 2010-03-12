@@ -285,16 +285,18 @@ Sub processImport()
                     arrTrials(iTrialOffset)(8) = returnVal(0, j) 'set max
                     arrTrials(iTrialOffset)(9) = returnVal(0, j) 'set mean
                 Else
-                    'check if less than current min atten; if so, update value
-                    If returnVal(0, j) < arrTrials(iTrialOffset)(7) Then
-                        arrTrials(iTrialOffset)(7) = returnVal(0, j)
+                    If Not j > UBound(returnVal, 2) Then
+                        'check if less than current min atten; if so, update value
+                        If returnVal(0, j) < arrTrials(iTrialOffset)(7) Then
+                            arrTrials(iTrialOffset)(7) = returnVal(0, j)
+                        End If
+                        'check if more than current max atten; if so, update value
+                        If returnVal(0, j) > arrTrials(iTrialOffset)(8) Then
+                            arrTrials(iTrialOffset)(8) = returnVal(0, j)
+                        End If
+                        'calculate mean atten
+                        arrTrials(iTrialOffset)(9) = arrTrials(iTrialOffset)(9) + ((returnVal(0, j) - arrTrials(iTrialOffset)(9)) / (j + 1))
                     End If
-                    'check if more than current max atten; if so, update value
-                    If returnVal(0, j) > arrTrials(iTrialOffset)(8) Then
-                        arrTrials(iTrialOffset)(8) = returnVal(0, j)
-                    End If
-                    'calculate mean atten
-                    arrTrials(iTrialOffset)(9) = arrTrials(iTrialOffset)(9) + ((returnVal(0, j) - arrTrials(iTrialOffset)(9)) / (j + 1))
                 End If
             Next
             Call objTTX.ResetFilters
@@ -307,16 +309,18 @@ Sub processImport()
                     arrTrials(iTrialOffset)(11) = returnVal(0, j) 'set max
                     arrTrials(iTrialOffset)(12) = returnVal(0, j) 'set mean
                 Else
-                    'check if less than current min atten; if so, update value
-                    If returnVal(0, j) < arrTrials(iTrialOffset)(10) Then
-                        arrTrials(iTrialOffset)(10) = returnVal(0, j)
+                    If Not j > UBound(returnVal, 2) Then
+                        'check if less than current min atten; if so, update value
+                        If returnVal(0, j) < arrTrials(iTrialOffset)(10) Then
+                            arrTrials(iTrialOffset)(10) = returnVal(0, j)
+                        End If
+                        'check if more than current max atten; if so, update value
+                        If returnVal(0, j) > arrTrials(iTrialOffset)(11) Then
+                            arrTrials(iTrialOffset)(11) = returnVal(0, j)
+                        End If
+                        'calculate mean atten
+                        arrTrials(iTrialOffset)(12) = arrTrials(iTrialOffset)(12) + ((returnVal(0, j) - arrTrials(iTrialOffset)(12)) / (j + 1))
                     End If
-                    'check if more than current max atten; if so, update value
-                    If returnVal(0, j) > arrTrials(iTrialOffset)(11) Then
-                        arrTrials(iTrialOffset)(11) = returnVal(0, j)
-                    End If
-                    'calculate mean atten
-                    arrTrials(iTrialOffset)(12) = arrTrials(iTrialOffset)(12) + ((returnVal(0, j) - arrTrials(iTrialOffset)(12)) / (j + 1))
                 End If
             Next
             Call objTTX.ResetFilters
@@ -473,5 +477,6 @@ Sub getMappings(ByRef dChannelMappings As Dictionary)
         End If
     Loop
 End Sub
+
 
 
