@@ -22,7 +22,12 @@ Sub doAllHRProcessing()
     Application.Calculation = xlCalculationManual
     Call buildDeadzoneLists
     Call processHeartRate
-    Call generateHrAtTimePoints
+    Call generateHrAtTimePoints( _
+        Worksheets("Trial points from LabChart").Cells(iTrialNum + 1, 3) - 16000, _
+        Worksheets("Trial points from LabChart").Cells(iTrialNum + 1, 3), _
+        Worksheets("Trial points from LabChart").Cells(iTrialNum + 1, 3) + 16000, _
+        Worksheets("-8.5-8.5s HRs"), _
+        "HRLine")
 End Sub
 
 

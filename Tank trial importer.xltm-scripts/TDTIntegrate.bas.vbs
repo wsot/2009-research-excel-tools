@@ -28,11 +28,7 @@ Sub processImport()
     Dim dAtten As Dictionary
     Set dAtten = New Dictionary
     
-    Dim dOldAtten As Dictionary
-    Set dOldAtten = New Dictionary
-    
     Call loadAttenList(dAtten, "Attenuations")
-    Call loadAttenList(dOldAtten, "Attenuations (incorrect)")
 
     Dim strChan As String
     Dim strRef As String
@@ -202,8 +198,8 @@ Sub processImport()
             strStim2Filter = "TriS = " & arrTrials(iTrialOffset)(1) & " AND AFrq = " & arrTrials(iTrialOffset)(6)
             'Obtain the attenuations for each of the 20 presentations
 
-            Call readAcousticAttens(objTTX, arrTrials, iTrialOffset, 1, strStim1Filter, dAtten, dOldAtten)
-            Call readAcousticAttens(objTTX, arrTrials, iTrialOffset, 2, strStim2Filter, dAtten, dOldAtten)
+            Call readAcousticAttens(objTTX, arrTrials, iTrialOffset, 1, strStim1Filter, dAtten)
+            Call readAcousticAttens(objTTX, arrTrials, iTrialOffset, 2, strStim2Filter, dAtten)
 
             arrTrials(iTrialOffset)(5) = arrTrials(iTrialOffset)(5) & "Hz"
             arrTrials(iTrialOffset)(6) = arrTrials(iTrialOffset)(6) & "Hz"
@@ -371,7 +367,7 @@ Sub loadAttenList(dAtten As Dictionary, whichWorksheet As String)
 End Sub
 
 
-Sub readAcousticAttens(objTTX, arrTrials, iTrialOffset, iWhichTone As Integer, strStimFilter As String, dAtten, dOldAtten)
+Sub readAcousticAttens(objTTX, arrTrials, iTrialOffset, iWhichTone As Integer, strStimFilter As String, dAtten)
             Dim isAtten As Boolean
             Dim returnVal As Variant
             Dim j As Long
@@ -405,7 +401,7 @@ Sub readAcousticAttens(objTTX, arrTrials, iTrialOffset, iWhichTone As Integer, s
                 If isAtten Then
                     dblAmpl = dAtten(CLng(arrTrials(iTrialOffset)(iFreqOffset))) - returnVal(0, j)
                 Else
-                    dblAmpl = dAtten(CLng(arrTrials(iTrialOffset)(iFreqOffset))) - (dOldAtten(CLng(arrTrials(iTrialOffset)(iFreqOffset))) - returnVal(0, j))
+                    dblAmpl = returnVal(0, j)
                 End If
                 'if this is the first presentation, set it as max, min, and avg values
                 If j = 0 Then

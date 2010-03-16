@@ -6,7 +6,7 @@ Const avgWithXEitherSide = 2
 Const maxAllowableInstantChangeProp = 0.2
 
 
-Sub generateHrAtTimePoints()
+Sub generateHrAtTimePoints(lTrialStartSample As Long, lRealTrialStartSample As Long, lTrialEndSample As Long, sourceWorksheet As Worksheet, outputWSName As String)
     Application.Calculation = xlCalculationManual
     Dim iTrialNum As Integer
     Dim lStartSample As Long
@@ -15,9 +15,12 @@ Sub generateHrAtTimePoints()
     
 '    ReDim arrCells(2 * avgWidthXEitherSide + 1)
     
-    Dim lTrialStartSample As Long
-    Dim lRealTrialStartSample As Long
-    Dim lTrialEndSample As Long
+    'Dim lTrialStartSample As Long
+    'Dim lRealTrialStartSample As Long
+    'Dim lTrialEndSample As Long
+    
+    Dim outputWS As Worksheet
+    outputWS = Worksheets(outputWSName)
     
     Dim dStartingHR As Double
     'Dim dZeroPointHR As Double
@@ -36,11 +39,11 @@ Sub generateHrAtTimePoints()
     Dim lOutColNum As Long
     iTrialNum = 1
     
-    Worksheets("HRLine").UsedRange.Clear
+    outputWS.UsedRange.Clear
     
-    Worksheets("HRLine").Cells(1, 1) = "Trial"
+    outputWS.Cells(1, 1) = "Trial"
     For l100msCounter = 0 To 160
-        Worksheets("HRLine").Cells(1, 2 + l100msCounter) = (l100msCounter - 80) * 100
+        outputWS.Cells(1, 2 + l100msCounter) = (l100msCounter - 80) * 100
     Next
         
     
@@ -50,37 +53,38 @@ Sub generateHrAtTimePoints()
         dStartingHR = 0
         lOutColNum = 1
         lInColNum = 4
-        If Worksheets("-8.5-8.5s HRs").Cells(1 + ((iTrialNum - 1) * 2), 3) <> "" Then
-            lTrialStartSample = Worksheets("Trial points from LabChart").Cells(iTrialNum + 1, 3) - 16000
-            lRealTrialStartSample = Worksheets("Trial points from LabChart").Cells(iTrialNum + 1, 3)
-            lTrialEndSample = Worksheets("Trial points from LabChart").Cells(iTrialNum + 1, 3) + 16000
+        'sourceWorksheet = Worksheets("-8.5-8.5s HRs")
+        If sourceWorksheet.Cells(1 + ((iTrialNum - 1) * 2), 3) <> "" Then
+'            lTrialStartSample = Worksheets("Trial points from LabChart").Cells(iTrialNum + 1, 3) - 16000
+'            lRealTrialStartSample = Worksheets("Trial points from LabChart").Cells(iTrialNum + 1, 3)
+'            lTrialEndSample = Worksheets("Trial points from LabChart").Cells(iTrialNum + 1, 3) + 16000
             
-            lStartSample = Worksheets("-8.5-8.5s HRs").Cells(1 + ((iTrialNum - 1) * 2), 4)
-            Worksheets("HRLine").Cells(iTrialNum + 1, 1).Value = "Trial " & iTrialNum
+            lStartSample = sourceWorksheet.Cells(1 + ((iTrialNum - 1) * 2), 4)
+            outputWS.Cells(iTrialNum + 1, 1).Value = "Trial " & iTrialNum
             l100msCounter = lStartSample
             
             If alignToZeroPoint Then
-                While Worksheets("-8.5-8.5s HRs").Cells(2 + ((iTrialNum - 1) * 2), lInColNum).Value <> "" And dStartingHR = 0
-                    lCurrSample = Worksheets("-8.5-8.5s HRs").Cells(1 + ((iTrialNum - 1) * 2), lInColNum).Value
+                While sourceWorksheet.Cells(2 + ((iTrialNum - 1) * 2), lInColNum).Value <> "" And dStartingHR = 0
+                    lCurrSample = sourceWorksheet.Cells(1 + ((iTrialNum - 1) * 2), lInColNum).Value
                     While l100msCounter < lCurrSample And dStartingHR = 0
                         l100msCounter = l100msCounter + 200
                         If l100msCounter >= lRealTrialStartSample Then
-                            dCurrVal = Worksheets("-8.5-8.5s HRs").Cells(2 + ((iTrialNum - 1) * 2), lInColNum - 1).Value
+                            dCurrVal = sourceWorksheet.Cells(2 + ((iTrialNum - 1) * 2), lInColNum - 1).Value
                             dCurrValSum = dCurrVal
                             iCtr = 1
                             For iIter = 1 To avgWithXEitherSide
                                 If Not lInColNum - 1 - iIter < 4 Then
-                                    sNextVal = Worksheets("-8.5-8.5s HRs").Cells(2 + ((iTrialNum - 1) * 2), lInColNum - 1 + iIter).Value
+                                    sNextVal = sourceWorksheet.Cells(2 + ((iTrialNum - 1) * 2), lInColNum - 1 + iIter).Value
                                     If Not sNextVal = "" Then
                                         iCtr = iCtr + 2
-                                        dCurrValSum = dCurrValSum + Worksheets("-8.5-8.5s HRs").Cells(2 + ((iTrialNum - 1) * 2), lInColNum - 1 - iIter).Value
+                                        dCurrValSum = dCurrValSum + sourceWorksheet.Cells(2 + ((iTrialNum - 1) * 2), lInColNum - 1 - iIter).Value
                                         dCurrValSum = dCurrValSum + CDbl(sNextVal)
                                     End If
                                 End If
                             Next
                             dCurrValSum = dCurrValSum / iCtr
                             dStartingHR = dCurrValSum
-                            Worksheets("HRLine").Cells(iTrialNum + 1, 190).Value = dCurrValSum
+                            outputWS.Cells(iTrialNum + 1, 190).Value = dCurrValSum
                         End If
                     Wend
                     lInColNum = lInColNum + 1
@@ -89,12 +93,12 @@ Sub generateHrAtTimePoints()
                 lInColNum = 4
                 l100msCounter = lStartSample
             Else
-                While Worksheets("-8.5-8.5s HRs").Cells(2 + ((iTrialNum - 1) * 2), lInColNum).Value <> "" And dStartingHR = 0
-                    lCurrSample = Worksheets("-8.5-8.5s HRs").Cells(1 + ((iTrialNum - 1) * 2), lInColNum).Value
+                While sourceWorksheet.Cells(2 + ((iTrialNum - 1) * 2), lInColNum).Value <> "" And dStartingHR = 0
+                    lCurrSample = sourceWorksheet.Cells(1 + ((iTrialNum - 1) * 2), lInColNum).Value
                     While l100msCounter < lCurrSample And dStartingHR = 0
                         l100msCounter = l100msCounter + 200
                         If l100msCounter >= lTrialStartSample Then
-                            dStartingHR = Worksheets("-8.5-8.5s HRs").Cells(2 + ((iTrialNum - 1) * 2), lInColNum - 1).Value
+                            dStartingHR = sourceWorksheet.Cells(2 + ((iTrialNum - 1) * 2), lInColNum - 1).Value
                         End If
                     Wend
                     lInColNum = lInColNum + 1
@@ -102,36 +106,36 @@ Sub generateHrAtTimePoints()
             
                 lInColNum = 4
                 l100msCounter = lStartSample
-'                dStartingHR = Worksheets("-8.5-8.5s HRs").Cells(2 + ((iTrialNum - 1) * 2), lInColNum).Value
-'                Worksheets("HRLine").Cells(iTrialNum + 1, lOutColNum + 1).Value = 1#
+'                dStartingHR = sourceWorksheet.Cells(2 + ((iTrialNum - 1) * 2), lInColNum).Value
+'                outputWS.Cells(iTrialNum + 1, lOutColNum + 1).Value = 1#
             End If
             
             dLastVal = 0
-            While Worksheets("-8.5-8.5s HRs").Cells(2 + ((iTrialNum - 1) * 2), lInColNum).Value <> ""
-                lCurrSample = Worksheets("-8.5-8.5s HRs").Cells(1 + ((iTrialNum - 1) * 2), lInColNum).Value
+            While sourceWorksheet.Cells(2 + ((iTrialNum - 1) * 2), lInColNum).Value <> ""
+                lCurrSample = sourceWorksheet.Cells(1 + ((iTrialNum - 1) * 2), lInColNum).Value
                 While l100msCounter < lCurrSample
                     l100msCounter = l100msCounter + 200
                     If l100msCounter > lTrialStartSample And l100msCounter <= (lTrialEndSample + 200) Then
                         lOutColNum = lOutColNum + 1
-                        dCurrVal = Worksheets("-8.5-8.5s HRs").Cells(2 + ((iTrialNum - 1) * 2), lInColNum - 1).Value
+                        dCurrVal = sourceWorksheet.Cells(2 + ((iTrialNum - 1) * 2), lInColNum - 1).Value
                         dCurrValSum = dCurrVal
                         iCtr = 1
                         For iIter = 1 To avgWithXEitherSide
                             If Not lInColNum - 1 - iIter < 4 Then
-                                sNextVal = Worksheets("-8.5-8.5s HRs").Cells(2 + ((iTrialNum - 1) * 2), lInColNum - 1 + iIter).Value
+                                sNextVal = sourceWorksheet.Cells(2 + ((iTrialNum - 1) * 2), lInColNum - 1 + iIter).Value
                                 If Not sNextVal = "" Then
                                     iCtr = iCtr + 2
-                                    dCurrValSum = dCurrValSum + Worksheets("-8.5-8.5s HRs").Cells(2 + ((iTrialNum - 1) * 2), lInColNum - 1 - iIter).Value
+                                    dCurrValSum = dCurrValSum + sourceWorksheet.Cells(2 + ((iTrialNum - 1) * 2), lInColNum - 1 - iIter).Value
                                     dCurrValSum = dCurrValSum + CDbl(sNextVal)
                                 End If
                             End If
                         Next
                         dCurrValSum = dCurrValSum / iCtr
                         If (dLastVal <> 0) And Abs(dCurrVal - dLastVal) > (dLastVal * maxAllowableInstantChangeProp) Then
-                                Worksheets("HRLine").Cells(iTrialNum + 1, lOutColNum).Value = "x" & (dCurrValSum / dStartingHR)
+                                outputWS.Cells(iTrialNum + 1, lOutColNum).Value = "x" & (dCurrValSum / dStartingHR)
                         Else
                             dLastVal = dCurrVal
-                            Worksheets("HRLine").Cells(iTrialNum + 1, lOutColNum).Value = (dCurrValSum / dStartingHR)
+                            outputWS.Cells(iTrialNum + 1, lOutColNum).Value = (dCurrValSum / dStartingHR)
                         End If
                     End If
                 Wend
@@ -143,6 +147,14 @@ Sub generateHrAtTimePoints()
             Exit Do
         End If
     Loop
+    
+    outputWS.Cells(iTrialNum + 1, 1).Value = "Mean"
+    outputWS.Cells(iTrialNum + 2, 1).Value = "StdDev"
+    For lOutColNum = 2 To 162
+        outputWS.Cells(iTrialNum + 1, lOutColNum) = "=AVERAGE(" & outputWS.Cells(2, lOutColNum).Address & ":" & outputWS.Cells(iTrialNum, lOutColNum).Address & ")"
+        outputWS.Cells(iTrialNum + 2, lOutColNum) = "=CONFIDENCE(0.05,STDEV(" & outputWS.Cells(2, lOutColNum).Address & ":" & outputWS.Cells(iTrialNum, lOutColNum).Address & "),COUNT(" & outputWS.Cells(2, lOutColNum).Address & ":" & outputWS.Cells(iTrialNum, lOutColNum).Address & "))"
+    Next
+        
     
 End Sub
 

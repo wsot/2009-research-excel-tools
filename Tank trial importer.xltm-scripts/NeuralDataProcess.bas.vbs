@@ -15,7 +15,6 @@ Dim theServer As String
 Dim theTank As String
 Dim theBlock As String
 'Dim dAtten As Dictionary
-'Dim dOldAtten As Dictionary
     
 'Const initialEpocName = "TriS"
 'Const stimEpocName = "SweS"
@@ -80,10 +79,8 @@ Sub ExtractNeuralData()
     
 'Don't need any of the 'actual volume' calculations because we are not comparing between frequencies - only need to use raw values to check same number of stim with same property
 '    Set dAtten = New Dictionary
-'    Set dOldAtten = New Dictionary
 
 '    Call loadAttenList(dAtten, "Attenuations")
-'    Call loadAttenList(dOldAtten, "Attenuations (incorrect)")
     
     Call loadIncludeChannelList
     
@@ -121,7 +118,6 @@ Sub ExtractNeuralData()
     Call parseNeuralData(dblTotalWidthSecs, dblBinWidthSecs, dblStartOffsetSecs, vChannelMapper, dChanCFs)
     Worksheets("Variables (do not edit)").Range("B7").Value = True
 '    Set dAtten = Nothing
-'    Set dOldAtten = Nothing
     
     Set vChannelMapper = Nothing
     Set objTTX = Nothing
