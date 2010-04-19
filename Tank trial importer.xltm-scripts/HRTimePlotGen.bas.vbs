@@ -1,12 +1,16 @@
 Attribute VB_Name = "HRTimePlotGen"
 Option Explicit
 
+Global Const REFPOINT_LASTTRIALEND = 1
+Global Const REFPOINT_THISTRIALSTART = 2
+Global Const REFPOINT_THISTRIALEND = 3
+
 Const alignToZeroPoint = True
 Const avgWithXEitherSide = 2
 Const maxAllowableInstantChangeProp = 0.2
 
 
-Sub generateHrAtTimePoints(lTrialStartSample As Long, lRealTrialStartSample As Long, lTrialEndSample As Long, sourceWorksheet As Worksheet, outputWSName As String)
+Sub generateHrAtTimePoints(lTrialStartSampleOffset As Long, lRealTrialStartSampleOffset As Long, lTrialEndSampleOffset As Long, iRefPoint As Integer, sourceWorksheet As Worksheet, outputWSName As String)
     Application.Calculation = xlCalculationManual
     Dim iTrialNum As Integer
     Dim lStartSample As Long
@@ -15,12 +19,20 @@ Sub generateHrAtTimePoints(lTrialStartSample As Long, lRealTrialStartSample As L
     
 '    ReDim arrCells(2 * avgWidthXEitherSide + 1)
     
-    'Dim lTrialStartSample As Long
-    'Dim lRealTrialStartSample As Long
-    'Dim lTrialEndSample As Long
+    Dim lRefPointValue As Long
+    Dim lTrialStartSample As Long
+    Dim lRealTrialStartSample As Long
+    Dim lTrialEndSample As Long
     
     Dim outputWS As Worksheet
-    outputWS = Worksheets(outputWSName)
+    If Not WorksheetExists(outputWSName) Then
+        'Call Worksheets("HRLine").Copy(Worksheets("HRLine"))
+        Call Worksheets("HRLine").Copy(, Worksheets("HRLine"))
+        Set outputWS = Worksheets("HRLine (2)")
+        outputWS.Name = outputWSName
+    Else
+        Set outputWS = Worksheets(outputWSName)
+    End If
     
     Dim dStartingHR As Double
     'Dim dZeroPointHR As Double
@@ -45,7 +57,6 @@ Sub generateHrAtTimePoints(lTrialStartSample As Long, lRealTrialStartSample As L
     For l100msCounter = 0 To 160
         outputWS.Cells(1, 2 + l100msCounter) = (l100msCounter - 80) * 100
     Next
-        
     
     Do
         l100msCounter = 0
@@ -53,11 +64,24 @@ Sub generateHrAtTimePoints(lTrialStartSample As Long, lRealTrialStartSample As L
         dStartingHR = 0
         lOutColNum = 1
         lInColNum = 4
+        Dim bTooMuchVariability As Boolean
         'sourceWorksheet = Worksheets("-8.5-8.5s HRs")
         If sourceWorksheet.Cells(1 + ((iTrialNum - 1) * 2), 3) <> "" Then
-'            lTrialStartSample = Worksheets("Trial points from LabChart").Cells(iTrialNum + 1, 3) - 16000
-'            lRealTrialStartSample = Worksheets("Trial points from LabChart").Cells(iTrialNum + 1, 3)
-'            lTrialEndSample = Worksheets("Trial points from LabChart").Cells(iTrialNum + 1, 3) + 16000
+            bTooMuchVariability = False
+            
+            Select Case iRefPoint
+                Case REFPOINT_LASTTRIALEND:
+                    lRefPointValue = Worksheets("Trial points from LabChart").Cells(iTrialNum + 1, 2)
+                Case REFPOINT_THISTRIALSTART:
+                    lRefPointValue = Worksheets("Trial points from LabChart").Cells(iTrialNum + 1, 3)
+                Case REFPOINT_THISTRIALEND:
+                    lRefPointValue = Worksheets("Trial points from LabChart").Cells(iTrialNum + 1, 4)
+            End Select
+            
+            
+            lTrialStartSample = lRefPointValue + lTrialStartSampleOffset
+            lRealTrialStartSample = lRefPointValue + lRealTrialStartSampleOffset
+            lTrialEndSample = lRefPointValue + lTrialEndSampleOffset
             
             lStartSample = sourceWorksheet.Cells(1 + ((iTrialNum - 1) * 2), 4)
             outputWS.Cells(iTrialNum + 1, 1).Value = "Trial " & iTrialNum
@@ -133,6 +157,7 @@ Sub generateHrAtTimePoints(lTrialStartSample As Long, lRealTrialStartSample As L
                         dCurrValSum = dCurrValSum / iCtr
                         If (dLastVal <> 0) And Abs(dCurrVal - dLastVal) > (dLastVal * maxAllowableInstantChangeProp) Then
                                 outputWS.Cells(iTrialNum + 1, lOutColNum).Value = "x" & (dCurrValSum / dStartingHR)
+                                bTooMuchVariability = True
                         Else
                             dLastVal = dCurrVal
                             outputWS.Cells(iTrialNum + 1, lOutColNum).Value = (dCurrValSum / dStartingHR)
@@ -141,6 +166,10 @@ Sub generateHrAtTimePoints(lTrialStartSample As Long, lRealTrialStartSample As L
                 Wend
                 lInColNum = lInColNum + 1
             Wend
+            If bTooMuchVariability Then
+                outputWS.Range(outputWS.Cells(iTrialNum + 1, 1), outputWS.Cells(iTrialNum + 1, lOutColNum)).Clear
+                outputWS.Cells(iTrialNum + 1, lOutColNum + 1).Value = "x"
+            End If
         End If
         iTrialNum = iTrialNum + 1
         If iTrialNum > 50 Then
@@ -157,9 +186,5 @@ Sub generateHrAtTimePoints(lTrialStartSample As Long, lRealTrialStartSample As L
         
     
 End Sub
-
-
-
-
 
 

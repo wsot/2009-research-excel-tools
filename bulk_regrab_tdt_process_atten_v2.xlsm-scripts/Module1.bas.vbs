@@ -272,7 +272,7 @@ Sub reprocess(isTestRun As Boolean, onlyOne As Boolean)
                             
                             If regenerateHRcalculations Then
                                 Application.Run ("'" & strExcelFilename & "'!processHeartRate")
-                                Application.Run ("'" & strExcelFilename & "'!generateHrAtTimePoints")
+                                Application.Run ("'" & strExcelFilename & "'!generateHrAtTimePointsA")
                             End If
                             If regenerateDropoutData Then
                                 Application.Run ("'" & strExcelFilename & "'!buildDeadzoneLists")

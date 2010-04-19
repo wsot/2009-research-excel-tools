@@ -33,8 +33,6 @@ Sub processImport()
     Dim strChan As String
     Dim strRef As String
     
-    Dim strSChnName As String
-    
     Dim i As Long
 
     Call getMappings(dChannelMappings)
@@ -213,53 +211,31 @@ Sub processImport()
         Else
             'electrical trial - identify stimulation parameters
             'first two Chan epochs will contain the channels stimulated
-            i = objTTX.ReadEventsV(2, "SChn", 0, 0, dblStartTime, arrTrials(iTrialOffset)(3), "ALL")
+            i = objTTX.ReadEventsV(2, "StBM", 0, 0, dblStartTime, arrTrials(iTrialOffset)(3), "ALL")
             If i = 0 Then
-                i = objTTX.ReadEventsV(2, "Chan", 0, 0, dblStartTime, arrTrials(iTrialOffset)(3), "ALL")
-                strSChnName = "Chan"
-                If i = 0 Then 'catch and exit on errors - e.g. if manually terminated trials
-                    Exit For
-                End If
-            Else
-                strSChnName = "SChn"
+                Exit For
             End If
             arrTrials(iTrialOffset)(4) = "Electrical"
             returnVal = objTTX.ParseEvInfoV(0, i, 0)
             arrTrials(iTrialOffset)(5) = CStr(returnVal(6, 0))
             arrTrials(iTrialOffset)(6) = CStr(returnVal(6, 1))
             
-            strStim1Filter = "TriS = " & arrTrials(iTrialOffset)(1) & " AND " & strSChnName & " = " & returnVal(6, 0)
-            strStim2Filter = "TriS = " & arrTrials(iTrialOffset)(1) & " AND " & strSChnName & " = " & returnVal(6, 1)
+            strStim1Filter = "TriS = " & arrTrials(iTrialOffset)(1) & " AND StBM = " & returnVal(6, 0)
+            strStim2Filter = "TriS = " & arrTrials(iTrialOffset)(1) & " AND StBM = " & returnVal(6, 1)
             
-            If dChannelMappings.Exists(arrTrials(iTrialOffset)(5)) Then 'process channel mapping
-                arrTrials(iTrialOffset)(5) = dChannelMappings(arrTrials(iTrialOffset)(5))
-            Else
-                arrTrials(iTrialOffset)(5) = CStr(arrTrials(iTrialOffset)(5)) & "*"
-            End If
-            If dChannelMappings.Exists(arrTrials(iTrialOffset)(6)) Then 'process channel mapping
-                arrTrials(iTrialOffset)(6) = dChannelMappings(arrTrials(iTrialOffset)(6))
-            Else
-                arrTrials(iTrialOffset)(6) = CStr(arrTrials(iTrialOffset)(6)) & "*"
-            End If
+            'identify stimulation channels for each parameter from bitmasks
+            arrTrials(iTrialOffset)(5) = getChannelsFromBM(CStr(returnVal(6, 0)), dChannelMappings)
+            arrTrials(iTrialOffset)(6) = getChannelsFromBM(CStr(returnVal(6, 1)), dChannelMappings)
             
             'first two RefC epochs will contain the reference channels
-            i = objTTX.ReadEventsV(2, "RefC", 0, 0, dblStartTime, arrTrials(iTrialOffset)(3), "ALL")
+            i = objTTX.ReadEventsV(2, "ReBM", 0, 0, dblStartTime, arrTrials(iTrialOffset)(3), "ALL")
             returnVal = objTTX.ParseEvInfoV(0, i, 0)
-            strStim1Filter = strStim1Filter & " AND RefC = " & returnVal(6, 0)
-            strStim2Filter = strStim2Filter & " AND RefC = " & returnVal(6, 1)
-            'arrTrials(iTrialOffset)(5) = arrTrials(iTrialOffset)(5) & " ref " & CStr(returnVal(6, 0))
-            If dChannelMappings.Exists(CStr(returnVal(6, 0))) Then 'process channel mapping
-                arrTrials(iTrialOffset)(5) = arrTrials(iTrialOffset)(5) & " ref " & dChannelMappings(CStr(returnVal(6, 0)))
-            Else
-                arrTrials(iTrialOffset)(5) = arrTrials(iTrialOffset)(5) & " ref " & CStr(returnVal(6, 0)) & "*"
-            End If
-
-            'arrTrials(iTrialOffset)(6) = arrTrials(iTrialOffset)(6) & " ref " & CStr(returnVal(6, 1))
-            If dChannelMappings.Exists(CStr(returnVal(6, 1))) Then  'process channel mapping
-                arrTrials(iTrialOffset)(6) = arrTrials(iTrialOffset)(6) & " ref " & dChannelMappings(CStr(returnVal(6, 1)))
-            Else
-                arrTrials(iTrialOffset)(6) = arrTrials(iTrialOffset)(6) & " ref " & CStr(returnVal(6, 1)) & "*"
-            End If
+            strStim1Filter = strStim1Filter & " AND ReBM = " & returnVal(6, 0)
+            strStim2Filter = strStim2Filter & " AND ReBM = " & returnVal(6, 1)
+            
+            'identify ref channels from bitmasks
+            arrTrials(iTrialOffset)(5) = arrTrials(iTrialOffset)(5) & " ref " & getChannelsFromBM(CStr(returnVal(6, 0)), dChannelMappings)
+            arrTrials(iTrialOffset)(6) = arrTrials(iTrialOffset)(6) & " ref " & getChannelsFromBM(CStr(returnVal(6, 1)), dChannelMappings)
             
             'first two Freq epochs will contain the stimulation frequency
             i = objTTX.ReadEventsV(2, "Freq", 0, 0, dblStartTime, arrTrials(iTrialOffset)(3), "ALL")
@@ -473,6 +449,33 @@ Sub getMappings(ByRef dChannelMappings As Dictionary)
         End If
     Loop
 End Sub
+
+Function getChannelsFromBM(ByRef sBM As String, dChannelMappings As Dictionary) As String
+    Dim lBM As Long
+    lBM = CLng(sBM)
+    
+    Dim sChanList As String
+    
+    Dim lTestMask As Long
+    Dim iPowerOf As Integer
+    
+    For iPowerOf = 0 To 15
+        lTestMask = 2 ^ iPowerOf
+        If (lBM And lTestMask) Then
+            If dChannelMappings.Exists(CStr(iPowerOf + 1)) Then
+                sChanList = sChanList & "," & dChannelMappings(CStr(iPowerOf + 1))
+            Else
+                sChanList = sChanList & "," & (iPowerOf + 1) & "*"
+            End If
+        End If
+    Next
+    
+    If Len(sChanList) > 0 Then
+        getChannelsFromBM = Right(sChanList, Len(sChanList) - 1) 'remove the leading comma
+    End If
+End Function
+
+
 
 
 
