@@ -162,7 +162,7 @@ Public Function readMappingListsFromFile(objFile As File, lNumOfChans As Long, O
                 Exit Do
             End If
         Else
-            If Not Int(arrComponents(0)) = arrComponents(0) And Int(arrComponents(1)) = arrComponents(0) Then 'check they are integers
+            If Not (arrComponents(0) Mod 1 = 0 And arrComponents(1) Mod 1 = 0) Then 'check they are integers
                 If lNumOfChans > (lIter + 1) Then
                     readMappingListsFromFile = False
                 End If
@@ -175,7 +175,6 @@ Public Function readMappingListsFromFile(objFile As File, lNumOfChans As Long, O
             Else
                 Call fwdLookupDict.Add(Int(arrComponents(1)), Int(arrComponents(0)))
                 Call revLookupDict.Add(Int(arrComponents(0)), Int(arrComponents(1)))
-
             End If
             lIter = lIter + 1
         End If
@@ -239,5 +238,9 @@ Public Function readMappingListsFromDirName(sDirName As String, lNumOfChans As L
     End If
 
 End Function
+
+
+
+
 
 

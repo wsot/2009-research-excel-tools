@@ -1025,7 +1025,7 @@ Function processImport(importIntoSigmaplot As Boolean, Optional vDetectDriven As
             Call objTTX.ReleaseServer
             
             'If importIntoSigmaplot Then
-                'Call transferToSigmaplot(xCount, yCount, zOffsetSize, iColOffset, iRowOffset, lMaxHistHeight)
+            '    Call TransferToSigmaplot(xCount, yCount, zOffsetSize, iColOffset, iRowOffset, lMaxHistHeight)
             'End If
         Else
             strTotalErrString = strTotalErrString & "TDT connection error: " & strErr & ", "
