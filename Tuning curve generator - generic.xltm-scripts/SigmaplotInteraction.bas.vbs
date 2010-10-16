@@ -428,8 +428,8 @@ Sub TransferToSigmaplot(saveFilename As String)
             
                 spNB.NotebookItems.Item(spNB.NotebookItems.Count - 1).Name = strTitle & " Non-Normalised"
                 SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Name = strTitle
-                SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Axes(0).Name = "Attenuation"
-                SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Axes(1).Name = "Frequency"
+                SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Axes(0).Name = "Sound pressure level (dB)"
+                SPApp.ActiveDocument.CurrentPageItem.GraphPages(0).Graphs(0).Axes(1).Name = "Frequency (Hz)"
                         
                 Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETPLOTATTR, SLA_SELECTDIM, 3)
                 Call SPApp.ActiveDocument.CurrentPageItem.SetCurrentObjectAttribute(GPM_SETAXISATTR, SAA_SELECTLINE, 2)
