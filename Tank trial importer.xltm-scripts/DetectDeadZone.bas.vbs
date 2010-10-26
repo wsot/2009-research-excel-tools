@@ -2,7 +2,6 @@ Attribute VB_Name = "DetectDeadZone"
 Option Explicit
 Const samplesForDeadzone = 4000
 
-
 Sub buildDeadzoneLists()
     Application.Calculation = xlCalculationManual
 
@@ -52,9 +51,8 @@ Function calculateLCTime(lSampleNum) As String
     iHrs = Int(lSampleNum / 2000 / 60 / 60)
     iMins = (Int(lSampleNum / 2000 / 60) Mod 60)
     iSecs = (Int(lSampleNum / 2000) Mod 60)
-    iMSecs = Int(lSampleNum / 1000) Mod 1000
+    iMSecs = Int(lSampleNum / 2) Mod 1000
 
-    calculateLCTime = Right("00" & iHrs, 2) & ":" & Right("00" & iMins, 2) & ":" & Right("00" & iSecs, 2) & "." & Right("0000" & iMSecs, 4)
+    calculateLCTime = Right("00" & iHrs, 2) & ":" & Right("00" & iMins, 2) & ":" & Right("00" & iSecs, 2) & "." & Right("000" & iMSecs, 3)
 
 End Function
-

@@ -1,16 +1,16 @@
 Attribute VB_Name = "HRTimePlotGen"
 Option Explicit
 
-Global Const REFPOINT_LASTTRIALEND = 1
-Global Const REFPOINT_THISTRIALSTART = 2
-Global Const REFPOINT_THISTRIALEND = 3
+Global Const REFPOINT_LASTTRIALEND = "REFPOINT_LASTTRIALEND"
+Global Const REFPOINT_THISTRIALSTART = "REFPOINT_THISTRIALSTART"
+Global Const REFPOINT_THISTRIALEND = "REFPOINT_THISTRIALEND"
 
 Const alignToZeroPoint = True
 Const avgWithXEitherSide = 2
 Const maxAllowableInstantChangeProp = 0.2
 
 
-Sub generateHrAtTimePoints(lTrialStartSampleOffset As Long, lRealTrialStartSampleOffset As Long, lTrialEndSampleOffset As Long, iRefPoint As Integer, sourceWorksheet As Worksheet, outputWSName As String)
+Sub generateHrAtTimePoints(lTrialStartSampleOffset As Long, lRealTrialStartSampleOffset As Long, lTrialEndSampleOffset As Long, sRefPoint As String, sourceWorksheet As Worksheet, outputWSName As String, blnIsNormalised As Boolean)
     Application.Calculation = xlCalculationManual
     Dim iTrialNum As Integer
     Dim lStartSample As Long
@@ -54,6 +54,7 @@ Sub generateHrAtTimePoints(lTrialStartSampleOffset As Long, lRealTrialStartSampl
     outputWS.UsedRange.Clear
     
     outputWS.Cells(1, 1) = "Trial"
+    'For l100msCounter = 0 To ((lTrialEndSampleOffset - lTrialStartSampleOffset / 200))
     For l100msCounter = 0 To 160
         outputWS.Cells(1, 2 + l100msCounter) = (l100msCounter - 80) * 100
     Next
@@ -69,7 +70,7 @@ Sub generateHrAtTimePoints(lTrialStartSampleOffset As Long, lRealTrialStartSampl
         If sourceWorksheet.Cells(1 + ((iTrialNum - 1) * 2), 3) <> "" Then
             bTooMuchVariability = False
             
-            Select Case iRefPoint
+            Select Case sRefPoint
                 Case REFPOINT_LASTTRIALEND:
                     lRefPointValue = Worksheets("Trial points from LabChart").Cells(iTrialNum + 1, 2)
                 Case REFPOINT_THISTRIALSTART:
@@ -156,11 +157,21 @@ Sub generateHrAtTimePoints(lTrialStartSampleOffset As Long, lRealTrialStartSampl
                         Next
                         dCurrValSum = dCurrValSum / iCtr
                         If (dLastVal <> 0) And Abs(dCurrVal - dLastVal) > (dLastVal * maxAllowableInstantChangeProp) Then
+                            If blnIsNormalised Then
                                 outputWS.Cells(iTrialNum + 1, lOutColNum).Value = "x" & (dCurrValSum / dStartingHR)
-                                bTooMuchVariability = True
+                            Else
+                                'outputWS.Cells(iTrialNum + 1, lOutColNum).Value = "x" & (dCurrValSum)
+                                outputWS.Cells(iTrialNum + 1, lOutColNum).Value = "x" & (dCurrValSum - dStartingHR)
+                            End If
+                            bTooMuchVariability = True
                         Else
                             dLastVal = dCurrVal
-                            outputWS.Cells(iTrialNum + 1, lOutColNum).Value = (dCurrValSum / dStartingHR)
+                            If blnIsNormalised Then
+                                outputWS.Cells(iTrialNum + 1, lOutColNum).Value = (dCurrValSum / dStartingHR)
+                            Else
+                                'outputWS.Cells(iTrialNum + 1, lOutColNum).Value = dCurrValSum
+                                outputWS.Cells(iTrialNum + 1, lOutColNum).Value = (dCurrValSum - dStartingHR)
+                            End If
                         End If
                     End If
                 Wend
@@ -179,12 +190,14 @@ Sub generateHrAtTimePoints(lTrialStartSampleOffset As Long, lRealTrialStartSampl
     
     outputWS.Cells(iTrialNum + 1, 1).Value = "Mean"
     outputWS.Cells(iTrialNum + 2, 1).Value = "StdDev"
-    For lOutColNum = 2 To 162
+    For lOutColNum = 2 To (2 + ((lTrialEndSampleOffset - lTrialStartSampleOffset) / 200))
         outputWS.Cells(iTrialNum + 1, lOutColNum) = "=AVERAGE(" & outputWS.Cells(2, lOutColNum).Address & ":" & outputWS.Cells(iTrialNum, lOutColNum).Address & ")"
         outputWS.Cells(iTrialNum + 2, lOutColNum) = "=CONFIDENCE(0.05,STDEV(" & outputWS.Cells(2, lOutColNum).Address & ":" & outputWS.Cells(iTrialNum, lOutColNum).Address & "),COUNT(" & outputWS.Cells(2, lOutColNum).Address & ":" & outputWS.Cells(iTrialNum, lOutColNum).Address & "))"
     Next
         
     
 End Sub
+
+
 
 

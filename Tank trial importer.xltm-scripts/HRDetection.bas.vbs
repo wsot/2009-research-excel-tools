@@ -4,6 +4,8 @@ Global minAcceptableHR As Integer
 Global maxAcceptableHR As Integer
 Global maxInterBeatOverrun As Double
 Global maxInterBeatUnderrun As Double
+Global maxAllowDeviationFromWholeBeats As Double
+Global maxAllowVariation As Double
 
 Global maxPercOfBeatsInt As Double
 Global maxSingleIntSamples As Double
@@ -12,6 +14,9 @@ Global maxSingleIntBeats As Double
 Global hrProbHighlightCell As Range
 Global hrNoteHighlightCell As Range
 Global hrClearHighlightCell As Range
+
+Global Const TIME_PERIOD_TO_PROCESS_HEADER = "Time periods to process"
+Global Const PLOTS_TO_GENERATE_HEADER = "Plots to generate"
 
 'Const minAcceptableHR = 180
 'Const maxAcceptableHR = 650
@@ -22,52 +27,180 @@ Sub doAllHRProcessing()
     Application.Calculation = xlCalculationManual
     Call buildDeadzoneLists
     Call processHeartRate
-    Call generateHrAtTimePoints( _
-        -16000, _
-        0, _
-        16000, _
-        REFPOINT_THISTRIALSTART, _
-        Worksheets("-8.5-8.5s HRs"), _
-        "-8-8s HR Line")
-    Call generateHrAtTimePoints( _
-        24000, _
-        0, _
-        56000, _
-        REFPOINT_LASTTRIALEND, _
-        Worksheets("p+11.5-+28.5s HRs"), _
-        "+12-28s HR Line")
+    
+    Dim varWS As Worksheet
+    Set varWS = Worksheets("Variables (do not edit)")
+
+    Dim lRow As Long
+    For lRow = 1 To 1000 'search through variables worksheet until the time period header is found
+        If varWS.Cells(lRow, 1).Value = PLOTS_TO_GENERATE_HEADER Then
+            Exit For
+        End If
+    Next
+    
+    lRow = lRow + 2
+    If lRow < 1000 Then
+        Dim strRefPoint As String
+        Dim lStartOffset As Long
+        Dim lNormOffset As Long
+        Dim lEndOffset As Long
+        Dim sSrcWSName As String
+        Dim sDstWSName As String
+        Dim blnNormalise As Boolean
+        Dim blnValidInputs As Boolean
+        
+        Do While varWS.Cells(lRow, 2).Value <> ""
+            blnValidInputs = True
+            
+            Select Case varWS.Cells(lRow, 2).Value
+                Case REFPOINT_LASTTRIALEND, REFPOINT_THISTRIALSTART, REFPOINT_THISTRIALEND:
+                    strRefPoint = varWS.Cells(lRow, 2).Value
+                Case Else:
+                    blnValidInputs = False
+            End Select
+            
+            If IsNumeric(varWS.Cells(lRow, 3).Value) Then
+                lStartOffset = CLng(varWS.Cells(lRow, 3).Value)
+            Else
+                blnValidInputs = False
+            End If
+            
+            If IsNumeric(varWS.Cells(lRow, 4).Value) Then
+                lNormOffset = CLng(varWS.Cells(lRow, 4).Value)
+            Else
+                blnValidInputs = False
+            End If
+            
+            If IsNumeric(varWS.Cells(lRow, 5).Value) Then
+                lEndOffset = CLng(varWS.Cells(lRow, 5).Value)
+            Else
+                blnValidInputs = False
+            End If
+            
+            If WorksheetExists(varWS.Cells(lRow, 6).Value) Then
+                sSrcWSName = varWS.Cells(lRow, 6).Value
+            Else
+                blnValidInputs = False
+            End If
+            
+            If varWS.Cells(lRow, 7).Value <> "" Then
+                sDstWSName = varWS.Cells(lRow, 7).Value
+            Else
+                blnValidInputs = False
+            End If
+            
+            If UCase(varWS.Cells(lRow, 8).Value) = "TRUE" Then
+                blnNormalise = True
+            ElseIf UCase(varWS.Cells(lRow, 8).Value) = "FALSE" Then
+                blnNormalise = False
+            Else
+                blnValidInputs = False
+            End If
+            
+            If blnValidInputs Then
+                Call generateHrAtTimePoints( _
+                    lStartOffset, _
+                    lNormOffset, _
+                    lEndOffset, _
+                    strRefPoint, _
+                    Worksheets(sSrcWSName), _
+                    sDstWSName, blnNormalise)
+            End If
+            lRow = lRow + 1
+        Loop
+    End If
 End Sub
 
 'Used when calling from external script
 Sub generateHrAtTimePointsA()
-    Call generateHrAtTimePoints( _
-        -16000, _
-        0, _
-        16000, _
-        REFPOINT_THISTRIALSTART, _
-        Worksheets("-8.5-8.5s HRs"), _
-        "-8-8s HR Line")
-    Call generateHrAtTimePoints( _
-        24000, _
-        0, _
-        56000, _
-        REFPOINT_LASTTRIALEND, _
-        Worksheets("p+11.5-+28.5s HRs"), _
-        "+12-28s HR Line")
-'    Call generateHrAtTimePoints( _
-'        -48000, _
-'        0, _
-'        -16000, _
-'        REFPOINT_THISTRIALSTART, _
-'        Worksheets("p-24--8s HRs"), _
-'        "+12-28s HR Line")
+    Dim varWS As Worksheet
+    Set varWS = Worksheets("Variables (do not edit)")
+
+    Dim lRow As Long
+    For lRow = 1 To 1000 'search through variables worksheet until the time period header is found
+        If varWS.Cells(lRow, 1).Value = PLOTS_TO_GENERATE_HEADER Then
+            Exit For
+        End If
+    Next
+    
+    lRow = lRow + 2
+    If lRow < 1000 Then
+        Dim strRefPoint As String
+        Dim lStartOffset As Long
+        Dim lNormOffset As Long
+        Dim lEndOffset As Long
+        Dim sSrcWSName As String
+        Dim sDstWSName As String
+        Dim blnNormalise As Boolean
+        Dim blnValidInputs As Boolean
+        
+        Do While varWS.Cells(lRow, 2).Value <> ""
+            blnValidInputs = True
+            
+            Select Case varWS.Cells(lRow, 2).Value
+                Case REFPOINT_LASTTRIALEND, REFPOINT_THISTRIALSTART, REFPOINT_THISTRIALEND:
+                    strRefPoint = varWS.Cells(lRow, 2).Value
+                Case Else:
+                    blnValidInputs = False
+            End Select
+            
+            If IsNumeric(varWS.Cells(lRow, 3).Value) Then
+                lStartOffset = CLng(varWS.Cells(lRow, 3).Value)
+            Else
+                blnValidInputs = False
+            End If
+            
+            If IsNumeric(varWS.Cells(lRow, 4).Value) Then
+                lNormOffset = CLng(varWS.Cells(lRow, 4).Value)
+            Else
+                blnValidInputs = False
+            End If
+            
+            If IsNumeric(varWS.Cells(lRow, 5).Value) Then
+                lEndOffset = CLng(varWS.Cells(lRow, 5).Value)
+            Else
+                blnValidInputs = False
+            End If
+            
+            If WorksheetExists(varWS.Cells(lRow, 6).Value) Then
+                sSrcWSName = varWS.Cells(lRow, 6).Value
+            Else
+                blnValidInputs = False
+            End If
+            
+            If varWS.Cells(lRow, 7).Value <> "" Then
+                sDstWSName = varWS.Cells(lRow, 7).Value
+            Else
+                blnValidInputs = False
+            End If
+            
+            If UCase(varWS.Cells(lRow, 8).Value) = "TRUE" Then
+                blnNormalise = True
+            ElseIf UCase(varWS.Cells(lRow, 8).Value) = "FALSE" Then
+                blnNormalise = False
+            Else
+                blnValidInputs = False
+            End If
+            
+            If blnValidInputs Then
+                Call generateHrAtTimePoints( _
+                    lStartOffset, _
+                    lNormOffset, _
+                    lEndOffset, _
+                    strRefPoint, _
+                    Worksheets(sSrcWSName), _
+                    sDstWSName, blnNormalise)
+            End If
+            lRow = lRow + 1
+        Loop
+    End If
 End Sub
 
 Sub processHeartRate()
     Application.Calculation = xlCalculationManual
-    Dim maxAllowVariation As Double
     
     maxAllowVariation = Worksheets("Settings").Cells(5, 2).Value
+    maxAllowDeviationFromWholeBeats = Worksheets("Settings").Cells(6, 2).Value
     
     minAcceptableHR = Worksheets("Settings").Cells(2, 2).Value
     maxAcceptableHR = Worksheets("Settings").Cells(3, 2).Value
@@ -136,8 +269,10 @@ Sub processHeartRate()
     Dim iOverlyCloseBeatsOffset As Long
     Dim iAbberOffset As Long
 
+    Dim strErrorMsg As String
+    
     iTrialNum = 1
-    iColsPerOutput = 18
+    iColsPerOutput = 20
         
     Do
         cumulativeInterpolations = 0
@@ -168,9 +303,10 @@ Sub processHeartRate()
         abberWS.Cells(2, ((iTrialNum - 1) * 5) + 4).Value = "Beats"
                
         If iTrialNum > 1 Then
-            thisStartPoint = lTrialSampEnd + 22000
-            thisEndPoint = lTrialSampEnd + 58000
-            Call detectHROnSelection(thisStartPoint, thisEndPoint, proportionInterpolated, detectedHR, beatCount, theStdDev, overlyCloseBeats, interpolations, abberantBeats, longestInterpolation, shortestInterpolation, interpolationDuration, interpolatedBeatsMax, interpolatedBeatsMin, interpolatedBeats, iTrialNum, "p+11.5-+28.5s", cumulativeInterpolations, iOverlyCloseBeatsOffset, iAbberOffset)
+            thisStartPoint = lTrialSampEnd + 10000
+            thisEndPoint = lTrialSampEnd + 100000
+            strErrorMsg = ""
+            Call detectHROnSelection(thisStartPoint, thisEndPoint, proportionInterpolated, detectedHR, beatCount, theStdDev, overlyCloseBeats, interpolations, abberantBeats, longestInterpolation, shortestInterpolation, interpolationDuration, interpolatedBeatsMax, interpolatedBeatsMin, interpolatedBeats, iTrialNum, "p+11.5-+28.5s", cumulativeInterpolations, iOverlyCloseBeatsOffset, iAbberOffset, strErrorMsg)
     
             iOutputNum = iOutputNum + 1
     
@@ -231,6 +367,14 @@ Sub processHeartRate()
             Else
                 Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 17)), "Clear")
             End If
+            Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 18)).ColumnWidth = 60
+            Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 18)).Value = strErrorMsg
+            If strErrorMsg <> "" Then
+                Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 18)), "Note")
+            Else
+                Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 18)), "Clear")
+            End If
+            
         Else
             iOutputNum = iOutputNum + 1
         End If
@@ -241,8 +385,8 @@ Sub processHeartRate()
 
         thisStartPoint = lTrialSampStart - 17000
         thisEndPoint = lTrialSampStart + 17000
-        
-        Call detectHROnSelection(thisStartPoint, thisEndPoint, proportionInterpolated, detectedHR, beatCount, theStdDev, overlyCloseBeats, interpolations, abberantBeats, longestInterpolation, shortestInterpolation, interpolationDuration, interpolatedBeatsMax, interpolatedBeatsMin, interpolatedBeats, iTrialNum, "-8.5-8.5s", cumulativeInterpolations, iOverlyCloseBeatsOffset, iAbberOffset)
+        strErrorMsg = ""
+        Call detectHROnSelection(thisStartPoint, thisEndPoint, proportionInterpolated, detectedHR, beatCount, theStdDev, overlyCloseBeats, interpolations, abberantBeats, longestInterpolation, shortestInterpolation, interpolationDuration, interpolatedBeatsMax, interpolatedBeatsMin, interpolatedBeats, iTrialNum, "-8.5-8.5s", cumulativeInterpolations, iOverlyCloseBeatsOffset, iAbberOffset, strErrorMsg)
         
         iOutputNum = iOutputNum + 1
 
@@ -299,7 +443,13 @@ Sub processHeartRate()
         Else
             Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 17)), "Clear")
         End If
-        
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 18)).ColumnWidth = 60
+        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 18)).Value = strErrorMsg
+        If strErrorMsg <> "" Then
+            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 18)), "Note")
+        Else
+            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 18)), "Clear")
+        End If
         
         iTrialNum = iTrialNum + 1
     Loop
@@ -307,7 +457,7 @@ Sub processHeartRate()
 End Sub
 
 
-Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportionInterpolated, ByRef detectedHR, ByRef beatCount, ByRef theStdDev, ByRef overlyCloseBeats, ByRef interpolations, ByRef abberantBeats, ByRef longestInterpolation, ByRef shortestInterpolation, ByRef interpolationDuration, ByRef interpolatedBeatsMax, ByRef interpolatedBeatsMin, ByRef interpolatedBeats, iTrialNum As Integer, strRangeTitle As String, iInterpOffset As Long, iOverlyCloseBeatsOffset As Long, iAbberOffset As Long)
+Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportionInterpolated, ByRef detectedHR, ByRef beatCount, ByRef theStdDev, ByRef overlyCloseBeats, ByRef interpolations, ByRef abberantBeats, ByRef longestInterpolation, ByRef shortestInterpolation, ByRef interpolationDuration, ByRef interpolatedBeatsMax, ByRef interpolatedBeatsMin, ByRef interpolatedBeats, iTrialNum As Integer, strRangeTitle As String, iInterpOffset As Long, iOverlyCloseBeatsOffset As Long, iAbberOffset As Long, ByRef errorMsg As String)
 
     detectedHR = 0
     overlyCloseBeats = 0
@@ -337,6 +487,7 @@ Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportion
     End If
     
     Dim returnFailed As Boolean
+    Dim strFailReason As String
     Dim isFirstBeat As Boolean
     Dim isLastBeat As Boolean
     
@@ -400,6 +551,7 @@ Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportion
                 lPostBeatDuration = (beatWorksheet.Cells(iTrialNum, lStartColNum + currentBeatOffset + 2).Value - beatWorksheet.Cells(iTrialNum, lStartColNum + currentBeatOffset + 1))
                 If lPostBeatDuration > ((maxInterBeatOverrun + (maxInterBeatOverrun * 0.2)) * beatDuration) Then 'check if the next beat might also have missed. Give a bit more leeway on how much the duration can have changed, as it is more temporally distant
                     'beat after is also a miss. Give up the ghost.
+                    Call addToFailReason(strFailReason, "Too many sequential missed beats")
                     returnFailed = True
                 End If
             End If
@@ -436,7 +588,13 @@ Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportion
                     interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 1).Value = strRangeTitle
                     interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 2).Value = currentBeatSamp
                     interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 3).Value = "'" & calculateLCTime(currentBeatSamp)
-                    interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 4).Value = thisInterpolationBeats - 1
+                    interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 4).Value = thisInterpolationBeats - 1 '****
+                    If Abs(Round(thisInterpolationBeats) - thisInterpolationBeats) > maxAllowDeviationFromWholeBeats Then
+                        Call highlightCell(interpWS.Range(interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 1), interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 4)), "Problem")
+                        Call addToFailReason(strFailReason, "Interpolation too far from even beat: " & CStr(thisInterpolationBeats - 1))
+                        returnFailed = True
+                    End If
+                    
                     
                     beatCount = beatCount + (CDbl(Round(thisInterpolationBeats)) * ((currentBeatSamp - lStartPoint) / (currentBeatSamp - prevAcceptedBeatSamp))) 'if first beat, only include a potion of a beat matching the proportion within the set boundaries
                     thisInterpolationBeats = CDbl(Round((thisInterpolationBeats - 1))) * ((currentBeatSamp - lStartPoint) / (currentBeatSamp - prevAcceptedBeatSamp)) 'if first beat, only include a potion of a beat matching the proportion within the set boundaries
@@ -482,6 +640,11 @@ Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportion
                     interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 2).Value = currentBeatSamp
                     interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 3).Value = "'" & calculateLCTime(currentBeatSamp)
                     interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 4).Value = thisInterpolationBeats - 1
+                    If Abs(Round(thisInterpolationBeats) - thisInterpolationBeats) > maxAllowDeviationFromWholeBeats Then
+                        Call highlightCell(interpWS.Range(interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 1), interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 4)), "Problem")
+                        Call addToFailReason(strFailReason, "Interpolation too far from even beat: " & CStr(thisInterpolationBeats - 1))
+                        returnFailed = True
+                    End If
                 
                     beatCount = beatCount + (CDbl(Round(thisInterpolationBeats)) * (1 - ((currentBeatSamp - lEndPoint) / (currentBeatSamp - prevAcceptedBeatSamp)))) 'if first beat, only include a potion of a beat matching the proportion within the set boundaries
                     thisInterpolationBeats = CDbl(Round((thisInterpolationBeats - 1))) * (1 - ((currentBeatSamp - lEndPoint) / (currentBeatSamp - prevAcceptedBeatSamp))) 'if first beat, only include a potion of a beat matching the proportion within the set boundaries
@@ -521,6 +684,11 @@ Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportion
                     interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 2).Value = currentBeatSamp
                     interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 3).Value = "'" & calculateLCTime(currentBeatSamp)
                     interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 4).Value = thisInterpolationBeats - 1
+                    If Abs(Round(thisInterpolationBeats) - thisInterpolationBeats) > maxAllowDeviationFromWholeBeats Then
+                        Call highlightCell(interpWS.Range(interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 1), interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 4)), "Problem")
+                        Call addToFailReason(strFailReason, "Interpolation too far from even beat: " & CStr(thisInterpolationBeats - 1))
+                        returnFailed = True
+                    End If
                     
                     thisNumberOfBeats = CDbl(Round((thisInterpolationDuration / ((beatDuration + lPostBeatDuration) / 2))))
                     immediateHR = (thisNumberOfBeats / ((thisInterpolationDuration / 2000) / 60))
@@ -635,6 +803,7 @@ Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportion
     
     If returnFailed Then
         detectedHR = -1
+        errorMsg = strFailReason
     Else
         If interpolatedBeats > 0 Then
             proportionInterpolated = (interpolatedBeats / beatCount)
@@ -730,6 +899,17 @@ Sub highlightCell(theCell As Range, strStyle As String)
             theCell.ClearFormats
             
     End Select
+End Sub
+
+
+
+
+Sub addToFailReason(ByRef strFailReason As String, strMessage As String)
+    If strFailReason = "" Then
+        strFailReason = strMessage
+    Else
+        strFailReason = strFailReason + vbCrLf + strMessage
+    End If
 End Sub
 
 
