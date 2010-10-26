@@ -41,7 +41,7 @@ Sub buildDeadzoneLists()
     
 End Sub
 
-Function calculateLCTime(lSampleNum) As String
+Public Function calculateLCTime(lSampleNum) As String
 
     Dim iHrs As Integer
     Dim iMins As Integer

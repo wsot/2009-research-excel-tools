@@ -15,6 +15,8 @@ Global hrProbHighlightCell As Range
 Global hrNoteHighlightCell As Range
 Global hrClearHighlightCell As Range
 
+Global Const SAMPLE_RATE = 2000
+
 Global Const TIME_PERIOD_TO_PROCESS_HEADER = "Time periods to process"
 Global Const PLOTS_TO_GENERATE_HEADER = "Plots to generate"
 
@@ -26,89 +28,10 @@ Global Const PLOTS_TO_GENERATE_HEADER = "Plots to generate"
 Sub doAllHRProcessing()
     Application.Calculation = xlCalculationManual
     Call buildDeadzoneLists
-    Call processHeartRate
-    
-    Dim varWS As Worksheet
-    Set varWS = Worksheets("Variables (do not edit)")
-
-    Dim lRow As Long
-    For lRow = 1 To 1000 'search through variables worksheet until the time period header is found
-        If varWS.Cells(lRow, 1).Value = PLOTS_TO_GENERATE_HEADER Then
-            Exit For
-        End If
-    Next
-    
-    lRow = lRow + 2
-    If lRow < 1000 Then
-        Dim strRefPoint As String
-        Dim lStartOffset As Long
-        Dim lNormOffset As Long
-        Dim lEndOffset As Long
-        Dim sSrcWSName As String
-        Dim sDstWSName As String
-        Dim blnNormalise As Boolean
-        Dim blnValidInputs As Boolean
-        
-        Do While varWS.Cells(lRow, 2).Value <> ""
-            blnValidInputs = True
-            
-            Select Case varWS.Cells(lRow, 2).Value
-                Case REFPOINT_LASTTRIALEND, REFPOINT_THISTRIALSTART, REFPOINT_THISTRIALEND:
-                    strRefPoint = varWS.Cells(lRow, 2).Value
-                Case Else:
-                    blnValidInputs = False
-            End Select
-            
-            If IsNumeric(varWS.Cells(lRow, 3).Value) Then
-                lStartOffset = CLng(varWS.Cells(lRow, 3).Value)
-            Else
-                blnValidInputs = False
-            End If
-            
-            If IsNumeric(varWS.Cells(lRow, 4).Value) Then
-                lNormOffset = CLng(varWS.Cells(lRow, 4).Value)
-            Else
-                blnValidInputs = False
-            End If
-            
-            If IsNumeric(varWS.Cells(lRow, 5).Value) Then
-                lEndOffset = CLng(varWS.Cells(lRow, 5).Value)
-            Else
-                blnValidInputs = False
-            End If
-            
-            If WorksheetExists(varWS.Cells(lRow, 6).Value) Then
-                sSrcWSName = varWS.Cells(lRow, 6).Value
-            Else
-                blnValidInputs = False
-            End If
-            
-            If varWS.Cells(lRow, 7).Value <> "" Then
-                sDstWSName = varWS.Cells(lRow, 7).Value
-            Else
-                blnValidInputs = False
-            End If
-            
-            If UCase(varWS.Cells(lRow, 8).Value) = "TRUE" Then
-                blnNormalise = True
-            ElseIf UCase(varWS.Cells(lRow, 8).Value) = "FALSE" Then
-                blnNormalise = False
-            Else
-                blnValidInputs = False
-            End If
-            
-            If blnValidInputs Then
-                Call generateHrAtTimePoints( _
-                    lStartOffset, _
-                    lNormOffset, _
-                    lEndOffset, _
-                    strRefPoint, _
-                    Worksheets(sSrcWSName), _
-                    sDstWSName, blnNormalise)
-            End If
-            lRow = lRow + 1
-        Loop
-    End If
+    Dim periodsToProcess As Variant
+    periodsToProcess = getPeriodsToProcess()
+    Call processHeartRate(periodsToProcess)
+    Call generateHrAtTimePointsA
 End Sub
 
 'Used when calling from external script
@@ -145,19 +68,19 @@ Sub generateHrAtTimePointsA()
             End Select
             
             If IsNumeric(varWS.Cells(lRow, 3).Value) Then
-                lStartOffset = CLng(varWS.Cells(lRow, 3).Value)
+                lStartOffset = Round(CDbl(varWS.Cells(lRow, 3).Value) * SAMPLE_RATE, 0)
             Else
                 blnValidInputs = False
             End If
             
             If IsNumeric(varWS.Cells(lRow, 4).Value) Then
-                lNormOffset = CLng(varWS.Cells(lRow, 4).Value)
+                lNormOffset = Round(CDbl(varWS.Cells(lRow, 4).Value) * SAMPLE_RATE, 0)
             Else
                 blnValidInputs = False
             End If
             
             If IsNumeric(varWS.Cells(lRow, 5).Value) Then
-                lEndOffset = CLng(varWS.Cells(lRow, 5).Value)
+                lEndOffset = Round(CDbl(varWS.Cells(lRow, 5).Value) * SAMPLE_RATE, 0)
             Else
                 blnValidInputs = False
             End If
@@ -196,7 +119,7 @@ Sub generateHrAtTimePointsA()
     End If
 End Sub
 
-Sub processHeartRate()
+Sub processHeartRate(periodsToProcess As Variant)
     Application.Calculation = xlCalculationManual
     
     maxAllowVariation = Worksheets("Settings").Cells(5, 2).Value
@@ -273,6 +196,8 @@ Sub processHeartRate()
     
     iTrialNum = 1
     iColsPerOutput = 20
+    
+    Dim iPeriodBeingProcessed As Integer
         
     Do
         cumulativeInterpolations = 0
@@ -303,153 +228,178 @@ Sub processHeartRate()
         abberWS.Cells(2, ((iTrialNum - 1) * 5) + 4).Value = "Beats"
                
         If iTrialNum > 1 Then
-            thisStartPoint = lTrialSampEnd + 10000
-            thisEndPoint = lTrialSampEnd + 100000
-            strErrorMsg = ""
-            Call detectHROnSelection(thisStartPoint, thisEndPoint, proportionInterpolated, detectedHR, beatCount, theStdDev, overlyCloseBeats, interpolations, abberantBeats, longestInterpolation, shortestInterpolation, interpolationDuration, interpolatedBeatsMax, interpolatedBeatsMin, interpolatedBeats, iTrialNum, "p+11.5-+28.5s", cumulativeInterpolations, iOverlyCloseBeatsOffset, iAbberOffset, strErrorMsg)
-    
-            iOutputNum = iOutputNum + 1
-    
-            cumulativeInterpolations = cumulativeInterpolations + interpolations
-            iAbberOffset = iAbberOffset + abberantBeats
-            iOverlyCloseBeatsOffset = iOverlyCloseBeatsOffset + overlyCloseBeats
-    
-            Worksheets("Output").Range("P" & (iTrialNum + 1)).Value = detectedHR
-            If detectedHR = -1 Or proportionInterpolated >= maxPercOfBeatsInt Or longestInterpolation >= maxSingleIntSamples Or interpolatedBeatsMax >= maxSingleIntBeats Then
-                Call highlightCell(Worksheets("Output").Range("P" & (iTrialNum + 1)), "Problem")
-            Else
-                Call highlightCell(Worksheets("Output").Range("P" & (iTrialNum + 1)), "Clear")
-            End If
-            Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 1)).Value = "Trial " & iTrialNum
-            Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 2)).Value = thisStartPoint
-            Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 3)).Value = "'" & calculateLCTime(thisStartPoint)
-            Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 4)).Value = thisEndPoint
-            Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 5)).Value = "'" & calculateLCTime(thisEndPoint)
-            Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 6)).Value = detectedHR
-            If detectedHR = -1 Or proportionInterpolated >= maxPercOfBeatsInt Or longestInterpolation >= maxSingleIntSamples Or interpolatedBeatsMax >= maxSingleIntBeats Then
-                Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 6)), "Problem")
-            Else
-                Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 6)), "Clear")
-            End If
-            Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 7)).Value = beatCount
-            Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 8)).Value = theStdDev
-            Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 9)).Value = interpolations
-            Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 10)).Value = interpolatedBeats
-            Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 11)).Value = proportionInterpolated
-            If proportionInterpolated >= maxPercOfBeatsInt Then
-                Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 11)), "Problem")
-            Else
-                Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 11)), "Clear")
-            End If
-            Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 12)).Value = shortestInterpolation
-            Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 13)).Value = longestInterpolation
-            If longestInterpolation >= maxSingleIntSamples Then
-                Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 13)), "Problem")
-            Else
-                Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 13)), "Clear")
-            End If
-            Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 14)).Value = interpolatedBeatsMin
-            Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 15)).Value = interpolatedBeatsMax
-            If interpolatedBeatsMax >= maxSingleIntBeats Then
-                Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 15)), "Problem")
-            Else
-                Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 15)), "Clear")
-            End If
-            Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 16)).Value = overlyCloseBeats
-            If overlyCloseBeats > 0 Then
-                Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 16)), "Note")
-            Else
-                Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 16)), "Clear")
-            End If
-            Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 17)).Value = abberantBeats
-            If abberantBeats > 0 Then
-                Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 17)), "Note")
-            Else
-                Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 17)), "Clear")
-            End If
-            Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 18)).ColumnWidth = 60
-            Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 18)).Value = strErrorMsg
-            If strErrorMsg <> "" Then
-                Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 18)), "Note")
-            Else
-                Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 18)), "Clear")
-            End If
+            For iPeriodBeingProcessed = 0 To UBound(periodsToProcess)
+                If periodsToProcess(iPeriodBeingProcessed)(0) = REFPOINT_LASTTRIALEND Then
+                    thisStartPoint = lTrialSampEnd + periodsToProcess(iPeriodBeingProcessed)(1)
+                    thisEndPoint = lTrialSampEnd + periodsToProcess(iPeriodBeingProcessed)(2)
+                    strErrorMsg = ""
+                    Call detectHROnSelection(thisStartPoint, thisEndPoint, proportionInterpolated, detectedHR, beatCount, theStdDev, overlyCloseBeats, interpolations, abberantBeats, longestInterpolation, shortestInterpolation, interpolationDuration, interpolatedBeatsMax, interpolatedBeatsMin, interpolatedBeats, iTrialNum, CStr(periodsToProcess(iPeriodBeingProcessed)(3)), cumulativeInterpolations, iOverlyCloseBeatsOffset, iAbberOffset, strErrorMsg)
             
+                    iOutputNum = iOutputNum + 1
+            
+                    cumulativeInterpolations = cumulativeInterpolations + interpolations
+                    iAbberOffset = iAbberOffset + abberantBeats
+                    iOverlyCloseBeatsOffset = iOverlyCloseBeatsOffset + overlyCloseBeats
+            
+                    Worksheets("Output").Range("P" & (iTrialNum + 1)).Value = detectedHR
+                    If detectedHR = -1 Or proportionInterpolated >= maxPercOfBeatsInt Or longestInterpolation >= maxSingleIntSamples Or interpolatedBeatsMax >= maxSingleIntBeats Then
+                        Call highlightCell(Worksheets("Output").Range("P" & (iTrialNum + 1)), "Problem")
+                    Else
+                        Call highlightCell(Worksheets("Output").Range("P" & (iTrialNum + 1)), "Clear")
+                    End If
+                    Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 1)).Value = "Trial " & iTrialNum
+                    Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 2)).Value = thisStartPoint
+                    Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 3)).Value = "'" & calculateLCTime(thisStartPoint)
+                    Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 4)).Value = thisEndPoint
+                    Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 5)).Value = "'" & calculateLCTime(thisEndPoint)
+                    Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 6)).Value = detectedHR
+                    If detectedHR = -1 Or proportionInterpolated >= maxPercOfBeatsInt Or longestInterpolation >= maxSingleIntSamples Or interpolatedBeatsMax >= maxSingleIntBeats Then
+                        Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 6)), "Problem")
+                    Else
+                        Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 6)), "Clear")
+                    End If
+                    Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 7)).Value = beatCount
+                    Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 8)).Value = theStdDev
+                    Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 9)).Value = interpolations
+                    Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 10)).Value = interpolatedBeats
+                    Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 11)).Value = proportionInterpolated
+                    If proportionInterpolated >= maxPercOfBeatsInt Then
+                        Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 11)), "Problem")
+                    Else
+                        Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 11)), "Clear")
+                    End If
+                    Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 12)).Value = shortestInterpolation
+                    Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 13)).Value = longestInterpolation
+                    If longestInterpolation >= maxSingleIntSamples Then
+                        Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 13)), "Problem")
+                    Else
+                        Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 13)), "Clear")
+                    End If
+                    Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 14)).Value = interpolatedBeatsMin
+                    Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 15)).Value = interpolatedBeatsMax
+                    If interpolatedBeatsMax >= maxSingleIntBeats Then
+                        Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 15)), "Problem")
+                    Else
+                        Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 15)), "Clear")
+                    End If
+                    Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 16)).Value = overlyCloseBeats
+                    If overlyCloseBeats > 0 Then
+                        Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 16)), "Note")
+                    Else
+                        Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 16)), "Clear")
+                    End If
+                    Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 17)).Value = abberantBeats
+                    If abberantBeats > 0 Then
+                        Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 17)), "Note")
+                    Else
+                        Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 17)), "Clear")
+                    End If
+                    Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 18)).ColumnWidth = 60
+                    Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 18)).Value = strErrorMsg
+                    If strErrorMsg <> "" Then
+                        Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 18)), "Note")
+                    Else
+                        Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 18)), "Clear")
+                    End If
+                End If
+            Next
         Else
-            iOutputNum = iOutputNum + 1
+            For iPeriodBeingProcessed = 0 To UBound(periodsToProcess)
+                If periodsToProcess(iPeriodBeingProcessed)(0) = REFPOINT_LASTTRIALEND Then
+                    iOutputNum = iOutputNum + 1
+                End If
+            Next
         End If
         
         lPretrialSampStart = commentWorksheet.Cells(iTrialNum + 1, 2)
         lTrialSampStart = commentWorksheet.Cells(iTrialNum + 1, 3)
         lTrialSampEnd = commentWorksheet.Cells(iTrialNum + 1, 4)
 
-        thisStartPoint = lTrialSampStart - 17000
-        thisEndPoint = lTrialSampStart + 17000
-        strErrorMsg = ""
-        Call detectHROnSelection(thisStartPoint, thisEndPoint, proportionInterpolated, detectedHR, beatCount, theStdDev, overlyCloseBeats, interpolations, abberantBeats, longestInterpolation, shortestInterpolation, interpolationDuration, interpolatedBeatsMax, interpolatedBeatsMin, interpolatedBeats, iTrialNum, "-8.5-8.5s", cumulativeInterpolations, iOverlyCloseBeatsOffset, iAbberOffset, strErrorMsg)
-        
-        iOutputNum = iOutputNum + 1
-
-        Worksheets("Output").Range("O" & (iTrialNum + 1)).Value = detectedHR
-        If detectedHR = -1 Or proportionInterpolated >= maxPercOfBeatsInt Or longestInterpolation >= maxSingleIntSamples Or interpolatedBeatsMax >= maxSingleIntBeats Then
-            Call highlightCell(Worksheets("Output").Range("O" & (iTrialNum + 1)), "Problem")
-        Else
-            Call highlightCell(Worksheets("Output").Range("O" & (iTrialNum + 1)), "Clear")
-        End If
-        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 1)).Value = "Trial " & iTrialNum
-        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 2)).Value = thisStartPoint
-        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 3)).Value = "'" & calculateLCTime(thisStartPoint)
-        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 4)).Value = thisEndPoint
-        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 5)).Value = "'" & calculateLCTime(thisEndPoint)
-        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 6)).Value = detectedHR
-        If detectedHR = -1 Or proportionInterpolated >= maxPercOfBeatsInt Or longestInterpolation >= maxSingleIntSamples Or interpolatedBeatsMax >= maxSingleIntBeats Then
-            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 6)), "Problem")
-        Else
-            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 6)), "Clear")
-        End If
-        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 7)).Value = beatCount
-        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 8)).Value = theStdDev
-        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 9)).Value = interpolations
-        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 10)).Value = interpolatedBeats
-        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 11)).Value = proportionInterpolated
-        If proportionInterpolated >= maxPercOfBeatsInt Then
-            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 11)), "Problem")
-        Else
-            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 11)), "Clear")
-        End If
-        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 12)).Value = shortestInterpolation
-        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 13)).Value = longestInterpolation
-        If longestInterpolation >= maxSingleIntSamples Then
-            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 13)), "Problem")
-        Else
-            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 13)), "Clear")
-        End If
-        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 14)).Value = interpolatedBeatsMin
-        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 15)).Value = interpolatedBeatsMax
-        If interpolatedBeatsMax >= maxSingleIntBeats Then
-            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 15)), "Problem")
-        Else
-            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 15)), "Clear")
-        End If
-        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 16)).Value = overlyCloseBeats
-        If overlyCloseBeats > 0 Then
-            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 16)), "Note")
-        Else
-            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 16)), "Clear")
-        End If
-        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 17)).Value = abberantBeats
-        If abberantBeats > 0 Then
-            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 17)), "Note")
-        Else
-            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 17)), "Clear")
-        End If
-        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 18)).ColumnWidth = 60
-        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 18)).Value = strErrorMsg
-        If strErrorMsg <> "" Then
-            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 18)), "Note")
-        Else
-            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 18)), "Clear")
-        End If
+        For iPeriodBeingProcessed = 0 To UBound(periodsToProcess)
+            If periodsToProcess(iPeriodBeingProcessed)(0) <> REFPOINT_LASTTRIALEND Then
+                Select Case periodsToProcess(iPeriodBeingProcessed)(0)
+                    Case REFPOINT_THISTRIALSTART:
+                        thisStartPoint = lTrialSampStart + periodsToProcess(iPeriodBeingProcessed)(1)
+                        thisEndPoint = lTrialSampStart + periodsToProcess(iPeriodBeingProcessed)(2)
+                    Case REFPOINT_THISTRIALEND:
+                        thisStartPoint = lTrialSampEnd + periodsToProcess(iPeriodBeingProcessed)(1)
+                        thisEndPoint = lTrialSampEnd + periodsToProcess(iPeriodBeingProcessed)(2)
+                    Case Else:
+                        'if this happens, there has been an error!
+                        thisStartPoint = 0
+                        thisEndPoint = 0
+                        Exit For
+                    End Select
+                
+                If thisStartPoint > 0 Then
+                        strErrorMsg = ""
+                        Call detectHROnSelection(thisStartPoint, thisEndPoint, proportionInterpolated, detectedHR, beatCount, theStdDev, overlyCloseBeats, interpolations, abberantBeats, longestInterpolation, shortestInterpolation, interpolationDuration, interpolatedBeatsMax, interpolatedBeatsMin, interpolatedBeats, iTrialNum, CStr(periodsToProcess(iPeriodBeingProcessed)(3)), cumulativeInterpolations, iOverlyCloseBeatsOffset, iAbberOffset, strErrorMsg)
+                        
+                        iOutputNum = iOutputNum + 1
+                
+                        Worksheets("Output").Range("O" & (iTrialNum + 1)).Value = detectedHR
+                        If detectedHR = -1 Or proportionInterpolated >= maxPercOfBeatsInt Or longestInterpolation >= maxSingleIntSamples Or interpolatedBeatsMax >= maxSingleIntBeats Then
+                            Call highlightCell(Worksheets("Output").Range("O" & (iTrialNum + 1)), "Problem")
+                        Else
+                            Call highlightCell(Worksheets("Output").Range("O" & (iTrialNum + 1)), "Clear")
+                        End If
+                        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 1)).Value = "Trial " & iTrialNum
+                        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 2)).Value = thisStartPoint
+                        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 3)).Value = "'" & calculateLCTime(thisStartPoint)
+                        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 4)).Value = thisEndPoint
+                        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 5)).Value = "'" & calculateLCTime(thisEndPoint)
+                        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 6)).Value = detectedHR
+                        If detectedHR = -1 Or proportionInterpolated >= maxPercOfBeatsInt Or longestInterpolation >= maxSingleIntSamples Or interpolatedBeatsMax >= maxSingleIntBeats Then
+                            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 6)), "Problem")
+                        Else
+                            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 6)), "Clear")
+                        End If
+                        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 7)).Value = beatCount
+                        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 8)).Value = theStdDev
+                        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 9)).Value = interpolations
+                        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 10)).Value = interpolatedBeats
+                        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 11)).Value = proportionInterpolated
+                        If proportionInterpolated >= maxPercOfBeatsInt Then
+                            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 11)), "Problem")
+                        Else
+                            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 11)), "Clear")
+                        End If
+                        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 12)).Value = shortestInterpolation
+                        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 13)).Value = longestInterpolation
+                        If longestInterpolation >= maxSingleIntSamples Then
+                            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 13)), "Problem")
+                        Else
+                            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 13)), "Clear")
+                        End If
+                        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 14)).Value = interpolatedBeatsMin
+                        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 15)).Value = interpolatedBeatsMax
+                        If interpolatedBeatsMax >= maxSingleIntBeats Then
+                            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 15)), "Problem")
+                        Else
+                            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 15)), "Clear")
+                        End If
+                        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 16)).Value = overlyCloseBeats
+                        If overlyCloseBeats > 0 Then
+                            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 16)), "Note")
+                        Else
+                            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 16)), "Clear")
+                        End If
+                        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 17)).Value = abberantBeats
+                        If abberantBeats > 0 Then
+                            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 17)), "Note")
+                        Else
+                            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 17)), "Clear")
+                        End If
+                        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 18)).ColumnWidth = 60
+                        Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 18)).Value = strErrorMsg
+                        If strErrorMsg <> "" Then
+                            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 18)), "Note")
+                        Else
+                            Call highlightCell(Worksheets("HR detection").Cells((iTrialNum + 2), (((iOutputNum - 1) * iColsPerOutput) + 18)), "Clear")
+                        End If
+                End If
+            End If
+        Next
         
         iTrialNum = iTrialNum + 1
     Loop
@@ -481,7 +431,12 @@ Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportion
     iColCounter = 4
     
     Dim HRperbeatWS As Worksheet
-    Set HRperbeatWS = Worksheets(strRangeTitle & " HRs")
+    If Not WorksheetExists(strRangeTitle) Then
+        Set HRperbeatWS = Worksheets.Add()
+        HRperbeatWS.Name = strRangeTitle
+    Else
+        Set HRperbeatWS = Worksheets(strRangeTitle)
+    End If
     If iTrialNum = 1 Then
         HRperbeatWS.UsedRange.Clear
     End If
@@ -551,7 +506,7 @@ Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportion
                 lPostBeatDuration = (beatWorksheet.Cells(iTrialNum, lStartColNum + currentBeatOffset + 2).Value - beatWorksheet.Cells(iTrialNum, lStartColNum + currentBeatOffset + 1))
                 If lPostBeatDuration > ((maxInterBeatOverrun + (maxInterBeatOverrun * 0.2)) * beatDuration) Then 'check if the next beat might also have missed. Give a bit more leeway on how much the duration can have changed, as it is more temporally distant
                     'beat after is also a miss. Give up the ghost.
-                    Call addToFailReason(strFailReason, "Too many sequential missed beats")
+                    Call addToFailReason(strFailReason, "Too many sequential missed beats " & calculateLCTime(CStr(currentBeatSamp)))
                     returnFailed = True
                 End If
             End If
@@ -591,7 +546,7 @@ Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportion
                     interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 4).Value = thisInterpolationBeats - 1 '****
                     If Abs(Round(thisInterpolationBeats) - thisInterpolationBeats) > maxAllowDeviationFromWholeBeats Then
                         Call highlightCell(interpWS.Range(interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 1), interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 4)), "Problem")
-                        Call addToFailReason(strFailReason, "Interpolation too far from even beat: " & CStr(thisInterpolationBeats - 1))
+                        Call addToFailReason(strFailReason, "Interpolation too far from even beat: " & CStr(thisInterpolationBeats - 1) & ", " & calculateLCTime(currentBeatSamp))
                         returnFailed = True
                     End If
                     
@@ -642,7 +597,7 @@ Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportion
                     interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 4).Value = thisInterpolationBeats - 1
                     If Abs(Round(thisInterpolationBeats) - thisInterpolationBeats) > maxAllowDeviationFromWholeBeats Then
                         Call highlightCell(interpWS.Range(interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 1), interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 4)), "Problem")
-                        Call addToFailReason(strFailReason, "Interpolation too far from even beat: " & CStr(thisInterpolationBeats - 1))
+                        Call addToFailReason(strFailReason, "Interpolation too far from even beat: " & CStr(thisInterpolationBeats - 1) & ", " & calculateLCTime(currentBeatSamp))
                         returnFailed = True
                     End If
                 
@@ -686,7 +641,7 @@ Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportion
                     interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 4).Value = thisInterpolationBeats - 1
                     If Abs(Round(thisInterpolationBeats) - thisInterpolationBeats) > maxAllowDeviationFromWholeBeats Then
                         Call highlightCell(interpWS.Range(interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 1), interpWS.Cells(interpolations + iInterpOffset + 2, ((iTrialNum - 1) * 5) + 4)), "Problem")
-                        Call addToFailReason(strFailReason, "Interpolation too far from even beat: " & CStr(thisInterpolationBeats - 1))
+                        Call addToFailReason(strFailReason, "Interpolation too far from even beat: " & CStr(thisInterpolationBeats - 1) & ", " & calculateLCTime(currentBeatSamp))
                         returnFailed = True
                     End If
                     
@@ -911,5 +866,74 @@ Sub addToFailReason(ByRef strFailReason As String, strMessage As String)
         strFailReason = strFailReason + vbCrLf + strMessage
     End If
 End Sub
+
+
+Function getPeriodsToProcess() As Variant
+    Dim varWS As Worksheet
+    Set varWS = Worksheets("Variables (do not edit)")
+
+    Dim periodsToProcess() As Variant
+    ReDim periodsToProcess(100)
+    Dim iValidPeriods As Integer
+    iValidPeriods = 0
+    
+    Dim lRow As Long
+    For lRow = 1 To 1000 'search through variables worksheet until the time period header is found
+        If varWS.Cells(lRow, 1).Value = TIME_PERIOD_TO_PROCESS_HEADER Then
+            Exit For
+        End If
+    Next
+    
+    lRow = lRow + 2
+    If lRow < 1000 Then
+        Dim strRefPoint As String
+        Dim lStartOffset As Long
+        Dim lEndOffset As Long
+        Dim sDstWSName As String
+        Dim blnValidInputs As Boolean
+        
+        Do While varWS.Cells(lRow, 2).Value <> ""
+            blnValidInputs = True
+            
+            Select Case varWS.Cells(lRow, 2).Value
+                Case REFPOINT_LASTTRIALEND, REFPOINT_THISTRIALSTART, REFPOINT_THISTRIALEND:
+                    strRefPoint = varWS.Cells(lRow, 2).Value
+                Case Else:
+                    blnValidInputs = False
+            End Select
+            
+            If IsNumeric(varWS.Cells(lRow, 3).Value) Then
+                lStartOffset = Round(CDbl(varWS.Cells(lRow, 3).Value) * SAMPLE_RATE, 0)
+            Else
+                blnValidInputs = False
+            End If
+            
+            If IsNumeric(varWS.Cells(lRow, 4).Value) Then
+                lEndOffset = Round(CDbl(varWS.Cells(lRow, 4).Value) * SAMPLE_RATE, 0)
+            Else
+                blnValidInputs = False
+            End If
+
+            If varWS.Cells(lRow, 5).Value <> "" Then
+                sDstWSName = varWS.Cells(lRow, 5).Value
+            Else
+                blnValidInputs = False
+            End If
+                       
+            If blnValidInputs Then
+                periodsToProcess(iValidPeriods) = Array(strRefPoint, lStartOffset, lEndOffset, sDstWSName)
+                iValidPeriods = iValidPeriods + 1
+            End If
+            lRow = lRow + 1
+        Loop
+    End If
+    
+    If iValidPeriods = 0 Then
+        getPeriodsToProcess = Nothing
+    Else
+        ReDim Preserve periodsToProcess(iValidPeriods - 1)
+        getPeriodsToProcess = periodsToProcess
+    End If
+End Function
 
 
