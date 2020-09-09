@@ -8,9 +8,10 @@ Global Const REFPOINT_THISTRIALEND = "REFPOINT_THISTRIALEND"
 Const alignToZeroPoint = True
 Const avgWithXEitherSide = 2
 Const maxAllowableInstantChangeProp = 0.2
+Global Const FILTER_EXCESS_VARIABILITY = False
 
 
-Sub generateHrAtTimePoints(lTrialStartSampleOffset As Long, lRealTrialStartSampleOffset As Long, lTrialEndSampleOffset As Long, sRefPoint As String, sourceWorksheet As Worksheet, outputWSName As String, blnIsNormalised As Boolean)
+Sub generateHrAtTimePoints(lTrialStartSampleOffset As Long, lRealTrialStartSampleOffset As Long, lTrialEndSampleOffset As Long, sRefPoint As String, sourceWorksheet As Worksheet, outputWSName As String, sProcessType As String)
     Application.Calculation = xlCalculationManual
     Dim iTrialNum As Integer
     Dim lStartSample As Long
@@ -33,6 +34,7 @@ Sub generateHrAtTimePoints(lTrialStartSampleOffset As Long, lRealTrialStartSampl
     Else
         Set outputWS = Worksheets(outputWSName)
     End If
+    Call outputWS.Select
     
     Dim dStartingHR As Double
     'Dim dZeroPointHR As Double
@@ -55,7 +57,7 @@ Sub generateHrAtTimePoints(lTrialStartSampleOffset As Long, lRealTrialStartSampl
     
     outputWS.Cells(1, 1) = "Trial"
     'For l100msCounter = 0 To ((lTrialEndSampleOffset - lTrialStartSampleOffset / 200))
-    For l100msCounter = 0 To 160
+    For l100msCounter = 0 To ((lTrialEndSampleOffset - lTrialStartSampleOffset) / 200)
         outputWS.Cells(1, 2 + l100msCounter) = (l100msCounter - 80) * 100
     Next
     
@@ -66,9 +68,12 @@ Sub generateHrAtTimePoints(lTrialStartSampleOffset As Long, lRealTrialStartSampl
         lOutColNum = 1
         lInColNum = 4
         Dim bTooMuchVariability As Boolean
+        Dim sExcessVariabilityLocations As String
+        Dim bAlreadyProcessedThisSample As Boolean
         'sourceWorksheet = Worksheets("-8.5-8.5s HRs")
         If sourceWorksheet.Cells(1 + ((iTrialNum - 1) * 2), 3) <> "" Then
             bTooMuchVariability = False
+            sExcessVariabilityLocations = ""
             
             Select Case sRefPoint
                 Case REFPOINT_LASTTRIALEND:
@@ -157,29 +162,46 @@ Sub generateHrAtTimePoints(lTrialStartSampleOffset As Long, lRealTrialStartSampl
                         Next
                         dCurrValSum = dCurrValSum / iCtr
                         If (dLastVal <> 0) And Abs(dCurrVal - dLastVal) > (dLastVal * maxAllowableInstantChangeProp) Then
-                            If blnIsNormalised Then
-                                outputWS.Cells(iTrialNum + 1, lOutColNum).Value = "x" & (dCurrValSum / dStartingHR)
-                            Else
+                            If Not bAlreadyProcessedThisSample Then
+                                sExcessVariabilityLocations = sExcessVariabilityLocations & sourceWorksheet.Cells(2 + ((iTrialNum - 1) * 2), lInColNum).Address & " "
+                                bAlreadyProcessedThisSample = True
+                            End If
+                            If sProcessType = PROCESSTYPE_NORMALISED Then
+                                outputWS.Cells(iTrialNum + 1, lOutColNum).Value = (dCurrValSum / dStartingHR)
+                            ElseIf sProcessType = PROCESSTYPE_DELTA Then
                                 'outputWS.Cells(iTrialNum + 1, lOutColNum).Value = "x" & (dCurrValSum)
-                                outputWS.Cells(iTrialNum + 1, lOutColNum).Value = "x" & (dCurrValSum - dStartingHR)
+                                outputWS.Cells(iTrialNum + 1, lOutColNum).Value = (dCurrValSum - dStartingHR)
+                            ElseIf sProcessType = PROCESSTYPE_RAW Then
+                                outputWS.Cells(iTrialNum + 1, lOutColNum).Value = dCurrValSum
                             End If
                             bTooMuchVariability = True
                         Else
                             dLastVal = dCurrVal
-                            If blnIsNormalised Then
+                            If sProcessType = PROCESSTYPE_NORMALISED Then
                                 outputWS.Cells(iTrialNum + 1, lOutColNum).Value = (dCurrValSum / dStartingHR)
-                            Else
+                            ElseIf sProcessType = PROCESSTYPE_DELTA Then
                                 'outputWS.Cells(iTrialNum + 1, lOutColNum).Value = dCurrValSum
                                 outputWS.Cells(iTrialNum + 1, lOutColNum).Value = (dCurrValSum - dStartingHR)
+                            ElseIf sProcessType = PROCESSTYPE_RAW Then
+                                outputWS.Cells(iTrialNum + 1, lOutColNum).Value = dCurrValSum
                             End If
                         End If
                     End If
                 Wend
+                bAlreadyProcessedThisSample = False
                 lInColNum = lInColNum + 1
             Wend
             If bTooMuchVariability Then
-                outputWS.Range(outputWS.Cells(iTrialNum + 1, 1), outputWS.Cells(iTrialNum + 1, lOutColNum)).Clear
+                If FILTER_EXCESS_VARIABILITY Then
+                    outputWS.Range(outputWS.Cells(iTrialNum + 1, 1), outputWS.Cells(iTrialNum + 1, lOutColNum)).Clear
+                End If
                 outputWS.Cells(iTrialNum + 1, lOutColNum + 1).Value = "x"
+                sourceWorksheet.Cells(1 + ((iTrialNum - 1) * 2), 1).Value = "x"
+                sourceWorksheet.Cells(1 + ((iTrialNum - 1) * 2), 2).Value = sExcessVariabilityLocations
+            Else
+                outputWS.Cells(iTrialNum + 1, lOutColNum + 1).Value = ""
+                sourceWorksheet.Cells(1 + ((iTrialNum - 1) * 2), 1).Value = ""
+                sourceWorksheet.Cells(1 + ((iTrialNum - 1) * 2), 2).Value = ""
             End If
         End If
         iTrialNum = iTrialNum + 1
@@ -197,6 +219,9 @@ Sub generateHrAtTimePoints(lTrialStartSampleOffset As Long, lRealTrialStartSampl
         
     
 End Sub
+
+
+
 
 
 

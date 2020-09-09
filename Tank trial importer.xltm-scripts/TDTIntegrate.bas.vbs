@@ -377,8 +377,8 @@ Sub readAcousticAttens(objTTX, arrTrials, iTrialOffset, iWhichTone As Integer, s
                 If isAtten Then
                     dblAmpl = dAtten(CLng(arrTrials(iTrialOffset)(iFreqOffset))) - returnVal(0, j)
                 Else
-                    'dblAmpl = returnVal(0, j)
-                    dblAmpl = 60
+                    dblAmpl = returnVal(0, j)
+                    'dblAmpl = 60
                 End If
                 'if this is the first presentation, set it as max, min, and avg values
                 If j = 0 Then

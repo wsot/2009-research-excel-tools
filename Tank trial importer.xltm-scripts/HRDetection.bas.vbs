@@ -19,6 +19,9 @@ Global Const SAMPLE_RATE = 2000
 
 Global Const TIME_PERIOD_TO_PROCESS_HEADER = "Time periods to process"
 Global Const PLOTS_TO_GENERATE_HEADER = "Plots to generate"
+Global Const PROCESSTYPE_NORMALISED = "NORMALISED"
+Global Const PROCESSTYPE_DELTA = "DELTA"
+Global Const PROCESSTYPE_RAW = "RAW"
 
 'Const minAcceptableHR = 180
 'Const maxAcceptableHR = 650
@@ -54,7 +57,8 @@ Sub generateHrAtTimePointsA()
         Dim lEndOffset As Long
         Dim sSrcWSName As String
         Dim sDstWSName As String
-        Dim blnNormalise As Boolean
+        'Dim blnNormalise As Boolean
+        Dim sProcessType As String
         Dim blnValidInputs As Boolean
         
         Do While varWS.Cells(lRow, 2).Value <> ""
@@ -97,13 +101,21 @@ Sub generateHrAtTimePointsA()
                 blnValidInputs = False
             End If
             
-            If UCase(varWS.Cells(lRow, 8).Value) = "TRUE" Then
-                blnNormalise = True
-            ElseIf UCase(varWS.Cells(lRow, 8).Value) = "FALSE" Then
-                blnNormalise = False
-            Else
-                blnValidInputs = False
-            End If
+            Select Case UCase(varWS.Cells(lRow, 8).Value)
+                Case PROCESSTYPE_NORMALISED:
+                    sProcessType = PROCESSTYPE_NORMALISED
+                Case PROCESSTYPE_DELTA:
+                    sProcessType = PROCESSTYPE_DELTA
+                Case Else:
+                    sProcessType = PROCESSTYPE_RAW
+            End Select
+            'If UCase(varWS.Cells(lRow, 8).Value) = "TRUE" Then
+                'blnNormalise = True
+            'ElseIf UCase(varWS.Cells(lRow, 8).Value) = "FALSE" Then
+                'blnNormalise = False
+            'Else
+                'blnValidInputs = False
+            'End If
             
             If blnValidInputs Then
                 Call generateHrAtTimePoints( _
@@ -112,7 +124,7 @@ Sub generateHrAtTimePointsA()
                     lEndOffset, _
                     strRefPoint, _
                     Worksheets(sSrcWSName), _
-                    sDstWSName, blnNormalise)
+                    sDstWSName, sProcessType)
             End If
             lRow = lRow + 1
         Loop
@@ -141,6 +153,7 @@ Sub processHeartRate(periodsToProcess As Variant)
     Dim detectedHR As Double
     Dim overlyCloseBeats As Integer
     Dim abberantBeats As Integer
+    Dim arrythmicBeats As Integer
     Dim interpolations As Integer
     Dim longestInterpolation As Long
     Dim shortestInterpolation As Long
@@ -167,6 +180,9 @@ Sub processHeartRate(periodsToProcess As Variant)
     Dim abberWS As Worksheet
     Set abberWS = Worksheets("Abberant beats")
 
+    Dim arrythWS As Worksheet
+    Set arrythWS = Worksheets("Arrythmias")
+
     interpWS.UsedRange.Clear
     overbWS.UsedRange.Clear
     abberWS.UsedRange.Clear
@@ -191,6 +207,7 @@ Sub processHeartRate(periodsToProcess As Variant)
     Dim cumulativeInterpolations As Long
     Dim iOverlyCloseBeatsOffset As Long
     Dim iAbberOffset As Long
+    Dim iArrythOffset As Long
 
     Dim strErrorMsg As String
     
@@ -202,6 +219,7 @@ Sub processHeartRate(periodsToProcess As Variant)
     Do
         cumulativeInterpolations = 0
         iAbberOffset = 0
+        iArrythOffset = 0
         iOverlyCloseBeatsOffset = 0
         iOutputNum = 0
     
@@ -226,20 +244,30 @@ Sub processHeartRate(periodsToProcess As Variant)
         abberWS.Cells(2, ((iTrialNum - 1) * 5) + 2).Value = "LC Sample"
         abberWS.Cells(2, ((iTrialNum - 1) * 5) + 3).Value = "LC Time"
         abberWS.Cells(2, ((iTrialNum - 1) * 5) + 4).Value = "Beats"
-               
+
+        arrythWS.Cells(1, ((iTrialNum - 1) * 9) + 1).Value = "Trial " & iTrialNum
+        arrythWS.Cells(2, ((iTrialNum - 1) * 9) + 1).Value = "For range"
+        arrythWS.Cells(2, ((iTrialNum - 1) * 9) + 2).Value = "LC Sample"
+        arrythWS.Cells(2, ((iTrialNum - 1) * 9) + 3).Value = "LC Time"
+        arrythWS.Cells(2, ((iTrialNum - 1) * 9) + 4).Value = "Original HR 1"
+        arrythWS.Cells(2, ((iTrialNum - 1) * 9) + 5).Value = "Original HR 2"
+        arrythWS.Cells(2, ((iTrialNum - 1) * 9) + 6).Value = "Corrected HR 1"
+        arrythWS.Cells(2, ((iTrialNum - 1) * 9) + 7).Value = "Corrected HR 2"
+
         If iTrialNum > 1 Then
             For iPeriodBeingProcessed = 0 To UBound(periodsToProcess)
                 If periodsToProcess(iPeriodBeingProcessed)(0) = REFPOINT_LASTTRIALEND Then
                     thisStartPoint = lTrialSampEnd + periodsToProcess(iPeriodBeingProcessed)(1)
                     thisEndPoint = lTrialSampEnd + periodsToProcess(iPeriodBeingProcessed)(2)
                     strErrorMsg = ""
-                    Call detectHROnSelection(thisStartPoint, thisEndPoint, proportionInterpolated, detectedHR, beatCount, theStdDev, overlyCloseBeats, interpolations, abberantBeats, longestInterpolation, shortestInterpolation, interpolationDuration, interpolatedBeatsMax, interpolatedBeatsMin, interpolatedBeats, iTrialNum, CStr(periodsToProcess(iPeriodBeingProcessed)(3)), cumulativeInterpolations, iOverlyCloseBeatsOffset, iAbberOffset, strErrorMsg)
+                    Call detectHROnSelection(thisStartPoint, thisEndPoint, proportionInterpolated, detectedHR, beatCount, theStdDev, overlyCloseBeats, interpolations, abberantBeats, arrythmicBeats, longestInterpolation, shortestInterpolation, interpolationDuration, interpolatedBeatsMax, interpolatedBeatsMin, interpolatedBeats, iTrialNum, CStr(periodsToProcess(iPeriodBeingProcessed)(3)), cumulativeInterpolations, iOverlyCloseBeatsOffset, iAbberOffset, iArrythOffset, strErrorMsg)
             
                     iOutputNum = iOutputNum + 1
             
                     cumulativeInterpolations = cumulativeInterpolations + interpolations
                     iAbberOffset = iAbberOffset + abberantBeats
                     iOverlyCloseBeatsOffset = iOverlyCloseBeatsOffset + overlyCloseBeats
+                    iArrythOffset = iArrythOffset + arrythmicBeats
             
                     Worksheets("Output").Range("P" & (iTrialNum + 1)).Value = detectedHR
                     If detectedHR = -1 Or proportionInterpolated >= maxPercOfBeatsInt Or longestInterpolation >= maxSingleIntSamples Or interpolatedBeatsMax >= maxSingleIntBeats Then
@@ -333,7 +361,7 @@ Sub processHeartRate(periodsToProcess As Variant)
                 
                 If thisStartPoint > 0 Then
                         strErrorMsg = ""
-                        Call detectHROnSelection(thisStartPoint, thisEndPoint, proportionInterpolated, detectedHR, beatCount, theStdDev, overlyCloseBeats, interpolations, abberantBeats, longestInterpolation, shortestInterpolation, interpolationDuration, interpolatedBeatsMax, interpolatedBeatsMin, interpolatedBeats, iTrialNum, CStr(periodsToProcess(iPeriodBeingProcessed)(3)), cumulativeInterpolations, iOverlyCloseBeatsOffset, iAbberOffset, strErrorMsg)
+                        Call detectHROnSelection(thisStartPoint, thisEndPoint, proportionInterpolated, detectedHR, beatCount, theStdDev, overlyCloseBeats, interpolations, abberantBeats, arrythmicBeats, longestInterpolation, shortestInterpolation, interpolationDuration, interpolatedBeatsMax, interpolatedBeatsMin, interpolatedBeats, iTrialNum, CStr(periodsToProcess(iPeriodBeingProcessed)(3)), cumulativeInterpolations, iOverlyCloseBeatsOffset, iAbberOffset, iArrythOffset, strErrorMsg)
                         
                         iOutputNum = iOutputNum + 1
                 
@@ -407,7 +435,7 @@ Sub processHeartRate(periodsToProcess As Variant)
 End Sub
 
 
-Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportionInterpolated, ByRef detectedHR, ByRef beatCount, ByRef theStdDev, ByRef overlyCloseBeats, ByRef interpolations, ByRef abberantBeats, ByRef longestInterpolation, ByRef shortestInterpolation, ByRef interpolationDuration, ByRef interpolatedBeatsMax, ByRef interpolatedBeatsMin, ByRef interpolatedBeats, iTrialNum As Integer, strRangeTitle As String, iInterpOffset As Long, iOverlyCloseBeatsOffset As Long, iAbberOffset As Long, ByRef errorMsg As String)
+Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportionInterpolated, ByRef detectedHR, ByRef beatCount, ByRef theStdDev, ByRef overlyCloseBeats, ByRef interpolations, ByRef abberantBeats, ByRef arrythmicBeats, ByRef longestInterpolation, ByRef shortestInterpolation, ByRef interpolationDuration, ByRef interpolatedBeatsMax, ByRef interpolatedBeatsMin, ByRef interpolatedBeats, iTrialNum As Integer, strRangeTitle As String, iInterpOffset As Long, iOverlyCloseBeatsOffset As Long, iAbberOffset As Long, iArrythOffset As Long, ByRef errorMsg As String)
 
     detectedHR = 0
     overlyCloseBeats = 0
@@ -418,6 +446,7 @@ Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportion
     interpolatedBeatsMax = 0
     interpolatedBeatsMin = 0
     abberantBeats = 0
+    arrythmicBeats = 0
     beatCount = 0#
     proportionInterpolated = 0#
     
@@ -459,6 +488,9 @@ Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportion
     
     Dim abberWS As Worksheet
     Set abberWS = Worksheets("Abberant beats")
+    
+    Dim arrythWS As Worksheet
+    Set arrythWS = Worksheets("Arrythmias")
     
     Dim beatDuration As Long
     Dim currentBeatOffset As Long 'offset (in columns) from first beat
@@ -674,6 +706,41 @@ Sub detectHROnSelection(lStartPoint As Long, lEndPoint As Long, ByRef proportion
             interpolatedBeats = interpolatedBeats + thisInterpolationBeats
             
             prevAcceptedBeatSamp = currentBeatSamp
+        ElseIf (currentBeatSamp - prevAcceptedBeatSamp) < (beatDuration * 0.9) And (currentBeatSamp - prevAcceptedBeatSamp) > (beatDuration * 0.5) And _
+            (nextBeatSamp - currentBeatSamp) > (beatDuration * 1.1) And (nextBeatSamp - currentBeatSamp) < (beatDuration * 1.5) Then  'Is there a sharp increase then sharp decrease
+            
+            Call highlightCell(HRperbeatWS.Cells(((iTrialNum - 1) * 2) + 1, iColCounter), "Note")
+            Call highlightCell(HRperbeatWS.Cells(((iTrialNum - 1) * 2) + 2, iColCounter), "Note")
+
+            beatDuration = ((currentBeatSamp - prevAcceptedBeatSamp) + (nextBeatSamp - currentBeatSamp)) / 2
+            immediateHR = (1 / (((beatDuration) / 2000) / 60))
+            For iBeatCycler = 1 To 2
+                HRperbeatWS.Cells(((iTrialNum - 1) * 2) + 1, iColCounter).Value = (prevAcceptedBeatSamp + (iBeatCycler * beatDuration))
+                HRperbeatWS.Cells(((iTrialNum - 1) * 2) + 2, iColCounter).Value = immediateHR
+                iColCounter = iColCounter + 1
+            Next
+
+            arrythmicBeats = arrythmicBeats + 1
+
+            arrythWS.Cells(arrythmicBeats + iArrythOffset + 2, ((iTrialNum - 1) * 9) + 1).Value = strRangeTitle
+            arrythWS.Cells(arrythmicBeats + iArrythOffset + 2, ((iTrialNum - 1) * 9) + 2).Value = currentBeatSamp
+            arrythWS.Cells(arrythmicBeats + iArrythOffset + 2, ((iTrialNum - 1) * 9) + 3).Value = "'" & calculateLCTime(currentBeatSamp)
+            arrythWS.Cells(arrythmicBeats + iArrythOffset + 2, ((iTrialNum - 1) * 9) + 4).Value = (1 / ((((currentBeatSamp - prevAcceptedBeatSamp)) / 2000) / 60))
+            arrythWS.Cells(arrythmicBeats + iArrythOffset + 2, ((iTrialNum - 1) * 9) + 5).Value = (1 / ((((nextBeatSamp - currentBeatSamp)) / 2000) / 60))
+            arrythWS.Cells(arrythmicBeats + iArrythOffset + 2, ((iTrialNum - 1) * 9) + 6).Value = immediateHR
+            arrythWS.Cells(arrythmicBeats + iArrythOffset + 2, ((iTrialNum - 1) * 9) + 7).Value = immediateHR
+                    
+            If isFirstBeat Then
+                beatCount = beatCount + ((prevAcceptedBeatSamp + beatDuration - lStartPoint) / (beatDuration))   'if first beat, only include a potion of a beat matching the proportion within the set boundaries
+                isFirstBeat = False
+            ElseIf isLastBeat Then
+                beatCount = beatCount + ((prevAcceptedBeatSamp + beatDuration - lEndPoint) / (beatDuration)) 'if first beat, only include a potion of a beat matching the proportion within the set boundaries
+            Else
+                beatCount = beatCount + 2#
+            End If
+            
+            currentBeatOffset = currentBeatOffset + 1
+            prevAcceptedBeatSamp = nextBeatSamp
             
         ElseIf (currentBeatSamp - prevAcceptedBeatSamp) < (maxInterBeatUnderrun * beatDuration) Then 'is the beat smaller than the minimum variation allowed
             If (nextBeatSamp - prevAcceptedBeatSamp) < (maxInterBeatOverrun * beatDuration) And (nextBeatSamp - prevAcceptedBeatSamp) > (maxInterBeatUnderrun * beatDuration) Then
@@ -801,16 +868,45 @@ Function findStartBeatDuration(lStartColNum As Long, iTrialNum As Integer)
     HR(2) = 1 / ((((lastFourBeats(2) - lastFourBeats(3)) / 2000) / 60))
 
     'check variation is within acceptable bounds, otherwise probably missed beat
-    If (HR(1) / HR(0) > maxInterBeatOverrun) Or (HR(2) / HR(0) > maxInterBeatOverrun) Or (HR(1) / HR(0) < maxInterBeatUnderrun) Or (HR(2) / HR(0) < maxInterBeatUnderrun) Or (HR(0) > maxAcceptableHR) Or (HR(0) < minAcceptableHR) Or (HR(1) > maxAcceptableHR) Or (HR(1) < minAcceptableHR) Then
-        If (HR(2) / HR(1) > maxInterBeatOverrun) Or (HR(2) / HR(1) < maxInterBeatUnderrun) Or (HR(1) > maxAcceptableHR) Or (HR(1) < minAcceptableHR) Or (HR(2) > maxAcceptableHR) Or (HR(2) < minAcceptableHR) Then
-            beatDuration = -1
-        Else
-            beatDuration = (lastFourBeats(1) - lastFourBeats(2)) 'beat duration in samples
-        End If
-    Else
-            beatDuration = (lastFourBeats(0) - lastFourBeats(1)) 'beat duration in samples
-    End If
+'    If (HR(1) / HR(0) > maxInterBeatOverrun) Or (HR(2) / HR(0) > maxInterBeatOverrun) Or (HR(1) / HR(0) < maxInterBeatUnderrun) Or (HR(2) / HR(0) < maxInterBeatUnderrun) Or (HR(0) > maxAcceptableHR) Or (HR(0) < minAcceptableHR) Or (HR(1) > maxAcceptableHR) Or (HR(1) < minAcceptableHR) Then
+'    If (HR(1) / HR(0) > maxInterBeatOverrun) Or (HR(2) / HR(0) > maxInterBeatOverrun) Or _
+'        (HR(1) / HR(0) < maxInterBeatUnderrun) Or (HR(2) / HR(0) < maxInterBeatUnderrun) Or _
+'        (HR(0) > maxAcceptableHR) Or (HR(0) < minAcceptableHR) Or _
+'        (HR(1) > maxAcceptableHR) Or (HR(1) < minAcceptableHR) Then
+'            If (HR(2) / HR(1) > maxInterBeatOverrun) Or (HR(2) / HR(1) < maxInterBeatUnderrun) Or _
+'                (HR(1) > maxAcceptableHR) Or (HR(1) < minAcceptableHR) Or _
+'                (HR(2) > maxAcceptableHR) Or (HR(2) < minAcceptableHR) Then
+'                beatDuration = -1
+'            Else
+'                beatDuration = (lastFourBeats(1) - lastFourBeats(2)) 'beat duration in samples
+'            End If
+'    Else
+'            beatDuration = (lastFourBeats(0) - lastFourBeats(1)) 'beat duration in samples
+'    End If
 
+    If (HR(1) / HR(0) > maxInterBeatOverrun) Or (HR(0) / HR(1) > maxInterBeatOverrun) Or _
+        (HR(1) / HR(0) < maxInterBeatUnderrun) Or (HR(0) / HR(1) < maxInterBeatUnderrun) Or _
+        (HR(0) > maxAcceptableHR) Or (HR(0) < minAcceptableHR) Or _
+        (HR(1) > maxAcceptableHR) Or (HR(1) < minAcceptableHR) Then
+            If (HR(2) / HR(1) > maxInterBeatOverrun) Or (HR(1) / HR(2) > maxInterBeatOverrun) Or _
+                (HR(2) / HR(1) < maxInterBeatUnderrun) Or (HR(1) / HR(2) < maxInterBeatUnderrun) Or _
+                (HR(1) > maxAcceptableHR) Or (HR(1) < minAcceptableHR) Or _
+                (HR(2) > maxAcceptableHR) Or (HR(2) < minAcceptableHR) Then
+                    If (HR(2) / HR(0) > maxInterBeatOverrun) Or (HR(0) / HR(2) > maxInterBeatOverrun) Or _
+                        (HR(2) / HR(0) < maxInterBeatUnderrun) Or (HR(0) / HR(2) < maxInterBeatUnderrun) Or _
+                        (HR(0) > maxAcceptableHR) Or (HR(0) < minAcceptableHR) Or _
+                        (HR(2) > maxAcceptableHR) Or (HR(2) < minAcceptableHR) Then
+                            beatDuration = -1
+                    Else
+                        beatDuration = (lastFourBeats(0) - lastFourBeats(1)) 'beat duration in samples
+                    End If
+            Else
+                beatDuration = (lastFourBeats(1) - lastFourBeats(2)) 'beat duration in samples
+            End If
+    Else
+        beatDuration = (lastFourBeats(0) - lastFourBeats(1)) 'beat duration in samples
+    End If
+    
     findStartBeatDuration = beatDuration
 
 End Function
@@ -935,5 +1031,9 @@ Function getPeriodsToProcess() As Variant
         getPeriodsToProcess = periodsToProcess
     End If
 End Function
+
+
+
+
 
 
